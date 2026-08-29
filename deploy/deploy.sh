@@ -28,6 +28,24 @@ if ! bash -n .env; then
 	exit 1
 fi
 
+# npm kadang melewatkan optional dependency native saat npm ci dijalankan
+# pada Linux dengan lockfile yang dibuat di macOS. Rolldown membutuhkannya
+# saat build frontend, jadi pasang binding glibc Linux secara eksplisit jika
+# paketnya belum tersedia. --package-lock=false menjaga lockfile repository
+# tetap bersih di server.
+repair_rolldown_binding() {
+	local version
+	if [ "$(uname -s)" != "Linux" ] || [ "$(uname -m)" != "x86_64" ]; then
+		return 0
+	fi
+	version="$(node -p "require('./node_modules/rolldown/package.json').version" 2>/dev/null || true)"
+	if [ -z "$version" ] || node -e "require.resolve('@rolldown/binding-linux-x64-gnu')" >/dev/null 2>&1; then
+		return 0
+	fi
+	echo "==> Native Rolldown binding tidak ditemukan — memasang versi $version"
+	npm install --include=optional --no-save --package-lock=false --no-audit --no-fund "@rolldown/binding-linux-x64-gnu@${version}"
+}
+
 ROLLBACK="${1:-}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 if [ "$ROLLBACK" = "--rollback" ]; then
@@ -53,6 +71,7 @@ echo "==> 2/6 Install dependencies (workspaces)"
 # Vite/Rolldown membutuhkan native binding platform yang dipasang sebagai
 # optional dependency. --include=optional juga mengesampingkan omit global npm.
 npm ci --include=optional
+repair_rolldown_binding
 
 echo "==> 3/6 Build backend (apps/api)"
 npm run build:api
