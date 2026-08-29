@@ -3,6 +3,7 @@
 	import BrandLogo from '$lib/components/BrandLogo.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { isSupabaseConfigured } from '$lib/supabase';
+	import { businessContact, businessPhoneHref } from '$lib/site';
 
 	let annual = $state(false);
 	let openFaq = $state<number | null>(0);
@@ -531,6 +532,11 @@
 			<div class="lp-footer-brand">
 				<BrandLogo variant="light" />
 				<p>POS kasir kopi sederhana namun kuat dengan stok gudang terintegrasi real-time untuk UMKM coffee shop. Resmi di <a href="https://posspace.id" target="_blank" rel="noopener" style="color:var(--forest-800);font-weight:700">posspace.id</a>.</p>
+				<div class="lp-footer-contact">
+					<a href={`mailto:${businessContact.email}`}>{businessContact.email}</a>
+					<a href={businessPhoneHref}>{businessContact.phone}</a>
+					<address>{businessContact.address}</address>
+				</div>
 				<span class="lp-footer-demo">
 					<i></i>
 					{#if isSupabaseConfigured}
@@ -554,15 +560,17 @@
 				<div class="lp-footer-col">
 					<a href="#testimoni">Testimoni</a>
 					<a href="#cara-kerja">Cara kerja</a>
-					<a href="#faq">FAQ</a>
-					<a href="mailto:halo@posspace.id">Kontak</a>
+					<a href="/faq">FAQ</a>
+					<a href="/kontak">Kontak</a>
 				</div>
 			</div>
 			<div>
-				<h5>Legal</h5>
+				<h5>Verifikasi Aplikasi</h5>
 				<div class="lp-footer-col">
-					<button type="button" class="lp-linklike" onclick={() => showNotice('Kebijakan Privasi sedang disiapkan')}>Kebijakan Privasi</button>
-					<button type="button" class="lp-linklike" onclick={() => showNotice('Syarat &amp; Ketentuan sedang disiapkan')}>Syarat &amp; Ketentuan</button>
+					<a href="/faq">FAQ</a>
+					<a href="/refund-policy">Refund Policy</a>
+					<a href="/terms-and-conditions">Syarat &amp; Ketentuan</a>
+					<a href="/kontak">Kontak</a>
 					<button type="button" class="lp-linklike" onclick={() => showNotice('Semua sistem berjalan normal')}>Status Sistem</button>
 				</div>
 			</div>
@@ -575,3 +583,24 @@
 </div>
 
 <Toast message={notice} />
+
+<style>
+	.lp-footer-contact {
+		display: grid;
+		gap: 5px;
+		margin-top: 15px;
+		max-width: 280px;
+		font-size: 11px;
+		line-height: 1.5;
+	}
+
+	.lp-footer-contact a {
+		color: var(--forest-700);
+		font-weight: 700;
+	}
+
+	.lp-footer-contact address {
+		color: #7d8a80;
+		font-style: normal;
+	}
+</style>
