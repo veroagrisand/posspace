@@ -320,7 +320,10 @@ adminService.patch('/shops/:id', async (c) => {
 	return json({ ok: true, shop });
 });
 
-/** DELETE /api/admin/shops/[id] — hapus toko beserta seluruh data terkait. */
+/**
+ * DELETE /api/admin/shops/[id] — hapus toko beserta seluruh data terkait.
+ * Transaksi berbayar juga boleh dihapus; FK toko memakai ON DELETE CASCADE.
+ */
 adminService.delete('/shops/:id', async (c) => {
 	await requirePlatformAdmin(c);
 	const db = service();
@@ -333,7 +336,11 @@ adminService.delete('/shops/:id', async (c) => {
 		.select('id, name')
 		.single();
 
-	if (deleteError || !shop) httpError(500, 'DELETE_FAILED');
+	if (deleteError) {
+		console.error('[admin] gagal menghapus toko:', deleteError.message);
+		httpError(500, 'DELETE_FAILED');
+	}
+	if (!shop) httpError(404, 'SHOP_NOT_FOUND');
 	return json({ ok: true, deleted: shop });
 });
 

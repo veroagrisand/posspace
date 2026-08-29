@@ -174,6 +174,7 @@ tail -f /var/log/nginx/access.log
 
 - [ ] `ALLOW_DEMO_MODE=false`, `ALLOW_MOCK_PAYMENT=false`, `ALLOW_MANUAL_ACTIVATION=false`, `ALLOW_OTP_DEBUG=false`
 - [ ] iPaymu produksi: `IPAYMU_VA`, `IPAYMU_API_KEY`, `IPAYMU_BASE_URL=https://my.ipaymu.com`
+- [ ] Supabase Dashboard > Authentication > Providers > Email: aktifkan **Prevent use of leaked passwords**
 - [ ] SSH root dinonaktifkan (`PermitRootLogin no`) — masuk via user `deploy`/sudo
 - [ ] Password SSH dinonaktifkan (`PasswordAuthentication no`) — hanya key
 - [ ] Deploy key GitHub diberi forced command (`auto-deploy.sh`)

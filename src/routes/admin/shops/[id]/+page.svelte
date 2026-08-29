@@ -37,6 +37,7 @@
 	let editError = $state('');
 	let editForm = $state({ name: '', address: '', phone: '', currency: 'IDR' });
 	let deleteBusy = $state(false);
+	let actionError = $state('');
 	const shopId = $derived(page.params.id);
 
 	$effect(() => {
@@ -94,14 +95,19 @@
 	async function deleteShop() {
 		if (!confirm(`Hapus toko "${data?.shop.name}" beserta SEMUA data, termasuk transaksi berbayar? Tindakan ini tidak bisa dibatalkan.`)) return;
 		deleteBusy = true;
+		actionError = '';
 		try {
 			const res = await fetch(`/api/admin/shops/${shopId}`, { method: 'DELETE' });
 			const json = await res.json().catch(() => ({}));
-			if (!res.ok) throw new Error(json.message ?? 'Gagal menghapus toko');
+			if (!res.ok) {
+				const message = json.message === 'SHOP_HAS_PAID_TRANSACTIONS'
+					? 'Backend masih menjalankan versi lama. Deploy ulang API agar toko dengan transaksi berbayar dapat dihapus.'
+					: json.message ?? 'Gagal menghapus toko';
+				throw new Error(message);
+			}
 			window.location.href = '/admin/shops';
 		} catch (e) {
-			editError = e instanceof Error ? e.message : String(e);
-			editOpen = true;
+			actionError = e instanceof Error ? e.message : String(e);
 		} finally {
 			deleteBusy = false;
 		}
@@ -189,6 +195,9 @@
 {:else if !data}
 	<div class="admin-loading">Memuat detail toko...</div>
 {:else}
+	{#if actionError}
+		<div class="admin-panel"><div class="admin-empty">{actionError}</div></div>
+	{/if}
 	<div class="admin-grid">
 		<section class="admin-cards" aria-label="Metrik toko">
 			<article class="admin-card">

@@ -26,8 +26,8 @@ async function makeUser(name, asAdmin) {
 }
 const cleanup = async (u) => { try { await SERVICE.auth.admin.deleteUser(u.id); } catch {} };
 
-const call = async (path, cookie) => {
-	const res = await fetch(BASE + path, { headers: { Cookie: cookie } });
+const call = async (path, cookie, method = 'GET') => {
+	const res = await fetch(BASE + path, { method, headers: { Cookie: cookie } });
 	const body = await res.json().catch(() => ({}));
 	return { status: res.status, body };
 };
@@ -42,6 +42,44 @@ ok('overview punya revenue 14 hari', Array.isArray(ov.body.revenue) && ov.body.r
 
 const list = await call('/api/admin/shops', admin.cookie);
 ok('GET /api/admin/shops → 200 + array', list.status === 200 && Array.isArray(list.body.shops));
+
+// Regresi: toko dengan transaksi berbayar tetap boleh dihapus oleh platform admin.
+let deletionShopId = '';
+try {
+	const { data: deletionShop, error: deletionShopError } = await SERVICE
+		.from('shops')
+		.insert({ name: `Smoke Delete ${Date.now()}` })
+		.select('id')
+		.single();
+	deletionShopId = deletionShop?.id ?? '';
+	if (deletionShopError || !deletionShopId) {
+		ok('setup toko transaksi berbayar', false, deletionShopError?.message ?? 'toko tidak dibuat');
+	} else {
+		const { error: paidTxnError } = await SERVICE.from('transactions').insert({
+			shop_id: deletionShopId,
+			profile_id: admin.user.id,
+			receipt_no: `SMOKE-DELETE-${Date.now()}`,
+			total_amount: 1000,
+			payment_method: 'cash',
+			payment_status: 'paid',
+			paid_at: new Date().toISOString(),
+			status: 'completed'
+		});
+		if (paidTxnError) {
+			ok('setup transaksi berbayar', false, paidTxnError.message);
+		} else {
+			const deletion = await call(`/api/admin/shops/${deletionShopId}`, admin.cookie, 'DELETE');
+			ok('hapus toko dengan transaksi berbayar → 200', deletion.status === 200, `status ${deletion.status}`);
+			const { data: remainingShop } = await SERVICE.from('shops').select('id').eq('id', deletionShopId).maybeSingle();
+			ok('toko dan data terkait terhapus', !remainingShop);
+		}
+	}
+} finally {
+	if (deletionShopId) {
+		await SERVICE.from('transactions').delete().eq('shop_id', deletionShopId);
+		await SERVICE.from('shops').delete().eq('id', deletionShopId);
+	}
+}
 
 const shopId = list.body.shops?.[0]?.id;
 if (shopId) {

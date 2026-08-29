@@ -18,6 +18,7 @@
 
 	let shops = $state<Shop[] | null>(null);
 	let error = $state('');
+	let actionError = $state('');
 	let search = $state('');
 	let busyId = $state('');
 
@@ -36,13 +37,19 @@
 		if (busyId) return;
 		if (!confirm(`Hapus toko "${s.name}" beserta SEMUA data, termasuk transaksi berbayar? Tindakan ini tidak bisa dibatalkan.`)) return;
 		busyId = s.id;
+		actionError = '';
 		try {
 			const res = await fetch(`/api/admin/shops/${s.id}`, { method: 'DELETE' });
 			const json = await res.json().catch(() => ({}));
-			if (!res.ok) throw new Error(json.message ?? 'Gagal menghapus toko');
+			if (!res.ok) {
+				const message = json.message === 'SHOP_HAS_PAID_TRANSACTIONS'
+					? 'Backend masih menjalankan versi lama. Deploy ulang API agar toko dengan transaksi berbayar dapat dihapus.'
+					: json.message ?? 'Gagal menghapus toko';
+				throw new Error(message);
+			}
 			shops = (shops ?? []).filter((x) => x.id !== s.id);
 		} catch (e) {
-			error = e instanceof Error ? e.message : String(e);
+			actionError = e instanceof Error ? e.message : String(e);
 		} finally {
 			busyId = '';
 		}
@@ -84,6 +91,9 @@
 {:else if !shops}
 	<div class="admin-loading">Memuat daftar toko...</div>
 {:else}
+	{#if actionError}
+		<div class="admin-panel"><div class="admin-empty">{actionError}</div></div>
+	{/if}
 	<section class="admin-panel">
 		<div class="admin-panel-head">
 			<div>

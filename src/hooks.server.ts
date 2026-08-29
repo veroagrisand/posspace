@@ -1,9 +1,10 @@
-import { createSsbSupabase, isSupabaseConfigured } from '$lib/server/supabase';
+import { createServiceClient, createSsbSupabase, isSupabaseConfigured } from '$lib/server/supabase';
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 
 const isProd = env.NODE_ENV === 'production';
+const serviceDb = isSupabaseConfigured ? createServiceClient() : null;
 
 /** CSP pragmatis: tetap mengizinkan gaya inline (SvelteKit) + koneksi Supabase/Realtime/iPaymu. */
 function buildCsp(): string {
@@ -62,10 +63,10 @@ function getClientIp(event: RequestEvent): string {
 
 /**
  * Catat request ke tabel access_logs (fire-and-forget, tidak memblokir respons).
- * Pakai RPC security definer (log_access) agar bisa menulis tanpa RLS.
+ * Pakai klien service role karena log_access hanya boleh dipanggil server.
  */
 async function logRequest(
-	supabase: App.Locals['supabase'],
+	db: ReturnType<typeof createServiceClient> | null,
 	entry: {
 		method: string;
 		path: string;
@@ -78,9 +79,9 @@ async function logRequest(
 		errorMsg?: string;
 	}
 ) {
-	if (!supabase) return;
+	if (!db) return;
 	try {
-		const { error } = await supabase.rpc('log_access', {
+		const { error } = await db.rpc('log_access', {
 			p_method: entry.method,
 			p_path: entry.path,
 			p_status: entry.status,
@@ -140,7 +141,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// ===== Access log halaman (API /api/* dicatat oleh gateway — tidak double) =====
 	if (!event.url.pathname.startsWith('/api/') && shouldLogRequest(event.url.pathname)) {
-		void logRequest(event.locals.supabase, {
+		void logRequest(serviceDb, {
 			method: event.request.method,
 			path: `${event.url.pathname}${event.url.search}`,
 			status: response.status,
