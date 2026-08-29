@@ -2,7 +2,7 @@
 # ============================================================
 # Deploy posspace microservices ke VPS (manual / via auto-deploy)
 #
-# 1) Siapkan server (sekali):  sudo bash deploy/init-server.sh
+# 1) Siapkan server (sekali):  sudo env DOMAIN=... GIT_REPO=... bash deploy/init-server.sh
 # 2) Deploy rilis:             bash deploy/deploy.sh
 # 3) Auto-deploy:              push ke branch main di GitHub
 #                              (workflow .github/workflows/deploy.yml
@@ -23,8 +23,13 @@ else
 fi
 
 [ -f .env ] || { echo "ERROR: file .env belum ada di $PWD."; echo "       cp .env.example .env lalu isi kredensial."; exit 1; }
+if ! bash -n .env; then
+	echo "ERROR: format .env tidak valid untuk shell. Kutip nilai yang berisi spasi atau karakter seperti < dan >."
+	exit 1
+fi
 
 ROLLBACK="${1:-}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
 if [ "$ROLLBACK" = "--rollback" ]; then
 	if [ ! -f .last-release ]; then
 		echo "ERROR: tidak ada .last-release (belum pernah deploy sukses)."
@@ -38,14 +43,16 @@ fi
 if [ "$ROLLBACK" != "1" ]; then
 	echo "==> 1/6 Git pull (ff-only)"
 	git fetch origin || echo "(tanpa remote origin — lanjut dengan kode yang ada)"
-	git pull --ff-only origin main 2>/dev/null || echo "(pull dilewati / tidak ada remote)"
+	git pull --ff-only origin "$GIT_BRANCH" 2>/dev/null || echo "(pull dilewati / tidak ada remote)"
 else
 	echo "==> 1/6 Rollback mode — pull dilewati"
 fi
 PREV_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 
 echo "==> 2/6 Install dependencies (workspaces)"
-npm ci --omit=optional || npm install
+# Vite/Rolldown membutuhkan native binding platform yang dipasang sebagai
+# optional dependency. --include=optional juga mengesampingkan omit global npm.
+npm ci --include=optional
 
 echo "==> 3/6 Build backend (apps/api)"
 npm run build:api

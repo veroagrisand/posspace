@@ -14,17 +14,9 @@ GIT_BRANCH="${GIT_BRANCH:-main}"
 
 cd "$APP_DIR"
 
-exec 9>"${APP_DIR}/deploy.lock"
-if command -v flock >/dev/null 2>&1; then
-	flock -n 9 || { echo "Deploy lain sedang berjalan."; exit 1; }
-	trap 'rm -f "${APP_DIR}/deploy.lock"' EXIT
-fi
-
-echo "[auto-deploy] pull origin/$GIT_BRANCH"
-git fetch origin
-git pull --ff-only origin "$GIT_BRANCH"
-
-echo "[auto-deploy] jalankan deploy.sh"
-bash "${APP_DIR}/deploy/deploy.sh"
+echo "[auto-deploy] jalankan deploy.sh untuk origin/$GIT_BRANCH"
+# Lock dan git pull ditangani satu kali oleh deploy.sh. Lock terpisah di sini
+# akan membuat deploy.sh menganggap dirinya dijalankan bersamaan dengan deploy lain.
+exec env GIT_BRANCH="$GIT_BRANCH" bash "${APP_DIR}/deploy/deploy.sh"
 
 echo "[auto-deploy] selesai — $(date -u +%FT%TZ)"

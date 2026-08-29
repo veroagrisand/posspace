@@ -42,7 +42,14 @@ paymentService.post('/ipaymu/invoice', async (c) => {
 		product: 'Pembayaran posspace',
 		buyerName: ctx.shop.shopName,
 		buyerEmail: ctx.user.email,
-		notifyUrl: `${new URL(c.req.url).protocol}//${c.req.header('x-forwarded-host') ?? c.req.header('host') ?? ''}/api/payments/ipaymu/callback`,
+		// API menerima request internal dari SvelteKit, jadi gunakan host/protokol
+		// asli yang diteruskan Nginx agar callback gateway tetap menuju HTTPS publik.
+		notifyUrl: (() => {
+			const requestUrl = new URL(c.req.url);
+			const protocol = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim() ?? requestUrl.protocol.replace(':', '');
+			const host = c.req.header('x-forwarded-host') ?? c.req.header('host') ?? requestUrl.host;
+			return `${protocol}://${host}/api/payments/ipaymu/callback`;
+		})(),
 		returnUrl: '',
 		cancelUrl: '',
 		paymentMethod: 'qris',

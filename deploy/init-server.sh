@@ -3,10 +3,10 @@
 # Provisioning VPS Hostinger FRESH (Ubuntu 22.04/24.04) — sekali jalan.
 #
 # Penggunaan (jalankan sebagai user sudo/root):
-#   sudo bash deploy/init-server.sh \
-#       DOMAIN=posspace.id \
+#   sudo env DOMAIN=posspace.id \
 #       GIT_REPO=git@github.com:AKUN/posspace.git \
-#       ADMIN_EMAIL=admin@posspace.id
+#       ADMIN_EMAIL=admin@posspace.id \
+#       bash deploy/init-server.sh
 #
 # Parameter (via env):
 #   DOMAIN       (wajib) domain utama, mis. posspace.id
@@ -14,6 +14,7 @@
 #   GIT_BRANCH   branch deploy, default main
 #   ADMIN_EMAIL  untuk notifikasi certbot, default admin@DOMAIN
 #   SKIP_SSL=1   lewati certbot (pasang TLS manual nanti)
+#   CERT_NAME   nama lineage certbot, default DOMAIN
 #   APP_USER     user deploy, default "deploy"
 #   APP_DIR      direktori aplikasi, default /var/www/posspace
 # Idempotent: aman dijalankan ulang.
@@ -27,14 +28,43 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-admin@${DOMAIN}}"
 SKIP_SSL="${SKIP_SSL:-0}"
 APP_USER="${APP_USER:-deploy}"
 APP_DIR="${APP_DIR:-/var/www/posspace}"
+NGINX_CONFIG="${NGINX_CONFIG:-$APP_DIR/deploy/nginx.conf}"
+NGINX_BOOTSTRAP_CONFIG="${NGINX_BOOTSTRAP_CONFIG:-$APP_DIR/deploy/nginx-bootstrap.conf}"
 
 if [ -z "$DOMAIN" ] || [ -z "$GIT_REPO" ]; then
 	echo "ERROR: DOMAIN dan GIT_REPO wajib diisi."
-	echo "Contoh: sudo bash deploy/init-server.sh DOMAIN=posspace.id GIT_REPO=git@github.com:user/posspace.git"
+	echo "Contoh: sudo env DOMAIN=posspace.id GIT_REPO=git@github.com:user/posspace.git bash deploy/init-server.sh"
 	exit 1
 fi
 
+CERT_NAME="${CERT_NAME:-$DOMAIN}"
+if [ "$CERT_NAME" = "$DOMAIN" ] && sudo test -d "/etc/letsencrypt/live/$CERT_NAME" \
+	&& ! sudo test -f "/etc/letsencrypt/renewal/$CERT_NAME.conf"; then
+	# Folder live lama bisa berasal dari sertifikat self-signed dan membuat
+	# certbot menolak membuat lineage dengan nama domain yang sama.
+	CERT_NAME="${DOMAIN}-letsencrypt"
+	echo "(folder sertifikat lama terdeteksi — memakai lineage $CERT_NAME)"
+fi
+CERT_DIR="/etc/letsencrypt/live/$CERT_NAME"
+
 log() { echo -e "\n\033[1;32m==> $*\033[0m"; }
+
+has_tls_certificate() {
+	sudo test -s "$CERT_DIR/fullchain.pem" && sudo test -s "$CERT_DIR/privkey.pem"
+}
+
+install_nginx_config() {
+	local source="$1"
+	if [ ! -f "$source" ]; then
+		echo "ERROR: konfigurasi Nginx tidak ditemukan: $source"
+		exit 1
+	fi
+	sudo cp "$source" /etc/nginx/sites-available/posspace
+	sudo sed -i "s/posspace\.id/$DOMAIN/g" /etc/nginx/sites-available/posspace
+	sudo sed -i "s#live/$DOMAIN/#live/$CERT_NAME/#g" /etc/nginx/sites-available/posspace
+	sudo ln -sf /etc/nginx/sites-available/posspace /etc/nginx/sites-enabled/posspace
+	sudo rm -f /etc/nginx/sites-enabled/default
+}
 
 log "1/12 Update sistem & paket dasar"
 export DEBIAN_FRONTEND=noninteractive
@@ -83,13 +113,14 @@ if [ ! -f "$APP_DIR/.env" ]; then
 fi
 
 log "8/12 Nginx reverse proxy"
-if [ -f /etc/nginx/sites-available/posspace ]; then
-	sudo rm -f /etc/nginx/sites-available/posspace
+sudo mkdir -p /var/www/certbot
+if has_tls_certificate; then
+	install_nginx_config "$NGINX_CONFIG"
+else
+	# Nginx harus hidup dengan HTTP saja agar Let's Encrypt dapat memvalidasi
+	# domain sebelum file sertifikat dipakai oleh konfigurasi HTTPS.
+	install_nginx_config "$NGINX_BOOTSTRAP_CONFIG"
 fi
-sudo cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/sites-available/posspace
-sudo sed -i "s/posspace\.id/$DOMAIN/g" /etc/nginx/sites-available/posspace
-sudo ln -sf /etc/nginx/sites-available/posspace /etc/nginx/sites-enabled/posspace
-sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl enable nginx >/dev/null 2>&1 || true
 sudo systemctl reload nginx
@@ -103,16 +134,21 @@ sudo ufw status | head -8
 
 log "10/12 TLS via Let's Encrypt (certbot)"
 if [ "$SKIP_SSL" = "1" ]; then
-	echo "(dilewati — SKIP_SSL=1; jalankan nanti: sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN)"
+	echo "(dilewati — SKIP_SSL=1; jalankan nanti: sudo certbot certonly --webroot -w /var/www/certbot -d $DOMAIN -d www.$DOMAIN)"
 else
 	sudo apt-get install -y -qq certbot python3-certbot-nginx >/dev/null
-	sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
-		--redirect --agree-tos --non-interactive -m "$ADMIN_EMAIL"
+	sudo certbot certonly --webroot -w /var/www/certbot \
+		--cert-name "$CERT_NAME" \
+		-d "$DOMAIN" -d "www.$DOMAIN" \
+		--keep-until-expiring --agree-tos --non-interactive -m "$ADMIN_EMAIL"
+	install_nginx_config "$NGINX_CONFIG"
+	sudo nginx -t
+	sudo systemctl reload nginx
 fi
 
 log "11/12 Deploy pertama"
 if grep -q '^SUPABASE_URL=.' "$APP_DIR/.env"; then
-	sudo -u "$APP_USER" bash "$APP_DIR/deploy/deploy.sh"
+	sudo -u "$APP_USER" env GIT_BRANCH="$GIT_BRANCH" bash "$APP_DIR/deploy/deploy.sh"
 else
 	echo "(.env belum berisi SUPABASE_URL — deploy manual nanti: bash deploy/deploy.sh)"
 fi

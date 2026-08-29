@@ -116,7 +116,7 @@ SMTP_PORT=465
 SMTP_SECURE=true
 SMTP_USER=no-reply@domainanda.id
 SMTP_PASS=password_email_anda
-SMTP_FROM=posspace <no-reply@domainanda.id>
+SMTP_FROM="posspace <no-reply@domainanda.id>"
 OTP_TTL_MINUTES=10
 ALLOW_OTP_DEBUG=false
 ```

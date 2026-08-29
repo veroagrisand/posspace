@@ -35,13 +35,15 @@ domain sudah diarahkan (A record → IP VPS), repo sudah ada di GitHub.
 Masuk ke VPS lalu jalankan satu perintah:
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/NAMA_AKUN/posspace/main/deploy/init-server.sh)" \
-    DOMAIN=posspace.id \
-    GIT_REPO=git@github.com:NAMA_AKUN/posspace.git \
-    ADMIN_EMAIL=admin@posspace.id
+curl -fsSL https://raw.githubusercontent.com/NAMA_AKUN/posspace/main/deploy/init-server.sh \
+  | sudo env DOMAIN=posspace.id \
+      GIT_REPO=git@github.com:NAMA_AKUN/posspace.git \
+      ADMIN_EMAIL=admin@posspace.id \
+      bash
 ```
 
-Atau jika repo sudah dikloning di VPS: `sudo bash deploy/init-server.sh DOMAIN=... GIT_REPO=...`
+Atau jika repo sudah dikloning di VPS:
+`sudo env DOMAIN=... GIT_REPO=... bash deploy/init-server.sh`
 
 Skrip ini (idempotent, aman diulang) melakukan:
 
@@ -54,9 +56,9 @@ Skrip ini (idempotent, aman diulang) melakukan:
 | 5 | Direktori `/var/www/posspace` + `/var/log/posspace` |
 | 6 | Clone repo & checkout branch `main` |
 | 7 | Salin `.env.example` → `.env` — **Anda mengisi kredensial di sini** (Supabase, iPaymu, SMTP; `ALLOW_*` = false) |
-| 8 | Nginx reverse proxy (dari `deploy/nginx.conf`, domain di-substitusi) |
+| 8 | Nginx reverse proxy (bootstrap HTTP, domain di-substitusi) |
 | 9 | Firewall ufw: hanya 22/80/443 |
-| 10 | TLS Let's Encrypt (certbot) — otomatis redirect HTTPS |
+| 10 | TLS Let's Encrypt (certbot webroot) — otomatis redirect HTTPS |
 | 11 | Deploy pertama (build + PM2 reload + health check) |
 | 12 | PM2 startup (auto-restart saat reboot) |
 
@@ -103,7 +105,7 @@ Skrip ini: membuat `~/.ssh/posspace_deploy` (ed25519), lalu mencetak:
 `.github/workflows/deploy.yml` sudah tersedia di repo:
 
 - **Trigger:** push ke `main` + manual (`workflow_dispatch`).
-- **Alur:** SSH → `bash deploy/deploy.sh` (pull → npm ci → build api+web →
+- **Alur:** SSH → `bash deploy/deploy.sh` (pull → npm ci `--include=optional` → build api+web →
   pm2 reload → health check).
 - **Keamanan:** concurrency group mencegah tumpang-tindih; deploy.sh memegang
   file lock (`deploy.lock`) sehingga deploy manual + auto tidak bentrok.
@@ -160,6 +162,7 @@ tail -f /var/log/nginx/access.log
 | `ERROR: .env belum ada` | Jalankan `init-server.sh`, atau `cp .env.example .env` + isi di VPS |
 | Nginx 502 Bad Gateway | `pm2 status` — pastikan dua proses online; cek `pm2 logs posspace-web` |
 | Halaman loading terus / API 503 `API_UNAVAILABLE` | Gateway mati: `pm2 restart posspace-api`; cek `curl 127.0.0.1:3001/health` |
+| Build `Cannot find native binding` | Hapus `node_modules`, lalu jalankan `npm ci --include=optional` sebelum build ulang |
 | Certbot gagal | Domain belum mengarah ke VPS (A record). Cek `dig A domain` |
 | `git pull` menolak (local changes) | Jangan edit file di `/var/www/posspace` langsung; jika terlanjur: `git reset --hard origin/main` |
 | `.env` tidak terbaca (karakter khusus) | Beri tanda kutip pada nilai yang mengandung `#`/spasi |
