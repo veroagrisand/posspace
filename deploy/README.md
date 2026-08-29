@@ -116,6 +116,9 @@ Setelah secrets terisi, cukup **push ke main**:
 git push origin main
 ```
 
+`VPS_SSH_KEY` harus dibuat di bagian **Repository secrets**, bukan **Variables**
+atau environment lain, karena workflow membacanya melalui `secrets.VPS_SSH_KEY`.
+
 Pantau: tab **Actions** di GitHub → run "Auto Deploy ke VPS".
 
 ---
