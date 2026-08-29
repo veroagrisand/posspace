@@ -92,7 +92,7 @@
 	}
 
 	async function deleteShop() {
-		if (!confirm(`Hapus toko "${data?.shop.name}" beserta SEMUA datanya? Tindakan ini tidak bisa dibatalkan.`)) return;
+		if (!confirm(`Hapus toko "${data?.shop.name}" beserta SEMUA data, termasuk transaksi berbayar? Tindakan ini tidak bisa dibatalkan.`)) return;
 		deleteBusy = true;
 		try {
 			const res = await fetch(`/api/admin/shops/${shopId}`, { method: 'DELETE' });

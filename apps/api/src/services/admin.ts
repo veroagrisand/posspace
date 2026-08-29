@@ -320,20 +320,11 @@ adminService.patch('/shops/:id', async (c) => {
 	return json({ ok: true, shop });
 });
 
-/** DELETE /api/admin/shops/[id] — hapus toko (tanpa transaksi lunas). */
+/** DELETE /api/admin/shops/[id] — hapus toko beserta seluruh data terkait. */
 adminService.delete('/shops/:id', async (c) => {
 	await requirePlatformAdmin(c);
 	const db = service();
 	const shopId = c.req.param('id');
-
-	const { data: paidTx } = await db
-		.from('transactions')
-		.select('id')
-		.eq('shop_id', shopId)
-		.eq('payment_status', 'paid')
-		.limit(1)
-		.maybeSingle();
-	if (paidTx) httpError(409, 'SHOP_HAS_PAID_TRANSACTIONS');
 
 	const { data: shop, error: deleteError } = await db
 		.from('shops')

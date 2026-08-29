@@ -34,7 +34,7 @@
 
 	async function deleteShop(s: Shop) {
 		if (busyId) return;
-		if (!confirm(`Hapus toko "${s.name}" beserta SEMUA datanya? Tindakan ini tidak bisa dibatalkan.`)) return;
+		if (!confirm(`Hapus toko "${s.name}" beserta SEMUA data, termasuk transaksi berbayar? Tindakan ini tidak bisa dibatalkan.`)) return;
 		busyId = s.id;
 		try {
 			const res = await fetch(`/api/admin/shops/${s.id}`, { method: 'DELETE' });
