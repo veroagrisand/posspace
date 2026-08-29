@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#20372b" />
+    <title>posspace - Kasir Cepat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navigasi utama">
+        <a class="brand" href="#" aria-label="posspace">
+          <span class="brand-mark" aria-hidden="true">ps</span>
+          <span class="brand-copy">
+            <strong>pos</strong><small>space</small>
+          </span>
+        </a>
+
+        <div class="sidebar-label">Menu utama</div>
+        <nav class="sidebar-nav">
+          <button class="nav-item active" type="button" data-module="Kasir Cepat" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" />
+              <path d="M7.5 8h9M7.5 12h2M12 12h2M16.5 12h.01M7.5 16h2M12 16h2M16.5 16h.01" />
+            </svg>
+            <span>Kasir</span>
+          </button>
+          <button class="nav-item" type="button" data-module="Ringkasan Dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 19V9.5M10 19V5M16 19v-7M22 19V3" />
+              <path d="M3 19.5h20" />
+            </svg>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item" type="button" data-module="Menu &amp; Resep">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" />
+              <path d="M8 8h8M8 12h8M8 16h4" />
+            </svg>
+            <span>Menu &amp; resep</span>
+          </button>
+          <button class="nav-item" type="button" data-module="Inventaris">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m4 8 8-4 8 4-8 4-8-4Z" />
+              <path d="m4 12 8 4 8-4M4 16l8 4 8-4" />
+            </svg>
+            <span>Inventaris</span>
+            <span class="nav-badge">3</span>
+          </button>
+          <button class="nav-item" type="button" data-module="Laporan &amp; Keuangan">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3.5h9L19 7v13.5H6V3.5Z" />
+              <path d="M14 3.5V8h5M9 12h7M9 15.5h7" />
+            </svg>
+            <span>Laporan</span>
+          </button>
+          <button class="nav-item" type="button" data-module="Pengaturan">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" />
+              <path d="m19.4 15 .06.03a1.7 1.7 0 0 1-.62 3.1l-.62.1a1.7 1.7 0 0 1-1.58-.7l-.35-.5a7.6 7.6 0 0 1-1.7 1l-.07.6a1.7 1.7 0 0 1-3.15.65l-.3-.54a7.8 7.8 0 0 1-1.96-.02l-.31.54a1.7 1.7 0 0 1-3.14-.66l-.07-.61a7.7 7.7 0 0 1-1.68-.99l-.52.31a1.7 1.7 0 0 1-2.53-1.91l.2-.6a7.8 7.8 0 0 1-.98-1.7l-.6-.07a1.7 1.7 0 0 1-.66-3.14l.54-.31a7.7 7.7 0 0 1 .02-1.96l-.54-.31a1.7 1.7 0 0 1 .66-3.14l.6-.07a7.8 7.8 0 0 1 .99-1.68l-.31-.52a1.7 1.7 0 0 1 1.91-2.53l.6.2a7.8 7.8 0 0 1 1.7-.98l.07-.6a1.7 1.7 0 0 1 3.14-.66l.31.54a7.7 7.7 0 0 1 1.96.02l.31-.54a1.7 1.7 0 0 1 3.14.66l.07.6a7.7 7.7 0 0 1 1.68.99l.52-.31a1.7 1.7 0 0 1 2.53 1.91l-.2.6a7.8 7.8 0 0 1 .98 1.7l.6.07a1.7 1.7 0 0 1 .66 3.14l-.54.31a7.7 7.7 0 0 1-.02 1.96l.54.31" />
+            </svg>
+            <span>Pengaturan</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="offline-card">
+            <div class="offline-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M5 9.5a10.7 10.7 0 0 1 14 0M8 13a6.2 6.2 0 0 1 8 0M11 16.5a1.7 1.7 0 0 1 2 0M3 6a14.5 14.5 0 0 1 18 0" />
+              </svg>
+            </div>
+            <div>
+              <strong>Data tersinkron</strong>
+              <span>Semua perangkat online</span>
+            </div>
+            <span class="online-dot" aria-label="Online"></span>
+          </div>
+          <div class="profile-card">
+            <span class="avatar avatar-rina">RA</span>
+            <span class="profile-copy">
+              <strong>Rina Anjani</strong>
+              <small>Kasir / Barista</small>
+            </span>
+            <button class="icon-button profile-more" type="button" aria-label="Menu profil">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
+                <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+                <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumbs" aria-label="Breadcrumb">
+            <span>Operasional</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+            <strong>Kasir cepat</strong>
+          </div>
+          <div class="topbar-actions">
+            <div class="sync-status">
+              <span class="sync-pulse"></span>
+              <span>Live sync</span>
+              <small id="syncTime">2 detik lalu</small>
+            </div>
+            <button class="icon-button notification-button" type="button" aria-label="Lihat notifikasi" data-toast="Tidak ada notifikasi baru">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+              </svg>
+              <span class="notification-dot"></span>
+            </button>
+            <span class="topbar-avatar avatar avatar-rina">RA</span>
+          </div>
+        </header>
+
+        <div class="page-content">
+          <section class="page-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> SHIFT PAGI <span class="eyebrow-separator">/</span> 08:00 - 16:00</div>
+              <h1>Kasir cepat, stok tetap tepat.</h1>
+              <p>Selamat pagi, Rina. Layani pesanan berikutnya dengan lebih ringan.</p>
+            </div>
+            <div class="heading-actions">
+              <div class="shift-pill"><span></span><strong>Shift aktif</strong><small>Rp 500.000 awal</small></div>
+              <button class="button button-secondary" type="button" id="closeShiftButton">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 8 17.5V15M4 12h9M9.5 8.5 13 12l-3.5 3.5" /></svg>
+                Tutup shift
+              </button>
+            </div>
+          </section>
+
+          <section class="metrics-grid" aria-label="Ringkasan hari ini">
+            <article class="metric-card metric-revenue">
+              <div class="metric-topline"><span class="metric-label">Omzet hari ini</span><span class="metric-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg>
+              </span></div>
+              <strong class="metric-value" id="revenueValue">Rp 8.420.000</strong>
+              <div class="metric-meta"><span class="trend-up">+12,8%</span><span>vs. kemarin</span></div>
+            </article>
+            <article class="metric-card metric-orders">
+              <div class="metric-topline"><span class="metric-label">Pesanan hari ini</span><span class="metric-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg>
+              </span></div>
+              <strong class="metric-value" id="ordersValue">124 <small>transaksi</small></strong>
+              <div class="metric-meta"><span class="trend-up">+8</span><span>sejak pukul 08.00</span></div>
+            </article>
+            <article class="metric-card metric-profit">
+              <div class="metric-topline"><span class="metric-label">HPP hari ini</span><span class="metric-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
+              </span></div>
+              <strong class="metric-value">31,6% <small>dari omzet</small></strong>
+              <div class="metric-meta"><span class="trend-good">Dalam target</span><span>target &lt; 35%</span></div>
+            </article>
+            <article class="metric-card metric-stock">
+              <div class="metric-topline"><span class="metric-label">Stok perlu perhatian</span><span class="metric-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 20H3L12 4Z" /><path d="M12 10v4M12 17h.01" /></svg>
+              </span></div>
+              <strong class="metric-value">3 <small>bahan</small></strong>
+              <div class="metric-meta"><span class="trend-alert">Segera cek</span><span>2 kritis, 1 menipis</span></div>
+            </article>
+          </section>
+
+          <section class="workspace-grid" aria-label="Kasir dan pesanan">
+            <article class="panel menu-panel">
+              <div class="panel-heading menu-heading">
+                <div>
+                  <div class="section-kicker">KATALOG MENU</div>
+                  <h2>Pilih menu</h2>
+                </div>
+                <button class="text-button" type="button" data-toast="Pengaturan menu akan tersedia di modul Menu &amp; Resep">
+                  Atur menu
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </button>
+              </div>
+              <div class="menu-toolbar">
+                <label class="search-box">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+                  <input id="menuSearch" type="search" placeholder="Cari menu atau kategori..." autocomplete="off" />
+                </label>
+                <div class="category-tabs" role="tablist" aria-label="Kategori menu">
+                  <button class="category-tab active" type="button" role="tab" data-category="all" aria-selected="true">Semua <span>6</span></button>
+                  <button class="category-tab" type="button" role="tab" data-category="kopi" aria-selected="false">Kopi <span>3</span></button>
+                  <button class="category-tab" type="button" role="tab" data-category="non-kopi" aria-selected="false">Non-kopi <span>2</span></button>
+                  <button class="category-tab" type="button" role="tab" data-category="makanan" aria-selected="false">Makanan <span>1</span></button>
+                </div>
+              </div>
+
+              <div class="product-grid" id="productGrid">
+                <article class="product-card" data-id="kopi-susu" data-category="kopi" data-name="Es Kopi Susu">
+                  <div class="product-art art-coffee-milk"><span class="art-badge">TERLARIS</span><span class="art-cup"></span><span class="art-steam"></span></div>
+                  <div class="product-info"><div><h3>Es Kopi Susu</h3><select class="variant-select" aria-label="Pilih ukuran Es Kopi Susu"><option value="Reguler" data-price="22000">Reguler</option><option value="Besar" data-price="26000">Besar</option></select></div><button class="add-product" type="button" data-product="kopi-susu" aria-label="Tambah Es Kopi Susu">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 22.000</strong></div>
+                </article>
+                <article class="product-card" data-id="americano" data-category="kopi" data-name="Americano">
+                  <div class="product-art art-americano"><span class="art-cup"></span><span class="art-steam"></span></div>
+                  <div class="product-info"><div><h3>Americano</h3><select class="variant-select" aria-label="Pilih ukuran Americano"><option value="Reguler" data-price="18000">Reguler</option><option value="Besar" data-price="22000">Besar</option></select></div><button class="add-product" type="button" data-product="americano" aria-label="Tambah Americano">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 18.000</strong></div>
+                </article>
+                <article class="product-card" data-id="caramel-latte" data-category="kopi" data-name="Caramel Latte">
+                  <div class="product-art art-caramel"><span class="art-cup"></span><span class="art-steam"></span></div>
+                  <div class="product-info"><div><h3>Caramel Latte</h3><select class="variant-select" aria-label="Pilih ukuran Caramel Latte"><option value="Reguler" data-price="24000">Reguler</option><option value="Besar" data-price="28000">Besar</option></select></div><button class="add-product" type="button" data-product="caramel-latte" aria-label="Tambah Caramel Latte">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 24.000</strong></div>
+                </article>
+                <article class="product-card" data-id="matcha-cloud" data-category="non-kopi" data-name="Matcha Cloud">
+                  <div class="product-art art-matcha"><span class="art-cup"></span><span class="art-steam"></span></div>
+                  <div class="product-info"><div><h3>Matcha Cloud</h3><select class="variant-select" aria-label="Pilih ukuran Matcha Cloud"><option value="Reguler" data-price="25000">Reguler</option><option value="Besar" data-price="29000">Besar</option></select></div><button class="add-product" type="button" data-product="matcha-cloud" aria-label="Tambah Matcha Cloud">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 25.000</strong></div>
+                </article>
+                <article class="product-card" data-id="chocolate" data-category="non-kopi" data-name="Dark Chocolate">
+                  <div class="product-art art-chocolate"><span class="art-cup"></span><span class="art-steam"></span></div>
+                  <div class="product-info"><div><h3>Dark Chocolate</h3><select class="variant-select" aria-label="Pilih ukuran Dark Chocolate"><option value="Reguler" data-price="23000">Reguler</option><option value="Besar" data-price="27000">Besar</option></select></div><button class="add-product" type="button" data-product="chocolate" aria-label="Tambah Dark Chocolate">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 23.000</strong></div>
+                </article>
+                <article class="product-card" data-id="croffle" data-category="makanan" data-name="Croffle Butter">
+                  <div class="product-art art-croffle"><span class="art-badge art-badge-light">BARU</span><span class="art-croffle-shape"></span></div>
+                  <div class="product-info"><div><h3>Croffle Butter</h3><select class="variant-select" aria-label="Pilih varian Croffle Butter"><option value="Original" data-price="18000">Original</option><option value="Keju" data-price="22000">Keju</option></select></div><button class="add-product" type="button" data-product="croffle" aria-label="Tambah Croffle Butter">+</button></div>
+                  <div class="product-price"><span>Mulai dari</span><strong>Rp 18.000</strong></div>
+                </article>
+              </div>
+              <div class="empty-search" id="emptySearch" hidden>
+                <span class="empty-search-icon">⌕</span>
+                <strong>Menu tidak ditemukan</strong>
+                <p>Coba kata kunci atau kategori lain.</p>
+              </div>
+            </article>
+
+            <aside class="panel order-panel" aria-label="Ringkasan pesanan">
+              <div class="order-heading">
+                <div>
+                  <div class="section-kicker">PESANAN BARU</div>
+                  <h2>Keranjang <span class="order-count" id="cartCount">2 item</span></h2>
+                </div>
+                <button class="icon-button clear-button" type="button" id="clearCartButton" aria-label="Kosongkan keranjang" data-toast="Keranjang sudah dikosongkan">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M7 7l.7 12.2a1 1 0 0 0 1 .8h6.6a1 1 0 0 0 1-.8L17 7M9 7l.6-2h4.8l.6 2" /></svg>
+                </button>
+              </div>
+              <div class="order-context">
+                <span class="context-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v12H5zM8 8V6a4 4 0 0 1 8 0v2M9 12h6" /></svg></span>
+                <span><small>Order type</small><strong>Take away</strong></span>
+                <button type="button" class="context-change" data-toast="Pilihan order type akan tersedia di tahap berikutnya">Ubah</button>
+              </div>
+              <div class="cart-items" id="cartItems"></div>
+              <div class="order-note">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5v10.8a1.7 1.7 0 0 1-1.7 1.7H10l-4 3v-15.5Z" /><path d="M9 9h6M9 13h4" /></svg>
+                <input type="text" placeholder="Tambahkan catatan pesanan..." aria-label="Catatan pesanan" />
+              </div>
+              <div class="order-summary">
+                <div><span>Subtotal</span><strong id="subtotalValue">Rp 40.000</strong></div>
+                <div><span>Pajak &amp; layanan <small>10%</small></span><strong id="taxValue">Rp 4.000</strong></div>
+                <div class="total-row"><span>Total pembayaran</span><strong id="totalValue">Rp 44.000</strong></div>
+              </div>
+              <div class="payment-section">
+                <div class="payment-label"><span>Metode pembayaran</span><button type="button" data-toast="Metode pembayaran dikelola oleh Duitku">Duitku terhubung</button></div>
+                <div class="payment-methods" role="group" aria-label="Metode pembayaran">
+                  <button class="payment-method active" type="button" data-payment="cash">
+                    <span class="payment-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9h.01M18 15h.01" /></svg></span>
+                    <span>Tunai</span>
+                  </button>
+                  <button class="payment-method" type="button" data-payment="qris">
+                    <span class="payment-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M18 14h2M14 18h2M18 18h2" /></svg></span>
+                    <span>QRIS</span>
+                  </button>
+                  <button class="payment-method" type="button" data-payment="debit">
+                    <span class="payment-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></svg></span>
+                    <span>Debit</span>
+                  </button>
+                </div>
+                <div class="cash-payment" id="cashPayment">
+                  <label for="cashReceived">Uang diterima</label>
+                  <div class="cash-input-wrap"><span>Rp</span><input id="cashReceived" type="number" min="0" step="1000" value="50000" inputmode="numeric" /></div>
+                  <div class="quick-cash"><button type="button" data-cash="44000">Uang pas</button><button type="button" data-cash="50000">Rp 50.000</button><button type="button" data-cash="100000">Rp 100.000</button></div>
+                  <div class="change-row"><span>Kembalian</span><strong id="changeValue">Rp 6.000</strong></div>
+                </div>
+                <div class="digital-payment" id="digitalPayment" hidden>
+                  <span class="digital-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M18 14h2M14 18h2M18 18h2" /></svg></span>
+                  <span><strong>Invoice Duitku siap dibuat</strong><small>QRIS, e-wallet, dan VA tersedia setelah Bayar ditekan.</small></span>
+                </div>
+                <button class="button button-primary pay-button" type="button" id="payButton">
+                  <span>Bayar sekarang</span>
+                  <strong id="payButtonTotal">Rp 44.000</strong>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </button>
+                <p class="secure-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="m9 12 2 2 4-4" /></svg> Stok dipotong otomatis setelah pembayaran terkonfirmasi</p>
+              </div>
+            </aside>
+          </section>
+
+          <section class="insights-grid" aria-label="Ringkasan operasional">
+            <article class="panel chart-panel">
+              <div class="panel-heading compact-heading">
+                <div><div class="section-kicker">PERFORMA PENJUALAN</div><h2>Omzet minggu ini</h2></div>
+                <button class="period-select" type="button" data-toast="Filter periode akan tersedia di modul Laporan">7 hari <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></button>
+              </div>
+              <div class="chart-summary"><strong>Rp 42,8 jt</strong><span class="trend-up">+18,4%</span><small>dibanding minggu lalu</small></div>
+              <div class="sales-chart" aria-label="Grafik omzet tujuh hari terakhir">
+                <div class="chart-y-axis"><span>10 jt</span><span>7,5 jt</span><span>5 jt</span><span>2,5 jt</span><span>0</span></div>
+                <div class="chart-plot">
+                  <div class="chart-gridline line-one"></div><div class="chart-gridline line-two"></div><div class="chart-gridline line-three"></div><div class="chart-gridline line-four"></div>
+                  <div class="chart-bars">
+                    <div class="bar-column"><span class="bar-value">5,1</span><div class="bar" style="--bar-height: 51%"></div><small>Sen</small></div>
+                    <div class="bar-column"><span class="bar-value">6,4</span><div class="bar" style="--bar-height: 64%"></div><small>Sel</small></div>
+                    <div class="bar-column"><span class="bar-value">5,8</span><div class="bar" style="--bar-height: 58%"></div><small>Rab</small></div>
+                    <div class="bar-column"><span class="bar-value">7,4</span><div class="bar" style="--bar-height: 74%"></div><small>Kam</small></div>
+                    <div class="bar-column"><span class="bar-value">8,2</span><div class="bar bar-highlight" style="--bar-height: 82%"></div><small>Jum</small></div>
+                    <div class="bar-column"><span class="bar-value">6,7</span><div class="bar" style="--bar-height: 67%"></div><small>Sab</small></div>
+                    <div class="bar-column current"><span class="bar-value">3,2</span><div class="bar" style="--bar-height: 32%"></div><small>Min</small></div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel stock-panel">
+              <div class="panel-heading compact-heading"><div><div class="section-kicker">INVENTARIS LIVE</div><h2>Stok perlu perhatian</h2></div><span class="live-label"><i></i> Live</span></div>
+              <div class="stock-list">
+                <div class="stock-item"><span class="stock-symbol stock-symbol-red">BS</span><div class="stock-detail"><div><strong>Biji kopi house blend</strong><span class="stock-status critical">Kritis</span></div><small>Min. stok 2.000 g</small><div class="stock-progress"><span style="--stock-width: 18%; --stock-color: #d15e50"></span></div></div><strong class="stock-amount">360 g</strong></div>
+                <div class="stock-item"><span class="stock-symbol stock-symbol-amber">SS</span><div class="stock-detail"><div><strong>Susu segar</strong><span class="stock-status warning">Menipis</span></div><small>Min. stok 5.000 ml</small><div class="stock-progress"><span style="--stock-width: 38%; --stock-color: #d4973b"></span></div></div><strong class="stock-amount">3.800 ml</strong></div>
+                <div class="stock-item"><span class="stock-symbol stock-symbol-green">SA</span><div class="stock-detail"><div><strong>Sirup aren</strong><span class="stock-status warning">Menipis</span></div><small>Min. stok 1.000 ml</small><div class="stock-progress"><span style="--stock-width: 44%; --stock-color: #5c9e71"></span></div></div><strong class="stock-amount">720 ml</strong></div>
+              </div>
+              <button class="full-link" type="button" data-toast="Membuka daftar inventaris">Lihat semua stok <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+            </article>
+
+            <article class="panel activity-panel">
+              <div class="panel-heading compact-heading"><div><div class="section-kicker">AKTIVITAS TERBARU</div><h2>Pergerakan hari ini</h2></div><button class="more-dots" type="button" aria-label="Opsi aktivitas" data-toast="Filter aktivitas akan tersedia di modul Inventaris"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></svg></button></div>
+              <div class="activity-list">
+                <div class="activity-item"><span class="activity-icon activity-sale"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" /></svg></span><div><strong>Penjualan #KPS-0812</strong><small>2 item terjual</small></div><time>Baru saja</time></div>
+                <div class="activity-item"><span class="activity-icon activity-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 12l6-7 6 7" /></svg></span><div><strong>Stok masuk</strong><small>+10.000 ml susu segar</small></div><time>09:42</time></div>
+                <div class="activity-item"><span class="activity-icon activity-adjust"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></span><div><strong>Penyesuaian stok</strong><small>Sirup vanila, tumpah</small></div><time>08:56</time></div>
+              </div>
+              <button class="full-link" type="button" data-toast="Membuka riwayat pergerakan stok">Lihat riwayat <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></button>
+            </article>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-check">✓</span><span id="toastMessage">Perubahan tersimpan</span></div>
+    <script src="app.js"></script>
+  </body>
+</html>

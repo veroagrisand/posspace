@@ -1,0 +1,46 @@
+# ============================================================
+# Auto-deploy posspace → VPS Hostinger
+# Triggers: push ke main, atau manual (workflow_dispatch).
+# Alur: SSH ke VPS → git pull → deploy/deploy.sh (build + pm2 reload)
+# Secrets GitHub (Settings → Secrets and variables → Actions):
+#   VPS_HOST, VPS_USER, VPS_SSH_KEY  (wajib)
+#   VPS_PATH                         (opsional, default /var/www/posspace)
+# Variabel (Settings → Variables): VPS_PORT (default 22)
+# ============================================================
+name: Auto Deploy ke VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ke VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ vars.VPS_PORT || 22 }}
+          envs: VPS_PATH
+          script: |
+            cd "${VPS_PATH:-/var/www/posspace}"
+            [ -f .env ] || { echo "ERROR: .env belum ada di VPS — jalankan init-server.sh dulu."; exit 1; }
+            # deploy.sh menangani: git pull → build → pm2 reload → health check,
+            # lengkap dengan lock anti-konkuren (manual + auto aman).
+            bash deploy/deploy.sh
+
+      - name: Notifikasi status
+        if: always()
+        run: |
+          echo "::notice::Deploy ${{ job.status }} — ${{ github.sha }}"
+          echo "Detail: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
