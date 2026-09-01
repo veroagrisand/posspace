@@ -8,9 +8,9 @@ import { requireApiAuth } from '../guards.js';
  * Semua route wajib login + toko + subscription aktif (requireApiAuth).
  */
 
-/** Error RLS dari PostgREST (permission denied) → 403, bukan 500. */
+/** Error RLS dari PostgREST (denied / violates policy) → 403, bukan 500. */
 function rlsDenied(err: { message?: string } | null): boolean {
-	return !!err && /permission denied/i.test(err.message ?? '');
+	return !!err && /permission denied|row-level security/i.test(err.message ?? '');
 }
 
 export const posDataService = new Hono();
