@@ -13,7 +13,7 @@ module.exports = {
 			name: 'posspace-web',
 			cwd: root,
 			script: 'build/index.js',
-			env: { NODE_ENV: 'production', PORT: 3000, HOST: '127.0.0.1', API_UPSTREAM: 'http://127.0.0.1:3001' },
+			env: { NODE_ENV: 'production', PORT: 3000, API_UPSTREAM: 'http://127.0.0.1:3001' },
 			instances: 2, // cluster — naikkan sesuai RAM VPS
 			exec_mode: 'cluster',
 			max_memory_restart: '400M',
