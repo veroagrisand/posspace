@@ -21,20 +21,20 @@ await client.auth.signInWithPassword({ email, password: 'Test1234!' });
 const { data: sess } = await client.auth.signInWithPassword({ email, password: 'Test1234!' });
 const cookie = `sb-${REF}-auth-token=base64-${Buffer.from(JSON.stringify(sess.session)).toString('base64url')}`;
 
-// user ini TIDAK punya toko → DELETE harus redirect 303 ke /subscribe (bukan 200/204)
+// user ini TIDAK punya toko → API gateway menolak dengan 403 SHOP_REQUIRED
 const res = await fetch('http://localhost:5173/api/data/products/00000000-0000-0000-0000-000000000000', {
 	method: 'DELETE',
 	headers: { Cookie: cookie },
 	redirect: 'manual'
 });
-ok('user tanpa toko DITOLAK hapus menu (redirect 303)', res.status === 303, `status ${res.status} → ${res.headers.get('location')}`);
+ok('user tanpa toko DITOLAK hapus menu (403)', res.status === 403, `status ${res.status} → ${res.headers.get('location') ?? ''}`);
 const postRes = await fetch('http://localhost:5173/api/data/products', {
 	method: 'POST',
 	headers: { 'Content-Type': 'application/json', Cookie: cookie },
 	body: JSON.stringify({ name: 'X' }),
 	redirect: 'manual'
 });
-ok('user tanpa toko DITOLAK tambah menu (redirect 303)', postRes.status === 303, `status ${postRes.status}`);
+ok('user tanpa toko DITOLAK tambah menu (403)', postRes.status === 403, `status ${postRes.status}`);
 
 await SERVICE.auth.admin.deleteUser(u.user.id);
 console.log(`\n================ HASIL: ${pass} lulus, ${fail} gagal ================`);
