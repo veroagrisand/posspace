@@ -70,14 +70,15 @@ PREV_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 echo "==> 2/6 Install dependencies (workspaces)"
 # Vite/Rolldown membutuhkan native binding platform yang dipasang sebagai
 # optional dependency. --include=optional juga mengesampingkan omit global npm.
-npm ci --include=optional
+# nice: proses web yang sedang berjalan tidak tersaingi CPU saat build.
+nice -n 15 npm ci --include=optional
 repair_rolldown_binding
 
 echo "==> 3/6 Build backend (apps/api)"
-npm run build:api
+nice -n 15 npm run build:api
 
 echo "==> 4/6 Build frontend (web)"
-npm run build
+nice -n 15 npm run build
 
 echo "==> 5/6 Reload PM2 (env dari .env root ikut di-load)"
 # Nilai env dengan karakter khusus (spasi/#/baris baru) sebaiknya diberi
@@ -90,13 +91,27 @@ pm2 reload deploy/ecosystem.config.cjs --update-env || pm2 start deploy/ecosyste
 pm2 save
 
 echo "==> 6/6 Health check"
-sleep 1
-if ! curl -fsS -m 5 http://127.0.0.1:3001/health >/dev/null; then
+# Beri waktu worker PM2 selesai boot (maksimal ~15 detik) sebelum menilai gagal.
+API_OK=0
+WEB_OK=0
+for attempt in $(seq 1 15); do
+	if [ "$API_OK" -eq 0 ] && curl -fsS -m 5 http://127.0.0.1:3001/health >/dev/null; then
+		API_OK=1
+	fi
+	if [ "$WEB_OK" -eq 0 ] && curl -fsS -m 5 -o /dev/null http://127.0.0.1:3000/login; then
+		WEB_OK=1
+	fi
+	if [ "$API_OK" -eq 1 ] && [ "$WEB_OK" -eq 1 ]; then
+		break
+	fi
+	sleep 1
+done
+if [ "$API_OK" -ne 1 ]; then
 	echo "ERROR: API tidak sehat setelah deploy."
 	pm2 logs posspace-api --lines 40 --nostream || true
 	exit 1
 fi
-if ! curl -fsS -m 5 -o /dev/null http://127.0.0.1:3000/login; then
+if [ "$WEB_OK" -ne 1 ]; then
 	echo "ERROR: web tidak merespons setelah deploy."
 	pm2 logs posspace-web --lines 40 --nostream || true
 	exit 1

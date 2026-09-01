@@ -163,13 +163,25 @@ tail -f /var/log/nginx/access.log
 |--------|--------|
 | Workflow merah "Deploy sedang berjalan" | Deploy lain sedang jalan — tunggu; atau hapus `deploy.lock` di VPS bila macet |
 | `ERROR: .env belum ada` | Jalankan `init-server.sh`, atau `cp .env.example .env` + isi di VPS |
-| Nginx 502 Bad Gateway | `pm2 status` — pastikan dua proses online; cek `pm2 logs posspace-web` |
+| Nginx 502 Bad Gateway | Pastikan proses online (`pm2 status`). 502 sekilas saat auto-deploy sudah diredam oleh `proxy_next_upstream`; pasang konfigurasi Nginx terbaru di bawah |
+| Nginx `reload` gagal / `http2` unknown directive | Jangan menambahkan `http2 on;` — nginx 1.24 belum mengenalinya. Gunakan `listen 443 ssl http2;` dari `deploy/nginx.conf` |
 | Halaman loading terus / API 503 `API_UNAVAILABLE` | Gateway mati: `pm2 restart posspace-api`; cek `curl 127.0.0.1:3001/health` |
 | Build `Cannot find native binding` | Hapus `node_modules`, lalu jalankan `npm ci --include=optional` sebelum build ulang |
 | Certbot gagal | Domain belum mengarah ke VPS (A record). Cek `dig A domain` |
 | `git pull` menolak (local changes) | Jangan edit file di `/var/www/posspace` langsung; jika terlanjur: `git reset --hard origin/main` |
 | `.env` tidak terbaca (karakter khusus) | Beri tanda kutip pada nilai yang mengandung `#`/spasi |
 | Port 3001 terbuka ke publik? | Seharusnya TIDAK — ufw hanya 22/80/443; Nginx hanya mem-proxy ke 3000 |
+
+### Pasang ulang konfigurasi Nginx (setelah perubahan `deploy/nginx.conf`)
+
+Di VPS (via user root atau `sudo`):
+
+```bash
+sudo install -m 644 /var/www/posspace/deploy/nginx.conf /etc/nginx/sites-available/posspace
+sudo install -m 644 /var/www/posspace/deploy/nginx.conf /etc/nginx/sites-enabled/posspace
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
 ---
 
