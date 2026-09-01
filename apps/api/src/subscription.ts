@@ -219,7 +219,20 @@ export async function redeemVoucherToPendingInvoice(input: {
 
 	if (updateError) throw new Error('INVOICE_UPDATE_FAILED');
 
-	await db.from('vouchers').update({ used_count: Number(voucher.used_count) + 1 }).eq('id', voucher.id);
+	// Klaim kuota voucher secara atomik (CAS): jika dua permintaan memakai
+	// voucher yang sama bersamaan, hanya satu yang berhasil meng-increment.
+	if (voucher.max_uses > 0) {
+		const { data: claimed } = await db
+			.from('vouchers')
+			.update({ used_count: Number(voucher.used_count) + 1 })
+			.eq('id', voucher.id)
+			.eq('used_count', Number(voucher.used_count))
+			.select('id')
+			.maybeSingle();
+		if (!claimed) throw new Error('VOUCHER_USED_UP');
+	} else {
+		await db.from('vouchers').update({ used_count: Number(voucher.used_count) + 1 }).eq('id', voucher.id);
+	}
 
 	return {
 		invoiceId: invoice.id,

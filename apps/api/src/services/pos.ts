@@ -8,6 +8,11 @@ import { requireApiAuth } from '../guards.js';
  * Semua route wajib login + toko + subscription aktif (requireApiAuth).
  */
 
+/** Error RLS dari PostgREST (permission denied) → 403, bukan 500. */
+function rlsDenied(err: { message?: string } | null): boolean {
+	return !!err && /permission denied/i.test(err.message ?? '');
+}
+
 export const posDataService = new Hono();
 export const transactionsService = new Hono();
 export const reportsService = new Hono();
@@ -48,6 +53,7 @@ posDataService.post('/products', async (c) => {
 		.insert({ shop_id: ctx.shop.shopId, name: body.name, category: body.category ?? 'Kopi' })
 		.select('id')
 		.single();
+	if (rlsDenied(productError)) httpError(403, 'FORBIDDEN');
 	if (productError || !product) httpError(500, 'INSERT_FAILED');
 
 	const { data: variant, error: variantError } = await ctx.db
@@ -55,6 +61,7 @@ posDataService.post('/products', async (c) => {
 		.insert({ product_id: product.id, name: body.variantName ?? 'Reguler', price: body.price ?? 0 })
 		.select('id')
 		.single();
+	if (rlsDenied(variantError)) httpError(403, 'FORBIDDEN');
 	if (variantError) httpError(500, 'INSERT_FAILED');
 
 	return json({ ok: true, productId: product.id, variantId: variant?.id });
@@ -96,6 +103,7 @@ posDataService.put('/products/:id', async (c) => {
 		.eq('id', productId)
 		.eq('shop_id', ctx.shop.shopId)
 		.single();
+	if (rlsDenied(existError)) httpError(403, 'FORBIDDEN');
 	if (existError || !existing) httpError(404, 'NOT_FOUND');
 
 	const { error: updateError } = await ctx.db
@@ -106,12 +114,14 @@ posDataService.put('/products/:id', async (c) => {
 			is_active: body.isActive ?? undefined
 		})
 		.eq('id', productId);
+	if (rlsDenied(updateError)) httpError(403, 'FORBIDDEN');
 	if (updateError) httpError(500, 'UPDATE_FAILED');
 
 	if (body.variants) {
 		const oldIds = (existing.product_variants as { id: string }[]).map((v) => v.id);
 		if (oldIds.length) {
 			const { error: delRecipeError } = await ctx.db.from('recipes').delete().in('variant_id', oldIds);
+			if (rlsDenied(delRecipeError)) httpError(403, 'FORBIDDEN');
 			if (delRecipeError) httpError(500, 'UPDATE_FAILED');
 		}
 
@@ -126,6 +136,7 @@ posDataService.put('/products/:id', async (c) => {
 					.eq('product_id', productId)
 					.select('id')
 					.single();
+				if (rlsDenied(vError)) httpError(403, 'FORBIDDEN');
 				if (vError || !v) httpError(500, 'UPDATE_FAILED');
 				variantId = v.id;
 			} else {
@@ -134,6 +145,7 @@ posDataService.put('/products/:id', async (c) => {
 					.insert({ product_id: productId, name: variant.name, price: variant.price })
 					.select('id')
 					.single();
+				if (rlsDenied(vError)) httpError(403, 'FORBIDDEN');
 				if (vError || !v) httpError(500, 'UPDATE_FAILED');
 				variantId = v.id;
 			}
@@ -143,6 +155,7 @@ posDataService.put('/products/:id', async (c) => {
 				const { error: rError } = await ctx.db
 					.from('recipes')
 					.insert({ variant_id: variantId!, ingredient_id: entry.ingredientId, quantity_required: entry.qty });
+				if (rlsDenied(rError)) httpError(403, 'FORBIDDEN');
 				if (rError) httpError(500, 'UPDATE_FAILED');
 			}
 		}
@@ -154,6 +167,7 @@ posDataService.put('/products/:id', async (c) => {
 				.delete()
 				.in('id', removedIds)
 				.eq('product_id', productId);
+			if (rlsDenied(delVariantError)) httpError(403, 'FORBIDDEN');
 			if (delVariantError) httpError(500, 'UPDATE_FAILED');
 		}
 	}
@@ -172,9 +186,11 @@ posDataService.delete('/products/:id', async (c) => {
 		.eq('id', productId)
 		.eq('shop_id', ctx.shop.shopId)
 		.single();
+	if (rlsDenied(existError)) httpError(403, 'FORBIDDEN');
 	if (existError || !existing) httpError(404, 'NOT_FOUND');
 
 	const { error: deleteError } = await ctx.db.from('products').delete().eq('id', productId);
+	if (rlsDenied(deleteError)) httpError(403, 'FORBIDDEN');
 	if (deleteError) httpError(500, 'DELETE_FAILED');
 
 	return json({ ok: true });
@@ -206,6 +222,11 @@ posDataService.post('/ingredients', async (c) => {
 		minStock?: number;
 	};
 	if (!body.name) httpError(400, 'NAME_REQUIRED');
+	if (!['gram', 'ml', 'pcs'].includes(body.unit ?? '')) httpError(400, 'INVALID_UNIT');
+	const stock = Number(body.stock ?? 0);
+	const minStock = Number(body.minStock ?? 0);
+	if (!Number.isFinite(stock) || stock < 0) httpError(400, 'INVALID_STOCK');
+	if (!Number.isFinite(minStock) || minStock < 0) httpError(400, 'INVALID_MIN_STOCK');
 
 	const { data, error: insertError } = await ctx.db
 		.from('ingredients')
@@ -213,12 +234,13 @@ posDataService.post('/ingredients', async (c) => {
 			shop_id: ctx.shop.shopId,
 			name: body.name,
 			unit: body.unit ?? 'gram',
-			stock_quantity: body.stock ?? 0,
-			min_stock: body.minStock ?? 0
+			stock_quantity: stock,
+			min_stock: minStock
 		})
 		.select('*')
 		.single();
 
+	if (rlsDenied(insertError)) httpError(403, 'FORBIDDEN');
 	if (insertError || !data) httpError(500, 'INSERT_FAILED');
 	return json({ ingredient: data });
 });
@@ -234,6 +256,11 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		minStock?: number;
 	};
 
+	if (body.name !== undefined && !body.name.trim()) httpError(400, 'NAME_REQUIRED');
+	if (body.unit !== undefined && !['gram', 'ml', 'pcs'].includes(body.unit)) httpError(400, 'INVALID_UNIT');
+	if (body.minStock !== undefined && (!Number.isFinite(Number(body.minStock)) || Number(body.minStock) < 0))
+		httpError(400, 'INVALID_MIN_STOCK');
+
 	const { data, error: updateError } = await ctx.db
 		.from('ingredients')
 		.update({
@@ -246,6 +273,7 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		.select('*')
 		.single();
 
+	if (rlsDenied(updateError)) httpError(403, 'FORBIDDEN');
 	if (updateError || !data) httpError(404, 'NOT_FOUND');
 	return json({ ingredient: data });
 });
@@ -375,6 +403,7 @@ posDataService.post('/opnames', async (c) => {
 		.select('*')
 		.single();
 
+	if (rlsDenied(insertError)) httpError(403, 'FORBIDDEN');
 	if (insertError || !data) httpError(500, 'INSERT_FAILED');
 	return json({ opname: data });
 });
