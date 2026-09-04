@@ -14,6 +14,8 @@
 	let voucherMsg = $state('');
 	let voucherErr = $state('');
 	let voucherBusy = $state(false);
+	let paying = $state(false);
+	let payErr = $state('');
 
 	const planLabels: Record<string, string> = { starter: 'Starter', pro: 'Pro', tumbuh: 'Tumbuh' };
 
@@ -102,6 +104,36 @@
 			voucherBusy = false;
 		}
 	}
+
+	async function payNow() {
+		if (paying) return;
+		paying = true;
+		payErr = '';
+		try {
+			const res = await fetch('/api/subscription/pay', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({})
+			});
+			const json = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				payErr =
+					json.message === 'MIDTRANS_NOT_CONFIGURED'
+						? 'Pembayaran digital belum tersedia. Coba lagi beberapa saat.'
+						: (json.message ?? 'Gagal membuat pembayaran. Coba lagi.');
+				return;
+			}
+			if (json.paymentUrl) {
+				window.location.href = json.paymentUrl;
+			} else {
+				payErr = 'Instruksi pembayaran belum tersedia. Coba lagi.';
+			}
+		} catch {
+			payErr = 'Terjadi kesalahan jaringan.';
+		} finally {
+			paying = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Berlangganan — posspace</title></svelte:head>
@@ -123,6 +155,20 @@
 			{#if data.status}
 				<div class="auth-note auth-note--alert" style="margin-top:18px">
 					<span>Status langganan sebelumnya: <strong>{data.status}</strong>. Pilih paket untuk memperbarui pembayaran.</span>
+				</div>
+			{/if}
+
+			{#if data.paidInvoice}
+				<div class="success-box" style="margin-top:18px">
+					<span class="success-check">✓</span>
+					<div>
+						<strong>Langganan aktif</strong>
+						<p>Pembayaran invoice {data.paidInvoice.merchant_order_id} sudah diterima. Aplikasi siap digunakan.</p>
+						<a class="btn-pill btn-pill--orange" style="margin-top:10px" href="/app">
+							Masuk ke aplikasi
+							<span class="btn-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></span>
+						</a>
+					</div>
 				</div>
 			{/if}
 
@@ -168,9 +214,17 @@
 					</div>
 				{:else if data.pendingInvoice.payment_url}
 					<a class="btn-pill btn-pill--orange btn-pill--block" style="margin-top:16px" href={data.pendingInvoice.payment_url} target="_blank" rel="noopener">
-						Lanjutkan pembayaran
+						Bayar sekarang
 						<span class="btn-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></span>
 					</a>
+				{:else}
+					<button class="btn-pill btn-pill--orange btn-pill--block" style="margin-top:16px" type="button" onclick={payNow} disabled={paying}>
+						{paying ? 'Menyiapkan pembayaran...' : 'Bayar sekarang'}
+						<span class="btn-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></span>
+					</button>
+					{#if payErr}
+						<p class="auth-error" style="margin-top:10px">{payErr}</p>
+					{/if}
 				{/if}
 
 				<button class="btn-pill btn-pill--ghost btn-pill--block" style="margin-top:14px" type="button" onclick={checkStatus} disabled={polling}>

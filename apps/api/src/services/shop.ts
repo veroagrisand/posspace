@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { json, httpError } from '../http.js';
 import { requireApiAuth, requireAuth } from '../guards.js';
 import { service } from '../db.js';
-import { createShopSubscription, redeemVoucherToPendingInvoice } from '../subscription.js';
+import { createShopSubscription, payPendingInvoice, redeemVoucherToPendingInvoice } from '../subscription.js';
 
 /**
  * Service shop — profil toko, manajemen anggota, voucher langganan.
@@ -186,6 +186,27 @@ subscriptionService.post('/voucher', async (c) => {
 		return json({ ok: true, ...result });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : 'VOUCHER_FAILED';
+		httpError(400, message);
+	}
+});
+
+// ============ PAY ============
+/** POST /api/subscription/pay — buat/ulang instruksi pembayaran Snap untuk invoice PENDING. */
+subscriptionService.post('/pay', async (c) => {
+	const auth = await requireAuth(c);
+
+	const { data: profile } = await auth.db
+		.from('profiles')
+		.select('shop_id')
+		.eq('id', auth.user.id)
+		.single();
+	if (!profile?.shop_id) httpError(409, 'NO_SHOP');
+
+	try {
+		const result = await payPendingInvoice({ shopId: profile.shop_id, c });
+		return json({ ok: true, ...result });
+	} catch (err) {
+		const message = err instanceof Error ? err.message : 'PAYMENT_FAILED';
 		httpError(400, message);
 	}
 });

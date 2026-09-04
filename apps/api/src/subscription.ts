@@ -236,3 +236,69 @@ export async function redeemVoucherToPendingInvoice(input: {
 		gateway
 	};
 }
+
+export interface InvoicePayResult {
+	invoiceId: string;
+	merchantOrderId: string;
+	amount: number;
+	paymentUrl?: string | null;
+	gateway: string;
+}
+
+/**
+ * Buat instruksi pembayaran Midtrans Snap untuk invoice PENDING milik toko.
+ * Idempoten: jika invoice sudah punya payment_url, dikembalikan apa adanya.
+ * Melempar error ber-kode.
+ */
+export async function payPendingInvoice(input: { shopId: string; c: Context }): Promise<InvoicePayResult> {
+	const db = service();
+
+	const { data: invoice } = await db
+		.from('invoices')
+		.select('id, merchant_order_id, amount, status, payment_url')
+		.eq('shop_id', input.shopId)
+		.eq('status', 'pending')
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.single();
+
+	if (!invoice) throw new Error('NO_PENDING_INVOICE');
+
+	const amount = Number(invoice.amount ?? 0);
+
+	// Instruksi sudah pernah dibuat → kembalikan (idempoten).
+	if (invoice.payment_url) {
+		return {
+			invoiceId: invoice.id,
+			merchantOrderId: invoice.merchant_order_id,
+			amount,
+			paymentUrl: invoice.payment_url,
+			gateway: 'midtrans'
+		};
+	}
+
+	if (!isMidtransConfigured) throw new Error('MIDTRANS_NOT_CONFIGURED');
+
+	const snap = await createSnapTransaction({
+		orderId: invoice.merchant_order_id,
+		amount,
+		product: 'Langganan posspace',
+		buyerName: 'Pelanggan posspace',
+		expiredMinutes: 30
+	}).catch(() => null);
+	if (!snap) throw new Error('PAYMENT_CREATE_FAILED');
+
+	const { error: updateError } = await db
+		.from('invoices')
+		.update({ payment_url: snap.redirectUrl, payment_channel: 'midtrans' })
+		.eq('id', invoice.id);
+	if (updateError) throw new Error('INVOICE_UPDATE_FAILED');
+
+	return {
+		invoiceId: invoice.id,
+		merchantOrderId: invoice.merchant_order_id,
+		amount,
+		paymentUrl: snap.redirectUrl,
+		gateway: 'midtrans'
+	};
+}
