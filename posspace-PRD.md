@@ -42,7 +42,7 @@ Nilai tambah utama:
 - Mencatat pesanan dengan cepat, termasuk pilihan varian menu (reguler/besar).
 - Menampilkan total pesanan secara real-time.
 - Mendukung pembayaran tunai, QRIS, dan kartu debit dengan hitung kembalian otomatis.
-- Mengintegrasikan iPaymu API untuk pembayaran digital (QRIS dinamis, Virtual Account, dan E-Wallet), termasuk membuat payment invoice, memverifikasi status transaksi secara otomatis melalui webhook callback, dan menyimpan payment gateway reference ID.
+- Mengintegrasikan Midtrans API untuk pembayaran digital (QRIS dinamis, Virtual Account, E-Wallet, dan kartu kredit), termasuk membuat payment invoice/Snap, memverifikasi status transaksi secara otomatis melalui webhook notifikasi, dan menyimpan payment gateway reference ID.
 - Menampilkan rincian pesanan dan mencetak/mengirim struk.
 - Membuka shift dengan saldo awal dan menutup shift dengan rekap kas.
 
@@ -80,8 +80,8 @@ Nilai tambah utama:
 ### Fase 1 — Kasir Cepat
 - **Kasir Cepat** *(prioritas tinggi)*
   - **Catat Pesanan** — Pilih menu dan jumlah, lalu total pesanan langsung terlihat.
-  - **Pilih Metode Bayar** — Dukung tunai, QRIS, dan kartu debit dengan hitung kembalian otomatis; untuk pembayaran digital non-tunai, terhubung ke iPaymu API.
-  - **Bayar Digital dengan iPaymu** — Generate payment invoice / QRIS (QRIS dinamis, Virtual Account, E-Wallet), cek status transaksi melalui webhook callback dan polling, serta catat payment gateway reference ID.
+  - **Pilih Metode Bayar** — Dukung tunai, QRIS, dan kartu debit dengan hitung kembalian otomatis; untuk pembayaran digital non-tunai, terhubung ke Midtrans API.
+  - **Bayar Digital dengan Midtrans** — Generate payment invoice / QRIS (QRIS dinamis, Virtual Account, E-Wallet), cek status transaksi melalui webhook notifikasi dan polling, serta catat payment gateway reference ID.
   - **Rincian & Struk** — Tampilkan rincian pesanan dan buat struk untuk dicetak atau dikirim.
   - **Buka Tutup Shift** — Buka shift dengan saldo awal dan tutup dengan rekap kas.
 
@@ -145,11 +145,11 @@ Alur utama:
 - Supabase menangani autentikasi, database, realtime sync, dan penyimpanan file.  
 - Saat transaksi terjadi, Supabase memproses penyimpanan transaksi dan pemotongan stok secara otomatis menggunakan resep/BOM.  
 - Supabase Realtime mengirimkan update stok ke semua perangkat yang sedang online.  
-- Pembayaran digital diproses melalui **iPaymu API Gateway**: backend membuat payment invoice ke iPaymu, menampilkan payment URL/QRIS, dan menerima webhook callback untuk verifikasi status transaksi otomatis.
+- Pembayaran digital diproses melalui **Midtrans API Gateway**: backend membuat payment invoice/Snap ke Midtrans, menampilkan payment URL/QRIS, dan menerima webhook notifikasi untuk verifikasi status transaksi otomatis.
 
 Proses potong stok diletakkan di sisi backend agar berjalan secara atomik — artinya jika transaksi berhasil, stok langsung berkurang; jika gagal, tidak ada stok yang terpotong. Saat offline, aplikasi menyimpan transaksi dalam antrian lokal dan mengirimkannya saat koneksi pulih. Setiap transaksi diberi identitas unik agar tidak terjadi potongan stok dua kali.
 
-Untuk pembayaran digital, aplikasi terhubung ke **iPaymu API Gateway**. Backend menyediakan **endpoint handler** untuk menerima **webhook callback** dari iPaymu. Saat kasir memilih metode pembayaran QRIS, Virtual Account, atau E-Wallet, backend memanggil iPaymu API untuk membuat payment invoice dan mendapatkan `payment_url` / `qr_string`. Status pembayaran diverifikasi melalui webhook callback yang masuk; endpoint handler memvalidasi signature, mencocokkan reference ID, mengubah status transaksi, dan memicu pemotongan stok sesuai BOM. Jika callback tertunda, aplikasi melakukan **polling status** ke iPaymu sebagai cadangan agar transaksi tetap sinkron.
+Untuk pembayaran digital, aplikasi terhubung ke **Midtrans API Gateway**. Backend menyediakan **endpoint handler** untuk menerima **webhook notifikasi** dari Midtrans. Saat kasir memilih metode pembayaran QRIS, Virtual Account, atau E-Wallet, backend memanggil Midtrans API (Snap/charge) untuk membuat payment invoice dan mendapatkan `payment_url` / `qr_string`. Status pembayaran diverifikasi melalui webhook notifikasi yang masuk; endpoint handler memvalidasi signature, mencocokkan reference ID (order id), mengubah status transaksi, dan memicu pemotongan stok sesuai BOM. Jika notifikasi tertunda, aplikasi melakukan **polling status** ke Midtrans sebagai cadangan agar transaksi tetap sinkron.
 
 ```mermaid
 sequenceDiagram
@@ -177,13 +177,13 @@ sequenceDiagram
     actor Kasir as Kasir
     participant App as Aplikasi SvelteKit
     participant API as Backend API
-    participant DG as iPaymu API Gateway
+    participant DG as Midtrans API Gateway
     participant WP as Webhook Endpoint
     participant DB as PostgreSQL
 
     Kasir->>App: Pilih metode bayar digital (QRIS/VA/E-Wallet)
     App->>API: Minta payment invoice
-    API->>DG: Create payment via iPaymu API
+    API->>DG: Create payment via Midtrans API
     DG-->>API: payment_url / qr_string + reference
     API->>DB: Simpan payment_gateway_ref & payment_status
     API-->>App: Tampilkan payment_url / QRIS
@@ -209,7 +209,7 @@ Tabel-tabel utama yang dibutuhkan:
 - **`ingredients`** — `id` (uuid, primary key), `shop_id` (uuid), `name` (text), `unit` (text: gram/ml/pcs), `stock_quantity` (numeric), `min_stock` (numeric). Bahan baku dan stok saat ini.
 - **`recipes`** — `id` (uuid, primary key), `variant_id` (uuid, foreign key), `ingredient_id` (uuid, foreign key), `quantity_required` (numeric). Resep/BOM setiap varian menu.
 - **`shifts`** — `id` (uuid, primary key), `profile_id` (uuid, foreign key), `opened_at` (timestamp), `closed_at` (timestamp), `opening_cash` (numeric), `expected_cash` (numeric), `actual_cash` (numeric), `status` (text). Shift kasir.
-- **`transactions`** — `id` (uuid, primary key), `shop_id` (uuid), `shift_id` (uuid, foreign key), `profile_id` (uuid, foreign key), `receipt_no` (text), `total_amount` (numeric), `payment_method` (text), `payment_channel` (text), `payment_gateway_ref` (text), `payment_ref` (text), `payment_status` (text), `payment_url` (text), `qr_string` (text), `cash_received` (numeric), `change_amount` (numeric), `paid_at` (timestamp), `status` (text), `created_at` (timestamp). Data transaksi penjualan; `payment_ref` menyimpan referensi gateway (iPaymu) saat transaksi menggunakan metode pembayaran digital.
+- **`transactions`** — `id` (uuid, primary key), `shop_id` (uuid), `shift_id` (uuid, foreign key), `profile_id` (uuid, foreign key), `receipt_no` (text), `total_amount` (numeric), `payment_method` (text), `payment_channel` (text), `payment_gateway_ref` (text), `payment_ref` (text), `payment_status` (text), `payment_url` (text), `qr_string` (text), `cash_received` (numeric), `change_amount` (numeric), `paid_at` (timestamp), `status` (text), `created_at` (timestamp). Data transaksi penjualan; `payment_ref` menyimpan referensi gateway (Midtrans) saat transaksi menggunakan metode pembayaran digital.
 - **`transaction_items`** — `id` (uuid, primary key), `transaction_id` (uuid, foreign key), `variant_id` (uuid, foreign key), `product_name` (text), `quantity` (integer), `unit_price` (numeric), `line_total` (numeric). Rincian item pesanan.
 - **`stock_movements`** — `id` (uuid, primary key), `ingredient_id` (uuid, foreign key), `quantity_change` (numeric, positif masuk/negatif keluar), `movement_type` (text: sale/purchase/adjustment/waste/opname), `reference_id` (uuid), `note` (text), `created_at` (timestamp). Riwayat semua pergerakan stok.
 - **`purchase_orders`** — `id` (uuid, primary key), `shop_id` (uuid), `ingredient_id` (uuid, foreign key), `supplier` (text), `quantity` (numeric), `unit_price` (numeric), `received_at` (timestamp). Pembelian stok dari pemasok.
@@ -247,6 +247,6 @@ Rekomendasi teknologi berdasarkan kebutuhan proyek:
 - **UI Styling:** Tailwind CSS (direkomendasikan) agar pengembangan tampilan kasir cepat dan konsisten  
 - **Deployment:** VPS dengan Node.js server dan reverse proxy Nginx untuk menjalankan aplikasi SvelteKit  
 - **Keamanan:** Supabase Row Level Security untuk membatasi akses data berdasarkan peran pengguna
-- **Third-party Services / Integrations:** **iPaymu Payment Gateway API** — menggunakan REST API v2 iPaymu untuk pembayaran digital QRIS dinamis, Virtual Account, dan E-Wallet, serta webhook callback untuk verifikasi status transaksi otomatis.
+- **Third-party Services / Integrations:** **Midtrans Payment Gateway API** — menggunakan API Midtrans (Snap + charge QRIS) untuk pembayaran digital QRIS dinamis, Virtual Account, E-Wallet, dan kartu kredit, serta webhook notifikasi untuk verifikasi status transaksi otomatis.
 
-Tech stack ini dipilih karena SvelteKit ringan dan cepat untuk aplikasi kasir, sementara Supabase sudah menyediakan database, autentikasi, dan realtime dalam satu platform sehingga pengembangan POS dapat berjalan lebih cepat dan mudah dirawat. Integrasi iPaymu menambah dukungan pembayaran digital yang lengkap dan sesuai kebutuhan pelanggan coffee shop modern.
+Tech stack ini dipilih karena SvelteKit ringan dan cepat untuk aplikasi kasir, sementara Supabase sudah menyediakan database, autentikasi, dan realtime dalam satu platform sehingga pengembangan POS dapat berjalan lebih cepat dan mudah dirawat. Integrasi Midtrans menambah dukungan pembayaran digital yang lengkap dan sesuai kebutuhan pelanggan coffee shop modern.

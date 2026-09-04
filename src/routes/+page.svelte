@@ -38,7 +38,7 @@
 				'Semua fitur Starter',
 				'3 kasir & shift bergilir',
 				'Potong stok otomatis per resep',
-				'Pembayaran QRIS/VA/e-wallet (iPaymu)',
+				'Pembayaran QRIS/VA/e-wallet (Midtrans)',
 				'Laporan HPP & laba kotor',
 				'Laporan ekspor Excel/PDF'
 			],
@@ -91,7 +91,7 @@
 		},
 		{
 			q: 'Metode pembayaran apa saja yang didukung?',
-			a: 'Tunai, QRIS, kartu debit, virtual account, dan e-wallet melalui integrasi iPaymu API. Pembayaran digital dibuat sebagai invoice dan diverifikasi otomatis lewat webhook.'
+			a: 'Tunai, QRIS, kartu debit, virtual account, dan e-wallet melalui integrasi Midtrans. Pembayaran digital dibuat sebagai invoice dan diverifikasi otomatis lewat webhook.'
 		},
 		{
 			q: 'Berapa lama proses setup?',

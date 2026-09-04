@@ -966,6 +966,10 @@
 	padding: 11px 4px 0;
 }
 
+.product-info > div {
+	min-width: 0;
+}
+
 .product-info h3 {
 	overflow: hidden;
 	color: var(--ink);
@@ -976,25 +980,36 @@
 	white-space: nowrap;
 }
 
-.variant-select {
-	max-width: 83px;
-	margin-top: 4px;
-	padding: 0 13px 0 0;
-	color: #99a39b;
-	border: 0;
-	outline: 0;
-	background-color: transparent;
-	background-image: linear-gradient(45deg, transparent 50%, #99a39b 50%), linear-gradient(135deg, #99a39b 50%, transparent 50%);
-	background-position: calc(100% - 6px) 5px, calc(100% - 3px) 5px;
-	background-repeat: no-repeat;
-	background-size: 3px 3px, 3px 3px;
-	font-size: 9px;
-	cursor: pointer;
+.variant-badges {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 5px;
 }
 
-.variant-select:hover,
-.variant-select:focus {
+.variant-badge {
+	min-height: 21px;
+	padding: 0 7px;
+	color: #8a958d;
+	border: 1px solid #dfe8df;
+	border-radius: 999px;
+	background: #f8fbf8;
+	font-size: 8px;
+	font-weight: 700;
+	line-height: 1;
+	white-space: nowrap;
+	transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.variant-badge:hover {
 	color: var(--forest-700);
+	border-color: #b6ceb9;
+}
+
+.variant-badge.active {
+	color: #fff;
+	border-color: var(--forest-900);
+	background: var(--forest-900);
 }
 
 .add-product {
@@ -2417,10 +2432,15 @@
 		font-size: 10px;
 	}
 
-	.variant-select {
-		max-width: 72px;
+	.variant-badges {
+		gap: 3px;
 		margin-top: 3px;
-		font-size: 8px;
+	}
+
+	.variant-badge {
+		min-height: 18px;
+		padding: 0 5px;
+		font-size: 7px;
 	}
 
 	.add-product {

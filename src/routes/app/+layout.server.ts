@@ -7,7 +7,7 @@ import type { LayoutServerLoad } from './$types';
 /**
  * Guard server: tidak bisa di-bypass dari browser.
  * - Mode backend: wajib login → wajib toko → wajib subscription aktif.
- *   Subscription pending/expired → redirect ke /subscribe (atau paymentUrl iPaymu).
+ *   Subscription pending/expired → redirect ke /subscribe (atau paymentUrl Midtrans).
  * - Mode demo: hanya aktif jika ALLOW_DEMO_MODE=true dan Supabase belum dikonfigurasi.
  */
 export const load: LayoutServerLoad = async (event) => {

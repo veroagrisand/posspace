@@ -31,6 +31,16 @@
 		return `IPM-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 	}
 
+	function paymentErrorMessage(code: unknown): string {
+		const messages: Record<string, string> = {
+			MIDTRANS_NOT_CONFIGURED: 'Pembayaran digital belum tersedia. Konfigurasi MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY di server terlebih dahulu.',
+			MIDTRANS_UNAVAILABLE: 'Server pembayaran tidak tersedia. Coba lagi beberapa saat.',
+			MIDTRANS_ORDER_EXISTS: 'Transaksi ini sudah pernah dibuatkan pembayaran. Muat ulang halaman lalu coba lagi.',
+			NOT_PENDING: 'Transaksi ini sudah tidak menunggu pembayaran.'
+		};
+		return messages[String(code ?? '')] ?? 'Gagal membuat invoice pembayaran. Coba lagi.';
+	}
+
 	$effect(() => {
 		if (open) {
 			selected = 'qris';
@@ -51,33 +61,36 @@
 			}
 			step = 'paying';
 			try {
-				const res = await fetch('/api/payments/ipaymu/invoice', {
+				const res = await fetch('/api/payments/midtrans/invoice', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ transactionId })
 				});
 				const json = await res.json().catch(() => ({}));
 				if (!res.ok) {
-					errorMsg = json.message ?? 'Gagal membuat invoice pembayaran.';
+					errorMsg = paymentErrorMessage(json.message);
 					step = 'choose';
 					showToast(errorMsg);
 					return;
 				}
 				gatewayRef = json.referenceId ?? randomRef();
 				if (json.qrContent) {
-					const qrUrl = await QRCode.toDataURL(json.qrContent, {
-						width: 300,
-						margin: 2,
-						color: { dark: '#1c2721', light: '#ffffff' }
-					});
-					qrDataUrl = qrUrl;
+					// Midtrans QRIS: qrContent sudah berupa data URL PNG — pakai langsung,
+					// fallback generate dari string QR bila bukan data URL.
+					qrDataUrl = typeof json.qrContent === 'string' && json.qrContent.startsWith('data:')
+						? json.qrContent
+						: await QRCode.toDataURL(json.qrContent, {
+								width: 300,
+								margin: 2,
+								color: { dark: '#1c2721', light: '#ffffff' }
+							});
 				} else if (json.paymentUrl) {
 					paymentUrl = json.paymentUrl;
 					window.open(json.paymentUrl, '_blank');
 				}
 				startPolling();
 			} catch {
-				errorMsg = 'Gagal terhubung ke iPaymu. Coba lagi.';
+				errorMsg = 'Gagal terhubung ke Midtrans. Coba lagi.';
 				step = 'choose';
 				showToast(errorMsg);
 			}
@@ -92,11 +105,18 @@
 		window.clearInterval(pollTimer);
 		pollTimer = window.setInterval(async () => {
 			try {
-				const res = await fetch(`/api/payments/ipaymu/status?transactionId=${transactionId}`);
+				const res = await fetch(`/api/payments/midtrans/status?transactionId=${transactionId}`);
 				const json = await res.json();
 				if (json.status === 'paid') {
 					window.clearInterval(pollTimer);
-					await fetch(`/api/transactions/${transactionId}/confirm`, { method: 'POST' });
+					const confirmRes = await fetch(`/api/transactions/${transactionId}/confirm`, { method: 'POST' });
+					if (!confirmRes.ok) {
+						const confirmJson = await confirmRes.json().catch(() => ({}));
+						errorMsg = paymentErrorMessage(confirmJson.message);
+						step = 'choose';
+						showToast(errorMsg);
+						return;
+					}
 					step = 'done';
 					showToast('Pembayaran terverifikasi — stok dipotong otomatis');
 					onPaid({ channel: 'QRIS', gatewayRef });
@@ -125,7 +145,7 @@
 	<div class="modal-overlay" role="presentation">
 		<div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-label="Pembayaran digital">
 			<div class="modal-head">
-				<h3>Pembayaran digital — iPaymu QRIS</h3>
+				<h3>Pembayaran digital — Midtrans QRIS</h3>
 				<button class="icon-button" type="button" onclick={closeAll} aria-label="Tutup dialog">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 				</button>
@@ -160,12 +180,12 @@
 				{:else if step === 'paying'}
 					<div class="paying-box">
 						{#if backend.enabled && qrDataUrl}
-							<img src={qrDataUrl} alt="Kode QR iPaymu" style="width:220px;height:220px;border-radius:14px;border:1px solid var(--line-strong)" />
+							<img src={qrDataUrl} alt="Kode QR Midtrans (QRIS)" style="width:220px;height:220px;border-radius:14px;border:1px solid var(--line-strong)" />
 							<p>Pindai kode QR ini menggunakan aplikasi e-wallet / m-banking pelanggan.</p>
 						{:else if backend.enabled && paymentUrl}
 							<div class="paying-redirect">
 								<span class="paying-spinner" aria-hidden="true"></span>
-								<p>Halaman pembayaran iPaymu dibuka di tab baru.<br />Selesaikan pembayaran lalu tunggu verifikasi otomatis di sini.</p>
+								<p>Halaman pembayaran Midtrans dibuka di tab baru.<br />Selesaikan pembayaran lalu tunggu verifikasi otomatis di sini.</p>
 								<a class="button button-primary" href={paymentUrl} target="_blank" rel="noopener">Buka lagi halaman pembayaran</a>
 							</div>
 						{:else if !backend.enabled}
@@ -174,9 +194,9 @@
 									<i class:on={(i * 7 + Math.floor(i / 7) * 3) % 5 !== 0}></i>
 								{/each}
 							</div>
-							<p>Mode demo — QRIS asli aktif setelah kredensial iPaymu diisi di .env.</p>
+							<p>Mode demo — QRIS asli aktif setelah kredensial Midtrans diisi di .env.</p>
 						{:else}
-							<div class="admin-loading">Menghubungkan ke iPaymu...</div>
+							<div class="admin-loading">Menghubungkan ke Midtrans...</div>
 						{/if}
 						<div class="ref-line"><span>Reference ID</span><strong>{gatewayRef}</strong></div>
 						<p style="color:#9aa39c;font-size:10px;margin-top:6px">Menunggu pembayaran... Sistem memverifikasi otomatis via webhook &amp; polling.</p>
@@ -191,7 +211,7 @@
 					<div class="success-box">
 						<span class="toast-check">✓</span>
 						<strong>Pembayaran terverifikasi</strong>
-						<p>Status transaksi {gatewayRef} dikonfirmasi PAID oleh iPaymu. Stok bahan dipotong otomatis.</p>
+						<p>Status transaksi {gatewayRef} dikonfirmasi PAID oleh Midtrans. Stok bahan dipotong otomatis.</p>
 						<div class="ref-line"><span>Reference ID</span><strong>{gatewayRef}</strong></div>
 					</div>
 					<div class="modal-actions">

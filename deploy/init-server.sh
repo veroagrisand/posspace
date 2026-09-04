@@ -107,7 +107,7 @@ log "7/12 File .env"
 if [ ! -f "$APP_DIR/.env" ]; then
 	sudo -u "$APP_USER" cp "$APP_DIR/.env.example" "$APP_DIR/.env"
 	echo ">>> EDIT SEKARANG: sudo -u $APP_USER nano $APP_DIR/.env"
-	echo ">>> (isi SUPABASE_*, IPAYMU_*, SMTP_*; set ALLOW_*=false)"
+	echo ">>> (isi SUPABASE_*, MIDTRANS_*, SMTP_*; set ALLOW_*=false)"
 	echo ">>> Lanjut otomatis setelah Anda menekan ENTER di sini."
 	read -r -p "Sudah selesai mengisi .env? [Enter]" _
 fi

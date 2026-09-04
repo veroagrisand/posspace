@@ -25,12 +25,12 @@
 
 	<details>
 		<summary>Metode pembayaran apa saja yang didukung?</summary>
-		<p>posspace mendukung tunai untuk transaksi kasir dan pembayaran digital melalui iPaymu, termasuk QRIS, Virtual Account, dan e-wallet sesuai channel yang tersedia di akun merchant.</p>
+		<p>posspace mendukung tunai untuk transaksi kasir dan pembayaran digital melalui Midtrans, termasuk QRIS, Virtual Account, dan e-wallet sesuai channel yang tersedia di akun merchant.</p>
 	</details>
 
 	<details>
 		<summary>Bagaimana pembayaran langganan diproses?</summary>
-		<p>Pembayaran langganan dibuat sebagai invoice iPaymu. Setelah pembayaran dikonfirmasi melalui callback, status langganan diperbarui secara otomatis. Jangan melakukan pembayaran ulang untuk invoice yang sama.</p>
+		<p>Pembayaran langganan dibuat sebagai invoice Midtrans. Setelah pembayaran dikonfirmasi melalui callback, status langganan diperbarui secara otomatis. Jangan melakukan pembayaran ulang untuk invoice yang sama.</p>
 	</details>
 
 	<details>

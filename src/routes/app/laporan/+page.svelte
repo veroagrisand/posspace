@@ -1,12 +1,32 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, hppOf, findVariant, getIngredient } from '$lib/store.svelte';
+	import { store, hppOf, findVariant } from '$lib/store.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
 
-	const todaySales = $derived(store.transactions);
+	function isToday(iso: string): boolean {
+		const d = new Date(iso);
+		const n = new Date();
+		return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+	}
+
+	const todaySales = $derived(store.transactions.filter((t) => isToday(t.paidAt)));
 	const omzet = $derived(todaySales.reduce((s, t) => s + t.total, 0));
 	const txCount = $derived(todaySales.length);
+	const hppTotal = $derived(
+		todaySales.reduce((sum, txn) => {
+			for (const item of txn.items) {
+				const variant = store.products
+					.map((p) => p.variants.find((v) => v.name === item.variant && v.price === item.unitPrice))
+					.find((v) => v);
+				sum += variant ? hppOf(variant) * item.qty : 0;
+			}
+			return sum;
+		}, 0)
+	);
+	const profit = $derived(omzet - hppTotal);
+	const hppPct = $derived(omzet > 0 ? Math.round((hppTotal / omzet) * 1000) / 10 : 0);
+	const marginPct = $derived(omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0);
 
 	const bestSellers = $derived(() => {
 		const map = new Map<string, { name: string; qty: number; revenue: number; hpp: number }>();
@@ -110,29 +130,29 @@
 			<div class="metric-topline"><span class="metric-label">Omzet hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg>
 			</span></div>
-			<strong class="metric-value">{formatIDR(omzet + 8_000_000)}</strong>
-			<div class="metric-meta"><span class="trend-up">+12,8%</span><span>vs. kemarin</span></div>
+			<strong class="metric-value">{formatIDR(omzet)}</strong>
+			<div class="metric-meta"><span class="trend-up">{txCount > 0 ? '+' + txCount : '0'}</span><span>transaksi hari ini</span></div>
 		</article>
 		<article class="metric-card metric-orders">
 			<div class="metric-topline"><span class="metric-label">Transaksi</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg>
 			</span></div>
-			<strong class="metric-value">{txCount + 123} <small>transaksi</small></strong>
-			<div class="metric-meta"><span class="trend-up">+9%</span><span>rata-rata Rp 48.900</span></div>
+			<strong class="metric-value">{txCount} <small>transaksi</small></strong>
+			<div class="metric-meta"><span class="trend-up">+{txCount}</span><span>sejak pukul 08.00</span></div>
 		</article>
 		<article class="metric-card metric-profit">
 			<div class="metric-topline"><span class="metric-label">HPP total</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">31,6% <small>dari omzet</small></strong>
-			<div class="metric-meta"><span class="trend-good">Dalam target</span><span>target &lt; 35%</span></div>
+			<strong class="metric-value">{formatIDR(hppTotal)}</strong>
+			<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>{hppPct}% dari omzet</span></div>
 		</article>
 		<article class="metric-card">
 			<div class="metric-topline"><span class="metric-label">Laba kotor</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5 9.5 11l3.5 3.5L21 7M16 7h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">Rp 29,3 jt</strong>
-			<div class="metric-meta"><span class="trend-good">+21%</span><span>margin 68,4%</span></div>
+			<strong class="metric-value">{formatIDR(profit)}</strong>
+			<div class="metric-meta"><span class="trend-good">margin {marginPct}%</span><span>dari omzet</span></div>
 		</article>
 	</section>
 

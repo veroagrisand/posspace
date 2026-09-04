@@ -2,9 +2,8 @@ import type { Context } from 'hono';
 import { env } from './env.js';
 import { service } from './db.js';
 import { httpError } from './http.js';
-import { createIpaymuPayment, isIpaymuConfigured } from './ipaymu.js';
+import { createSnapTransaction, isMidtransConfigured } from './midtrans.js';
 import { ALLOW_MOCK_PAYMENT } from './mock.js';
-import { publicBaseUrl } from './url.js';
 
 /** Bentuk minimal user yang dibutuhkan createShopSubscription. */
 export interface SubUser {
@@ -17,7 +16,7 @@ export interface SubUser {
  * Interim tanpa gateway: toko dibuat dengan subscription PENDING.
  * Aktivasi manual HANYA dilakukan oleh platform admin lewat dashboard
  * superadmin (/admin/subscriptions) — pemilik toko TIDAK bisa mengaktifkan sendiri.
- * WAJIB false setelah gateway (iPaymu) aktif di produksi.
+ * WAJIB false setelah gateway (Midtrans) aktif di produksi.
  */
 export const ALLOW_MANUAL_ACTIVATION = env.ALLOW_MANUAL_ACTIVATION === 'true';
 
@@ -25,14 +24,14 @@ export interface ShopSubscriptionResult {
 	invoiceId: string;
 	merchantOrderId: string;
 	paymentUrl?: string;
-	gateway?: 'ipaymu' | 'mock' | 'manual';
+	gateway?: 'midtrans' | 'mock' | 'manual';
 	mock?: boolean;
 	manual?: boolean;
 }
 
 /**
  * Alur "setiap toko wajib berlangganan dulu":
- * buat toko → kaitkan profil pemilik → subscription PENDING → invoice iPaymu (redirect).
+ * buat toko → kaitkan profil pemilik → subscription PENDING → invoice Midtrans Snap (redirect).
  */
 export async function createShopSubscription(input: {
 	user: SubUser;
@@ -95,31 +94,27 @@ export async function createShopSubscription(input: {
 		.single();
 	if (invoiceError || !invoice) httpError(500, 'INVOICE_CREATE_FAILED');
 
-	if (isIpaymuConfigured) {
-		// iPaymu redirect — pelanggan memilih channel (QRIS/VA/e-wallet) di halaman iPaymu.
-		const base = publicBaseUrl(input.c);
-		const pay = await createIpaymuPayment({
-			referenceId: merchantOrderId,
+	if (isMidtransConfigured) {
+		// Midtrans Snap — pelanggan memilih channel (QRIS/VA/e-wallet/kartu) di halaman Midtrans.
+		const snap = await createSnapTransaction({
+			orderId: merchantOrderId,
 			amount: Number(amount),
 			product: `Langganan posspace ${plan.name} (${input.billingPeriod})`,
 			buyerName: (input.user.user_metadata?.full_name as string) || 'Pelanggan',
 			buyerEmail: input.user.email ?? '',
-			notifyUrl: `${base}/api/payments/ipaymu/callback`,
-			returnUrl: `${base}/payment/result?merchantOrderId=${merchantOrderId}`,
-			cancelUrl: `${base}/subscribe`,
 			expiredMinutes: 30
 		});
 
 		await db
 			.from('invoices')
 			.update({
-				payment_url: pay.Url ?? null,
-				payment_ref: pay.SessionID ?? null,
-				payment_channel: 'ipaymu'
+				payment_url: snap.redirectUrl,
+				payment_ref: null,
+				payment_channel: 'midtrans'
 			})
 			.eq('id', invoice.id);
 
-		return { invoiceId: invoice.id, merchantOrderId, paymentUrl: pay.Url, gateway: 'ipaymu' };
+		return { invoiceId: invoice.id, merchantOrderId, paymentUrl: snap.redirectUrl, gateway: 'midtrans' };
 	}
 
 	if (ALLOW_MOCK_PAYMENT) {
@@ -147,7 +142,7 @@ export interface VoucherRedeemResult {
 /**
  * Pakai voucher diskon untuk invoice PENDING milik toko.
  * Menghitung diskon (persen/fixed), memperbarui invoice, lalu membuat ulang
- * instruksi pembayaran iPaymu dengan nominal baru. Melempar error ber-kode.
+ * instruksi pembayaran Midtrans Snap dengan nominal baru. Melempar error ber-kode.
  */
 export async function redeemVoucherToPendingInvoice(input: {
 	shopId: string;
@@ -184,25 +179,21 @@ export async function redeemVoucherToPendingInvoice(input: {
 	if (discount <= 0) throw new Error('VOUCHER_NO_DISCOUNT');
 	const amount = original - discount;
 
-	// Regenerasi instruksi pembayaran iPaymu dengan nominal baru (jika gateway aktif).
+	// Regenerasi instruksi pembayaran Midtrans Snap dengan nominal baru (jika gateway aktif).
 	let paymentUrl: string | null = null;
 	let gateway = 'manual';
 
-	if (isIpaymuConfigured) {
-		const base = publicBaseUrl(input.c);
-		const pay = await createIpaymuPayment({
-			referenceId: invoice.merchant_order_id,
+	if (isMidtransConfigured) {
+		const snap = await createSnapTransaction({
+			orderId: invoice.merchant_order_id,
 			amount,
 			product: 'Langganan posspace (diskon voucher)',
 			buyerName: 'Pelanggan posspace',
-			notifyUrl: `${base}/api/payments/ipaymu/callback`,
-			returnUrl: `${base}/payment/result?merchantOrderId=${invoice.merchant_order_id}`,
-			cancelUrl: `${base}/subscribe`,
 			expiredMinutes: 30
 		}).catch(() => null);
-		if (!pay?.Url) throw new Error('PAYMENT_REGENERATE_FAILED');
-		paymentUrl = pay.Url ?? null;
-		gateway = 'ipaymu';
+		if (!snap) throw new Error('PAYMENT_REGENERATE_FAILED');
+		paymentUrl = snap.redirectUrl;
+		gateway = 'midtrans';
 	}
 
 	const { error: updateError } = await db
@@ -213,7 +204,7 @@ export async function redeemVoucherToPendingInvoice(input: {
 			voucher_id: voucher.id,
 			payment_url: paymentUrl,
 			payment_ref: null,
-			payment_channel: gateway === 'ipaymu' ? 'ipaymu' : null
+			payment_channel: gateway === 'midtrans' ? 'midtrans' : null
 		})
 		.eq('id', invoice.id);
 

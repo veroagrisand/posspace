@@ -12,7 +12,7 @@
 		if (!data.merchantOrderId) return;
 		polling = true;
 		try {
-			const res = await fetch(`/api/payments/ipaymu/status?merchantOrderId=${data.merchantOrderId}`);
+			const res = await fetch(`/api/payments/midtrans/status?merchantOrderId=${data.merchantOrderId}`);
 			const json = await res.json();
 			if (json.status === 'paid') {
 				status = 'paid';
@@ -73,7 +73,7 @@
 			{:else}
 				<h1 style="font-size:1.6rem">Menunggu pembayaran</h1>
 				<p style="margin-top:10px;color:var(--brand-muted);font-size:13px;line-height:1.6">
-					Invoice <strong>{data.merchantOrderId}</strong> masih berstatus pending. Webhook iPaymu akan
+					Invoice <strong>{data.merchantOrderId}</strong> masih berstatus pending. Webhook Midtrans akan
 					mengonfirmasi otomatis saat pembayaran selesai.
 				</p>
 				{#if data.mock}

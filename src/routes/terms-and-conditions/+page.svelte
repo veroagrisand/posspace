@@ -22,7 +22,7 @@
 	<p>posspace menyediakan fitur kasir, stok, resep/BOM, laporan, dan fitur pendukung lainnya sesuai paket yang dipilih. Anda bertanggung jawab atas data produk, harga, resep, stok, transaksi, dan pengguna yang dimasukkan ke sistem.</p>
 
 	<h2>4. Langganan dan pembayaran</h2>
-	<p>Fitur berlangganan dapat memerlukan pembayaran sesuai harga dan periode yang ditampilkan sebelum checkout. Pembayaran digital diproses oleh iPaymu melalui channel yang tersedia. Status layanan diperbarui setelah pembayaran berhasil dikonfirmasi.</p>
+	<p>Fitur berlangganan dapat memerlukan pembayaran sesuai harga dan periode yang ditampilkan sebelum checkout. Pembayaran digital diproses oleh Midtrans melalui channel yang tersedia. Status layanan diperbarui setelah pembayaran berhasil dikonfirmasi.</p>
 
 	<h2>5. Data dan privasi</h2>
 	<p>Anda memberi wewenang kepada posspace untuk memproses data yang diperlukan agar layanan berjalan, termasuk data akun, toko, operasional, dan transaksi. posspace menerapkan kontrol akses dan langkah keamanan yang wajar, tetapi tidak dapat menjamin ketersediaan tanpa gangguan pada setiap saat.</p>

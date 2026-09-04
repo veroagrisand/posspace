@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel } from '$lib/store.svelte';
+	import { store, backend, findVariant, stockStatus, lowStockIngredients, createTransaction, hydrateStore, formatClockLabel, hppOf } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
 	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
@@ -15,6 +15,8 @@
 	let searchQuery = $state('');
 	let activeCategory = $state('all');
 	let syncSeconds = $state(2);
+	let selectedVariants = $state<Record<string, string>>({});
+	let paymentSubmitting = $state(false);
 
 	let shiftOpen = $state(false);
 	let paymentOpen = $state(false);
@@ -62,15 +64,64 @@
 	const itemCount = $derived(cart.reduce((sum, item) => sum + item.qty, 0));
 	const change = $derived(cashReceived - total);
 
-	const chartBars = [
-		{ day: 'Sen', value: '5,1', height: '51%' },
-		{ day: 'Sel', value: '6,4', height: '64%' },
-		{ day: 'Rab', value: '5,8', height: '58%' },
-		{ day: 'Kam', value: '7,4', height: '74%' },
-		{ day: 'Jum', value: '8,2', height: '82%', highlight: true },
-		{ day: 'Sab', value: '6,7', height: '67%' },
-		{ day: 'Min', value: '3,2', height: '32%', current: true }
-	];
+	function dateKey(d: Date): string {
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	}
+
+	function omzetOn(date: Date): number {
+		const key = dateKey(date);
+		return store.transactions.filter((t) => dateKey(new Date(t.paidAt)) === key).reduce((s, t) => s + t.total, 0);
+	}
+
+	function trendPct(current: number, previous: number): number | null {
+		if (previous <= 0) return null;
+		return Math.round(((current - previous) / previous) * 1000) / 10;
+	}
+
+	const todayTransactions = $derived(store.transactions.filter((t) => dateKey(new Date(t.paidAt)) === dateKey(new Date())));
+	const todayOmzet = $derived(todayTransactions.reduce((s, t) => s + t.total, 0));
+	const todayHpp = $derived(
+		todayTransactions.reduce((sum, t) => {
+			for (const item of t.items) {
+				const v = store.products.map((p) => p.variants.find((x) => x.name === item.variant && x.price === item.unitPrice)).find((x) => x);
+				if (v) sum += hppOf(v) * item.qty;
+			}
+			return sum;
+		}, 0)
+	);
+	const yesterdayOmzet = $derived(() => {
+		const d = new Date();
+		d.setDate(d.getDate() - 1);
+		return omzetOn(d);
+	});
+	const todayTrend = $derived(trendPct(todayOmzet, yesterdayOmzet()));
+
+	const chartBars = $derived.by(() => {
+		const days: { label: string; date: string; omzet: number; current: boolean }[] = [];
+		for (let i = 6; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			days.push({ date: dateKey(d), label: d.toLocaleDateString('id-ID', { weekday: 'short' }), omzet: 0, current: i === 0 });
+		}
+		const max = Math.max(1, ...days.map((day) => omzetOn(new Date(`${day.date}T00:00:00`))));
+		return days.map((day) => ({
+			...day,
+			omzet: omzetOn(new Date(`${day.date}T00:00:00`)),
+			height: `${Math.max(4, Math.round((omzetOn(new Date(`${day.date}T00:00:00`)) / max) * 100))}%`
+		}));
+	});
+	const weekTotal = $derived(chartBars.reduce((s, b) => s + b.omzet, 0));
+	const prevWeekTotal = $derived(() => {
+		let sum = 0;
+		for (let i = 13; i >= 7; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			sum += omzetOn(d);
+		}
+		return sum;
+	});
+	const weekTrend = $derived(trendPct(weekTotal, prevWeekTotal()));
+	const hppPct = $derived(todayOmzet > 0 ? Math.round((todayHpp / todayOmzet) * 1000) / 10 : 0);
 
 	const activities = $derived(store.movements.slice(0, 4));
 
@@ -83,6 +134,21 @@
 		}
 		const product = store.products.find((p) => p.id === productId);
 		showToast(`${product!.name} (${variantName}) ditambahkan`);
+	}
+
+	function selectVariant(productId: string, variantId: string) {
+		selectedVariants[productId] = variantId;
+	}
+
+	function transactionErrorMessage(err: unknown): string {
+		const code = err instanceof Error ? err.message : '';
+		const messages: Record<string, string> = {
+			INSUFFICIENT_CASH: 'Uang diterima belum cukup.',
+			INSUFFICIENT_STOCK: 'Stok bahan tidak mencukupi.',
+			INVALID_VARIANT: 'Varian menu sudah tidak tersedia.',
+			TRANSACTION_FAILED: 'Server gagal menyimpan transaksi.'
+		};
+		return `Transaksi gagal: ${messages[code] ?? 'Server tidak dapat menyimpan transaksi. Coba lagi.'}`;
 	}
 
 	function changeQuantity(productId: string, variantId: string, delta: number) {
@@ -104,20 +170,29 @@
 	}
 
 	async function handlePay() {
+		if (paymentSubmitting) return;
 		if (!cart.length) {
 			showToast('Pilih menu terlebih dahulu untuk membuat pesanan');
 			return;
 		}
 		if (paymentMethod === 'cash') {
+			if (!Number.isFinite(cashReceived)) {
+				showToast('Masukkan jumlah uang diterima.');
+				return;
+			}
 			if (cashReceived < total) {
 				showToast(`Uang diterima masih kurang ${formatIDR(total - cashReceived)}`);
 				return;
 			}
-			finishPayment('cash', undefined, undefined, undefined);
-		} else {
-			// Pembayaran digital: transaksi dibuat PENDING dulu (stok belum dipotong),
-			// lalu QR iPaymu dibuat; stok dipotong saat pembayaran terkonfirmasi.
-			try {
+		}
+
+		paymentSubmitting = true;
+		try {
+			if (paymentMethod === 'cash') {
+				await finishPayment('cash', undefined, undefined, undefined);
+			} else {
+				// Pembayaran digital: transaksi dibuat PENDING dulu (stok belum dipotong),
+				// lalu QR Midtrans dibuat; stok dipotong saat pembayaran terkonfirmasi.
 				const items = cart.map((item) => {
 					const v = findVariant(item.productId, item.variantName)!;
 					return {
@@ -136,9 +211,11 @@
 				});
 				pendingTxn = txn;
 				paymentOpen = true;
-			} catch (err) {
-				showToast(`Gagal membuat pesanan: ${err instanceof Error ? err.message : 'error'}`);
 			}
+		} catch (err) {
+			showToast(transactionErrorMessage(err));
+		} finally {
+			paymentSubmitting = false;
 		}
 	}
 
@@ -166,6 +243,7 @@
 			});
 		} else {
 			txn = paymentTxn ?? { id: '', receiptNo: '', total: 0 };
+			if (backend.enabled) await hydrateStore().catch(() => undefined);
 		}
 		receipt = {
 			receiptNo: txn.receiptNo,
@@ -185,6 +263,12 @@
 		receiptOpen = true;
 		pendingTxn = null;
 		showToast('Transaksi selesai. Stok bahan dipotong otomatis sesuai resep.');
+	}
+
+	function handleDigitalPaid(result: { channel: string; gatewayRef: string }) {
+		void finishPayment(paymentMethod, result.channel, result.gatewayRef, pendingTxn ?? undefined).catch((err) => {
+			showToast(transactionErrorMessage(err));
+		});
 	}
 
 	function openShiftDialog() {
@@ -255,22 +339,22 @@
 			<div class="metric-topline"><span class="metric-label">Omzet hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg>
 			</span></div>
-			<strong class="metric-value">{formatIDR(store.transactions.reduce((s, t) => s + t.total, 0) + 8_000_000)}</strong>
-			<div class="metric-meta"><span class="trend-up">+12,8%</span><span>vs. kemarin</span></div>
+			<strong class="metric-value">{formatIDR(todayOmzet)}</strong>
+			<div class="metric-meta">{#if todayTrend !== null}<span class="trend-up">{todayTrend >= 0 ? '+' : ''}{todayTrend}%</span><span>vs. kemarin</span>{:else}<span>Belum ada penjualan hari ini</span>{/if}</div>
 		</article>
 		<article class="metric-card metric-orders">
 			<div class="metric-topline"><span class="metric-label">Pesanan hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg>
 			</span></div>
-			<strong class="metric-value">{store.transactions.length + 123} <small>transaksi</small></strong>
-			<div class="metric-meta"><span class="trend-up">+8</span><span>sejak pukul 08.00</span></div>
+			<strong class="metric-value">{todayTransactions.length} <small>transaksi</small></strong>
+			<div class="metric-meta"><span class="trend-up">+{todayTransactions.filter((t) => new Date(t.paidAt).getHours() >= 8).length}</span><span>sejak pukul 08.00</span></div>
 		</article>
 		<article class="metric-card metric-profit">
 			<div class="metric-topline"><span class="metric-label">HPP hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">31,6% <small>dari omzet</small></strong>
-			<div class="metric-meta"><span class="trend-good">Dalam target</span><span>target &lt; 35%</span></div>
+			<strong class="metric-value">{hppPct}% <small>dari omzet</small></strong>
+			<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>target &lt; 35%</span></div>
 		</article>
 		<article class="metric-card metric-stock">
 			<div class="metric-topline"><span class="metric-label">Stok perlu perhatian</span><span class="metric-icon">
@@ -317,6 +401,8 @@
 
 			<div class="product-grid">
 				{#each visibleProducts as product}
+					{@const selectedVariantId = selectedVariants[product.id] ?? product.variants[0]?.id}
+					{@const selectedVariant = product.variants.find((v) => v.id === selectedVariantId) ?? product.variants[0]}
 					<article class="product-card">
 						<div class="product-art {product.art}">
 							{#if product.badge}
@@ -331,27 +417,29 @@
 						<div class="product-info">
 							<div>
 								<h3>{product.name}</h3>
-								{#if product.variants.length > 1}
-									<select class="variant-select" aria-label="Pilih varian {product.name}">
-										{#each product.variants as variant}
-											<option value={variant.id} data-price={variant.price}>{variant.name}</option>
-										{/each}
-									</select>
-								{/if}
+								<div class="variant-badges" role="group" aria-label="Pilih varian {product.name}">
+									{#each product.variants as variant}
+										<button
+											class="variant-badge"
+											class:active={selectedVariant?.id === variant.id}
+											type="button"
+											aria-pressed={selectedVariant?.id === variant.id}
+											onclick={() => selectVariant(product.id, variant.id)}
+										>
+											{variant.name}
+										</button>
+									{/each}
+								</div>
 							</div>
 							<button
 								class="add-product"
 								type="button"
-								onclick={(e) => {
-									const card = (e.currentTarget as HTMLElement).closest('.product-card') as HTMLElement;
-									const select = card.querySelector('select') as HTMLSelectElement | null;
-									const variant = product.variants.find((v) => v.id === (select?.value ?? product.variants[0].id)) ?? product.variants[0];
-									addToCart(product.id, variant.id, variant.name);
-								}}
-								aria-label="Tambah {product.name}"
+								disabled={!selectedVariant}
+								onclick={() => selectedVariant && addToCart(product.id, selectedVariant.id, selectedVariant.name)}
+								aria-label="Tambah {product.name} {selectedVariant?.name ?? ''}"
 							>+</button>
 						</div>
-						<div class="product-price"><span>Mulai dari</span><strong>{formatIDR(product.variants[0].price)}</strong></div>
+						<div class="product-price"><span>Harga · {selectedVariant?.name ?? '-'}</span><strong>{formatIDR(selectedVariant?.price ?? 0)}</strong></div>
 					</article>
 				{/each}
 			</div>
@@ -429,7 +517,7 @@
 			</div>
 
 			<div class="payment-section">
-				<div class="payment-label"><span>Metode pembayaran</span><button type="button" onclick={() => showToast('Metode pembayaran digital dikelola oleh iPaymu (QRIS)')}>iPaymu terhubung</button></div>
+				<div class="payment-label"><span>Metode pembayaran</span><button type="button" onclick={() => showToast('Metode pembayaran digital dikelola oleh Midtrans (QRIS)')}>Midtrans terhubung</button></div>
 				<div class="payment-methods" role="group" aria-label="Metode pembayaran">
 					{#each ['cash', 'qris', 'debit'] as method}
 						<button class="payment-method" class:active={paymentMethod === method} type="button" onclick={() => (paymentMethod = method as 'cash' | 'qris' | 'debit')}>
@@ -464,12 +552,12 @@
 				{:else}
 					<div class="digital-payment">
 						<span class="digital-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M18 14h2M14 18h2M18 18h2" /></svg></span>
-						<span><strong>QRIS iPaymu siap dibuat</strong><small>QRIS dinamis ditampilkan saat Bayar ditekan — stok dipotong setelah pembayaran terkonfirmasi.</small></span>
+						<span><strong>QRIS Midtrans siap dibuat</strong><small>QRIS dinamis ditampilkan saat Bayar ditekan — stok dipotong setelah pembayaran terkonfirmasi.</small></span>
 					</div>
 				{/if}
 
-				<button class="button button-primary pay-button" type="button" onclick={handlePay}>
-					<span>Bayar sekarang</span>
+				<button class="button button-primary pay-button" type="button" disabled={paymentSubmitting} onclick={handlePay}>
+					<span>{paymentSubmitting ? 'Memproses...' : 'Bayar sekarang'}</span>
 					<strong>{formatIDR(total)}</strong>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 				</button>
@@ -487,7 +575,7 @@
 						showToast(`Grafik menampilkan omzet ${chartPeriod} hari terakhir`);
 					}}>{chartPeriod} hari <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></button>
 			</div>
-			<div class="chart-summary"><strong>Rp 42,8 jt</strong><span class="trend-up">+18,4%</span><small>dibanding minggu lalu</small></div>
+			<div class="chart-summary"><strong>{formatIDR(weekTotal)}</strong>{#if weekTrend !== null}<span class="trend-up">{weekTrend >= 0 ? '+' : ''}{weekTrend}%</span>{/if}<small>7 hari terakhir</small></div>
 			<div class="sales-chart" aria-label="Grafik omzet tujuh hari terakhir">
 				<div class="chart-y-axis"><span>10 jt</span><span>7,5 jt</span><span>5 jt</span><span>2,5 jt</span><span>0</span></div>
 				<div class="chart-plot">
@@ -495,9 +583,9 @@
 					<div class="chart-bars">
 						{#each chartBars as bar}
 							<div class="bar-column" class:current={bar.current}>
-								<span class="bar-value">{bar.value}</span>
-								<div class="bar" class:bar-highlight={bar.highlight} style="--bar-height: {bar.height}"></div>
-								<small>{bar.day}</small>
+								<span class="bar-value">{bar.omzet >= 1_000_000 ? `${(bar.omzet / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })} jt` : formatIDR(bar.omzet)}</span>
+								<div class="bar" class:bar-highlight={bar.current} style="--bar-height: {bar.height}"></div>
+								<small>{bar.label}</small>
 							</div>
 						{/each}
 					</div>
@@ -560,9 +648,7 @@
 	bind:open={paymentOpen}
 	total={total}
 	transactionId={pendingTxn?.id ?? ''}
-	onPaid={(result) => {
-		finishPayment(paymentMethod, result.channel, result.gatewayRef, pendingTxn ?? undefined);
-	}}
+	onPaid={handleDigitalPaid}
 />
 <ReceiptModal
 	bind:open={receiptOpen}

@@ -1,4 +1,4 @@
-# Panduan iPaymu Produksi dan Auto-Deploy
+# Panduan Midtrans Produksi dan Auto-Deploy
 
 Panduan ini untuk deployment posspace pada:
 
@@ -10,20 +10,21 @@ Panduan ini untuk deployment posspace pada:
 Jangan memasukkan API Key, password SMTP, service role key, private key, atau
 isi `.env` ke repository GitHub.
 
-## 1. Aktivasi iPaymu
+## 1. Aktivasi Midtrans
 
 ### 1.1 Siapkan kredensial produksi
 
-Di dashboard merchant iPaymu, aktifkan produk pembayaran yang diperlukan dan
-ambil kredensial **produksi**:
+Di dashboard Midtrans, aktifkan produk pembayaran yang diperlukan dan ambil
+kredensial **produksi** (Settings → Access Keys):
 
-- Virtual Account / VA
-- API Key
+- Server Key
+- Client Key
 - Channel pembayaran yang sudah disetujui, misalnya QRIS
 
-Kredensial sandbox dan produksi berbeda. Untuk sandbox gunakan:
-`https://sandbox.ipaymu.com`. Untuk produksi gunakan:
-`https://my.ipaymu.com`.
+Kredensial sandbox dan produksi berbeda. Untuk sandbox gunakan
+`https://dashboard.sandbox.midtrans.com`; untuk produksi gunakan
+`https://dashboard.midtrans.com`. Environment dikendalikan `MIDTRANS_ENV`
+(`sandbox` atau `production`).
 
 ### 1.2 Isi environment di VPS
 
@@ -36,9 +37,9 @@ sudo -u deploy nano /var/www/posspace/.env
 Pastikan konfigurasi berikut diisi:
 
 ```env
-IPAYMU_VA=ISI_VA_PRODUKSI
-IPAYMU_API_KEY=ISI_API_KEY_PRODUKSI
-IPAYMU_BASE_URL=https://my.ipaymu.com
+MIDTRANS_SERVER_KEY=ISI_SERVER_KEY_PRODUKSI
+MIDTRANS_CLIENT_KEY=ISI_CLIENT_KEY_PRODUKSI
+MIDTRANS_ENV=production
 
 ALLOW_DEMO_MODE=false
 ALLOW_MOCK_PAYMENT=false
@@ -72,25 +73,26 @@ sudo chmod 600 /var/www/posspace/.env
 sudo chown deploy:deploy /var/www/posspace/.env
 ```
 
-### 1.3 Daftarkan callback iPaymu
+### 1.3 Daftarkan notifikasi Midtrans
 
-Masukkan URL callback berikut pada dashboard atau proses aktivasi iPaymu:
+Masukkan URL notifikasi berikut pada dashboard Midtrans
+(Settings → Configuration → Payment Notification URL):
 
 ```text
-https://posspace.id/api/payments/ipaymu/callback
+https://posspace.id/api/payments/midtrans/notification
 ```
 
 URL ini harus dapat diakses publik melalui HTTPS. Aplikasi memvalidasi
-`X-Signature` callback menggunakan VA merchant.
+`signature_key` notifikasi menggunakan Server Key (HMAC-SHA512).
 
 Alur yang digunakan aplikasi:
 
-- Langganan baru diarahkan ke halaman pembayaran iPaymu.
+- Langganan baru diarahkan ke halaman Snap Midtrans.
 - Pembayaran POS QRIS dibuat sebagai transaksi `pending`.
-- Callback iPaymu mengubah status menjadi lunas dan memotong stok sesuai resep.
-- Polling status menjadi cadangan jika callback terlambat.
+- Notifikasi Midtrans mengubah status menjadi lunas dan memotong stok sesuai resep.
+- Polling status menjadi cadangan jika notifikasi terlambat.
 
-### 1.4 Deploy pertama setelah iPaymu aktif
+### 1.4 Deploy pertama setelah Midtrans aktif
 
 Pastikan kode terbaru sudah tersedia di branch `main`, kemudian di VPS:
 
@@ -127,7 +129,7 @@ menambahkan `.env`:
 ```bash
 git status
 git add .github/workflows/deploy.yml deploy apps/api/src/services/payment.ts .env.example
-git commit -m "fix production deployment and iPaymu callback"
+git commit -m "fix production deployment and Midtrans notification"
 git push origin main
 ```
 
@@ -241,7 +243,7 @@ Respons yang diharapkan:
 - API `/health`: JSON dengan `"ok":true`
 - PM2: `posspace-web` dan `posspace-api` berstatus `online`
 
-### 3.2 Pembayaran iPaymu
+### 3.2 Pembayaran Midtrans
 
 1. Login dengan akun reviewer atau akun toko yang sudah memiliki subscription aktif.
 2. Buka POS dan buat transaksi.
@@ -326,14 +328,14 @@ sudo -u deploy git -C /var/www/posspace pull --ff-only origin main
 
 ## 5. Checklist Go-Live
 
-- [ ] VA dan API Key produksi iPaymu sudah aktif.
-- [ ] `IPAYMU_BASE_URL=https://my.ipaymu.com`.
-- [ ] Callback `https://posspace.id/api/payments/ipaymu/callback` terdaftar.
+- [ ] Server Key dan Client Key produksi Midtrans sudah aktif.
+- [ ] `MIDTRANS_ENV=production` di `.env` VPS.
+- [ ] Notification URL `https://posspace.id/api/payments/midtrans/notification` terdaftar di dashboard Midtrans.
 - [ ] Semua `ALLOW_*` dan `ALLOW_OTP_DEBUG` bernilai `false`.
 - [ ] `.env` hanya ada di VPS dan permission-nya `600`.
 - [ ] Login HTTPS mengembalikan `200`.
 - [ ] API dan web online di PM2.
 - [ ] GitHub Actions berhasil menjalankan deployment.
 - [ ] VPS dapat pull repository dari GitHub.
-- [ ] Pembayaran sandbox sudah diuji sebelum production.
+- [ ] Pembayaran sandbox Midtrans sudah diuji sebelum production.
 - [ ] `certbot renew --dry-run` berhasil.

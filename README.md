@@ -6,7 +6,7 @@ terpotong otomatis sesuai resep (BOM), dan laporan HPP dalam satu aplikasi.
 - Frontend: [SvelteKit](https://svelte.dev) (SSR + SPA)
 - Backend: [Hono](https://hono.dev) gateway (microservices) + [Supabase](https://supabase.com)
   (PostgreSQL, Auth, RLS)
-- Pembayaran digital: iPaymu (QRIS / VA / e-wallet)
+- Pembayaran digital: Midtrans (QRIS / VA / e-wallet / kartu kredit)
 - Deploy: VPS Hostinger via GitHub Actions (auto-deploy)
 
 ---
@@ -20,7 +20,7 @@ Browser ── HTTPS ──▶ Nginx (TLS, VPS)
               SvelteKit web :3000  ── proxy /api/* ──▶ Hono gateway :3001
                         │                                   │
                         ▼                                   ▼
-                 Supabase (Postgres + Auth + RLS)   iPaymu · SMTP (OTP)
+                 Supabase (Postgres + Auth + RLS)   Midtrans · SMTP (OTP)
 ```
 
 - **Frontend tidak memegang logika bisnis** — semua operasi diteruskan lewat
@@ -75,7 +75,7 @@ Salin `.env.example` ke `.env`. Variabel penting:
 |---|---|
 | `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Dikirim ke browser (anon key publik) |
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Rahasia server; **service role hanya untuk backend** |
-| `IPAYMU_VA` / `IPAYMU_API_KEY` / `IPAYMU_BASE_URL` | Gateway pembayaran (sandbox vs produksi berbeda) |
+| `MIDTRANS_SERVER_KEY` / `MIDTRANS_CLIENT_KEY` / `MIDTRANS_ENV` | Gateway pembayaran (sandbox vs produksi berbeda) |
 | `SMTP_*` / `OTP_TTL_MINUTES` | Email OTP registrasi (SMTP Hostinger) |
 | `ALLOW_OTP_DEBUG` / `ALLOW_DEMO_MODE` / `ALLOW_MOCK_PAYMENT` / `ALLOW_MANUAL_ACTIVATION` | Mode pengembangan — **WAJIB `false` di produksi** |
 | `API_UPSTREAM` | Alamat internal gateway (default `http://127.0.0.1:3001`) |
@@ -138,7 +138,7 @@ Prinsip yang wajib dijaga saat menambah fitur:
 - **Auto-deploy**: push ke `main` → GitHub Actions SSH ke VPS → `deploy/deploy.sh`
   (pull → `npm ci` → build api+web → `pm2 reload` → health check).
 - Konfigurasi VPS, Nginx, dan panduan provisioning ada di `deploy/README.md`
-  dan `PANDUAN-IPAYMU-AUTO-DEPLOY.md`.
+  dan `PANDUAN-MIDTRANS-AUTO-DEPLOY.md`.
 - **Migrasi database**: jalankan `supabase db push --linked` (atau terapkan saat
   deploy) — daftar status: `supabase migration list --linked`.
 - **Nginx**: perubahan `deploy/nginx.conf` perlu diterapkan manual sekali di VPS:
@@ -164,4 +164,4 @@ Prinsip yang wajib dijaga saat menambah fitur:
 ---
 
 Dokumen pendukung: `posspace-PRD.md` (spesifikasi produk), `deploy/README.md`
-(ops VPS + auto-deploy), `PANDUAN-IPAYMU-AUTO-DEPLOY.md` (iPaymu produksi).
+(ops VPS + auto-deploy), `PANDUAN-MIDTRANS-AUTO-DEPLOY.md` (Midtrans produksi).

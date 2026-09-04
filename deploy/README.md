@@ -16,7 +16,7 @@ Browser ─▶ Nginx (TLS/gzip/cache) ─▶ web :3000 (SvelteKit)            �
                                    api :3001 (Hono gateway)           │
                                         │                              │
                                         ▼                              │
-                        Supabase · iPaymu · SMTP Hostinger             │
+                        Supabase · Midtrans · SMTP Hostinger             │
                                                                        ▼
                               PM2: posspace-web (cluster×2) + posspace-api
 ```
@@ -55,7 +55,7 @@ Skrip ini (idempotent, aman diulang) melakukan:
 | 4 | User `deploy` (sudo) |
 | 5 | Direktori `/var/www/posspace` + `/var/log/posspace` |
 | 6 | Clone repo & checkout branch `main` |
-| 7 | Salin `.env.example` → `.env` — **Anda mengisi kredensial di sini** (Supabase, iPaymu, SMTP; `ALLOW_*` = false) |
+| 7 | Salin `.env.example` → `.env` — **Anda mengisi kredensial di sini** (Supabase, Midtrans, SMTP; `ALLOW_*` = false) |
 | 8 | Nginx reverse proxy (bootstrap HTTP, domain di-substitusi) |
 | 9 | Firewall ufw: hanya 22/80/443 |
 | 10 | TLS Let's Encrypt (certbot webroot) — otomatis redirect HTTPS |
@@ -146,7 +146,7 @@ keluar dengan status error (workflow GitHub akan tampil merah).
 ```bash
 pm2 status                 # dua proses: posspace-web, posspace-api
 pm2 logs posspace-web      # log frontend
-pm2 logs posspace-api      # log backend (OTP, iPaymu, error)
+pm2 logs posspace-api      # log backend (OTP, Midtrans, error)
 pm2 monit                  # dashboard CPU/RAM real-time
 tail -f /var/log/nginx/access.log
 ```
@@ -188,7 +188,7 @@ sudo systemctl reload nginx
 ## 7. Checklist keamanan go-live
 
 - [ ] `ALLOW_DEMO_MODE=false`, `ALLOW_MOCK_PAYMENT=false`, `ALLOW_MANUAL_ACTIVATION=false`, `ALLOW_OTP_DEBUG=false`
-- [ ] iPaymu produksi: `IPAYMU_VA`, `IPAYMU_API_KEY`, `IPAYMU_BASE_URL=https://my.ipaymu.com`
+- [ ] Midtrans produksi: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_ENV=production`
 - [ ] Supabase Dashboard > Authentication > Providers > Email: aktifkan **Prevent use of leaked passwords**
 - [ ] SSH root dinonaktifkan (`PermitRootLogin no`) — masuk via user `deploy`/sudo
 - [ ] Password SSH dinonaktifkan (`PasswordAuthentication no`) — hanya key

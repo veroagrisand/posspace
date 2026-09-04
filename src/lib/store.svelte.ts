@@ -1,4 +1,4 @@
-// ===== Store data demo terpusat (frontend-only, menunggu backend Supabase) =====
+// ===== Store data terpusat — seluruh data diisi dari backend (Supabase) =====
 
 import { getBrowserClient } from './supabase';
 
@@ -10,6 +10,7 @@ export type Ingredient = {
 	unit: Unit;
 	stock: number;
 	minStock: number;
+	costPerUnit: number;
 };
 
 export type RecipeEntry = { ingredientId: string; qty: number };
@@ -95,151 +96,8 @@ export type Opname = {
 
 export const categories = ['Kopi', 'Non-kopi', 'Makanan'] as const;
 
-function ingredient(id: string, name: string, unit: Unit, stock: number, minStock: number): Ingredient {
-	return { id, name, unit, stock, minStock };
-}
-
-const initialIngredients: Ingredient[] = [
-	ingredient('biji-kopi', 'Biji kopi house blend', 'gram', 360, 2000),
-	ingredient('susu', 'Susu segar', 'ml', 3800, 5000),
-	ingredient('sirup-aren', 'Sirup aren', 'ml', 720, 1000),
-	ingredient('sirup-vanila', 'Sirup vanila', 'ml', 6400, 800),
-	ingredient('sirup-karamel', 'Sirup karamel', 'ml', 2100, 800),
-	ingredient('matcha', 'Bubuk matcha', 'gram', 850, 300),
-	ingredient('cokelat', 'Bubuk cokelat', 'gram', 1200, 400),
-	ingredient('adonan-croffle', 'Adonan croffle', 'pcs', 90, 30),
-	ingredient('keju', 'Keju parut', 'gram', 1400, 300),
-	ingredient('gula', 'Gula batu', 'pcs', 1500, 300),
-	ingredient('cup', 'Set cup (gelas + tutup)', 'pcs', 1120, 400),
-	ingredient('creamer', 'Creamer', 'ml', 4900, 600)
-];
-
-function variant(id: string, name: string, price: number, recipe: RecipeEntry[]): Variant {
-	return { id, name, price, recipe };
-}
-
-const initialProducts: Product[] = [
-	{
-		id: 'kopi-susu',
-		name: 'Es Kopi Susu',
-		category: 'Kopi',
-		art: 'art-coffee-milk',
-		badge: 'TERLARIS',
-		isActive: true,
-		variants: [
-			variant('kopi-susu-r', 'Reguler', 22000, [
-				{ ingredientId: 'biji-kopi', qty: 15 },
-				{ ingredientId: 'susu', qty: 150 },
-				{ ingredientId: 'sirup-aren', qty: 20 },
-				{ ingredientId: 'cup', qty: 1 }
-			]),
-			variant('kopi-susu-b', 'Besar', 26000, [
-				{ ingredientId: 'biji-kopi', qty: 20 },
-				{ ingredientId: 'susu', qty: 200 },
-				{ ingredientId: 'sirup-aren', qty: 25 },
-				{ ingredientId: 'cup', qty: 1 }
-			])
-		]
-	},
-	{
-		id: 'americano',
-		name: 'Americano',
-		category: 'Kopi',
-		art: 'art-americano',
-		isActive: true,
-		variants: [
-			variant('americano-r', 'Reguler', 18000, [
-				{ ingredientId: 'biji-kopi', qty: 18 },
-				{ ingredientId: 'cup', qty: 1 }
-			]),
-			variant('americano-b', 'Besar', 22000, [
-				{ ingredientId: 'biji-kopi', qty: 24 },
-				{ ingredientId: 'cup', qty: 1 }
-			])
-		]
-	},
-	{
-		id: 'caramel-latte',
-		name: 'Caramel Latte',
-		category: 'Kopi',
-		art: 'art-caramel',
-		isActive: true,
-		variants: [
-			variant('caramel-latte-r', 'Reguler', 24000, [
-				{ ingredientId: 'biji-kopi', qty: 15 },
-				{ ingredientId: 'susu', qty: 150 },
-				{ ingredientId: 'sirup-karamel', qty: 20 },
-				{ ingredientId: 'cup', qty: 1 }
-			]),
-			variant('caramel-latte-b', 'Besar', 28000, [
-				{ ingredientId: 'biji-kopi', qty: 20 },
-				{ ingredientId: 'susu', qty: 200 },
-				{ ingredientId: 'sirup-karamel', qty: 25 },
-				{ ingredientId: 'cup', qty: 1 }
-			])
-		]
-	},
-	{
-		id: 'matcha-cloud',
-		name: 'Matcha Cloud',
-		category: 'Non-kopi',
-		art: 'art-matcha',
-		isActive: true,
-		variants: [
-			variant('matcha-cloud-r', 'Reguler', 25000, [
-				{ ingredientId: 'matcha', qty: 12 },
-				{ ingredientId: 'susu', qty: 180 },
-				{ ingredientId: 'cup', qty: 1 }
-			]),
-			variant('matcha-cloud-b', 'Besar', 29000, [
-				{ ingredientId: 'matcha', qty: 16 },
-				{ ingredientId: 'susu', qty: 230 },
-				{ ingredientId: 'cup', qty: 1 }
-			])
-		]
-	},
-	{
-		id: 'chocolate',
-		name: 'Dark Chocolate',
-		category: 'Non-kopi',
-		art: 'art-chocolate',
-		isActive: true,
-		variants: [
-			variant('chocolate-r', 'Reguler', 23000, [
-				{ ingredientId: 'cokelat', qty: 25 },
-				{ ingredientId: 'susu', qty: 180 },
-				{ ingredientId: 'cup', qty: 1 }
-			]),
-			variant('chocolate-b', 'Besar', 27000, [
-				{ ingredientId: 'cokelat', qty: 32 },
-				{ ingredientId: 'susu', qty: 230 },
-				{ ingredientId: 'cup', qty: 1 }
-			])
-		]
-	},
-	{
-		id: 'croffle',
-		name: 'Croffle Butter',
-		category: 'Makanan',
-		art: 'art-croffle',
-		badge: 'BARU',
-		isActive: true,
-		variants: [
-			variant('croffle-o', 'Original', 18000, [
-				{ ingredientId: 'adonan-croffle', qty: 1 },
-				{ ingredientId: 'gula', qty: 2 }
-			]),
-			variant('croffle-k', 'Keju', 22000, [
-				{ ingredientId: 'adonan-croffle', qty: 1 },
-				{ ingredientId: 'keju', qty: 30 },
-				{ ingredientId: 'gula', qty: 1 }
-			])
-		]
-	}
-];
-
 let shiftSeq = 0;
-let txSeq = 41;
+let txSeq = 0;
 let moveSeq = 0;
 let purchaseSeq = 0;
 let opnameSeq = 0;
@@ -252,52 +110,27 @@ function formatClock(iso: string): string {
 	return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 }
 
-const initialMovements: StockMovement[] = [
-	{ id: `mv-${moveSeq++}`, ingredientId: 'susu', ingredientName: 'Susu segar', change: 10000, type: 'purchase', note: 'Pembelian dari Fresh Milk Co', at: new Date(Date.now() - 1000 * 60 * 20).toISOString() },
-	{ id: `mv-${moveSeq++}`, ingredientId: 'sirup-vanila', ingredientName: 'Sirup vanila', change: -200, type: 'adjustment', note: 'Sirup vanila, tumpah', at: new Date(Date.now() - 1000 * 60 * 60).toISOString() }
-];
-
-const initialTransactions: Transaction[] = [
-	{
-		id: 'txn-0804',
-		receiptNo: 'PS-20260821-0804',
-		items: [
-			{ productName: 'Es Kopi Susu', variant: 'Reguler', qty: 1, unitPrice: 22000, lineTotal: 22000 },
-			{ productName: 'Croffle Butter', variant: 'Original', qty: 1, unitPrice: 18000, lineTotal: 18000 }
-		],
-		total: 44000,
-		paymentMethod: 'qris',
-		channel: 'QRIS',
-		gatewayRef: 'DKT-88A2F1',
-		paidAt: new Date(Date.now() - 1000 * 60 * 120).toISOString()
-	}
-];
-
 export const store = $state({
-	ingredients: initialIngredients.map((i) => ({ ...i })),
-	products: JSON.parse(JSON.stringify(initialProducts)) as Product[],
-	movements: initialMovements.map((m) => ({ ...m })),
-	transactions: initialTransactions.map((t) => ({ ...t, items: t.items.map((i) => ({ ...i })) })),
+	ingredients: [] as Ingredient[],
+	products: [] as Product[],
+	movements: [] as StockMovement[],
+	transactions: [] as Transaction[],
 	purchases: [] as PurchaseOrder[],
 	opnames: [] as Opname[],
 	shift: {
-		id: 'shift-1',
-		openingCash: 500000,
-		openedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-		status: 'open'
+		id: '',
+		openingCash: 0,
+		openedAt: '',
+		status: 'closed'
 	} as Shift,
 	shop: {
-		name: 'Kopi Senja',
-		address: 'Jl. Merdeka No. 12, Bandung',
+		name: '',
+		address: '',
 		currency: 'IDR',
-		phone: '0812-3456-7890'
+		phone: ''
 	},
-	profiles: [
-		{ id: 'u1', name: 'Rina Anjani', email: 'rina@posspace.id', role: 'kasir' },
-		{ id: 'u2', name: 'Sari Putri', email: 'sari@posspace.id', role: 'admin_gudang' },
-		{ id: 'u3', name: 'Budi Santoso', email: 'budi@posspace.id', role: 'pemilik' }
-	] as { id: string; name: string; email: string; role: string }[],
-	plan: 'Pro'
+	profiles: [] as { id: string; name: string; email: string; role: string }[],
+	plan: ''
 });
 
 // ===== Bantuan =====
@@ -367,7 +200,8 @@ export async function hydrateStore() {
 		name: i.name,
 		unit: i.unit,
 		stock: Number(i.stock_quantity),
-		minStock: Number(i.min_stock)
+		minStock: Number(i.min_stock),
+		costPerUnit: Number(i.cost_per_unit ?? 0)
 	}));
 
 	const { data: movements } = await getBrowserClient()!
@@ -388,6 +222,8 @@ export async function hydrateStore() {
 	const { data: transactions } = await getBrowserClient()!
 		.from('transactions')
 		.select('*, transaction_items(*)')
+		.eq('status', 'completed')
+		.eq('payment_status', 'paid')
 		.order('created_at', { ascending: false })
 		.limit(100);
 	store.transactions = (transactions ?? []).map((t) => ({
@@ -493,23 +329,9 @@ export function hppOf(variant: Variant): number {
 	}, 0);
 }
 
-// Harga modal per unit — nilai demo sederhana per satuan
+// Harga modal per unit — diambil dari cost_per_unit bahan (backend)
 function ingredientCost(ing: Ingredient, qty: number): number {
-	const pricePerUnit: Record<string, number> = {
-		'biji-kopi': 400,
-		susu: 12,
-		'sirup-aren': 120,
-		'sirup-vanila': 60,
-		'sirup-karamel': 110,
-		matcha: 300,
-		cokelat: 150,
-		'adonan-croffle': 4500,
-		keju: 35,
-		gula: 250,
-		cup: 1800,
-		creamer: 8
-	};
-	return (pricePerUnit[ing.id] ?? 0) * qty;
+	return (ing.costPerUnit ?? 0) * qty;
 }
 
 // ===== Transaksi & potong stok otomatis =====
@@ -532,6 +354,7 @@ export async function createTransaction(input: {
 				paymentMethod: input.paymentMethod,
 				channel: input.channel,
 				gatewayRef: input.gatewayRef,
+				cashReceived: input.cashReceived,
 				items: input.items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
 				paymentStatus: input.paymentStatus ?? 'completed'
 			})
@@ -655,7 +478,8 @@ export async function addIngredient(data: { name: string; unit: Unit; stock: num
 		name: data.name,
 		unit: data.unit,
 		stock: data.stock,
-		minStock: data.minStock
+		minStock: data.minStock,
+		costPerUnit: 0
 	});
 }
 
@@ -779,7 +603,7 @@ export async function addProduct(data: { name: string; category: string; price: 
 		category: data.category,
 		art: 'art-americano',
 		isActive: true,
-		variants: [variant(`v-${Date.now()}`, variantName, data.price, [])]
+		variants: [{ id: `v-${Date.now()}`, name: variantName, price: data.price, recipe: [] }]
 	};
 	store.products.push(product);
 }
@@ -791,7 +615,7 @@ export async function addVariant(productId: string, name: string, price: number)
 	}
 	const product = store.products.find((p) => p.id === productId);
 	if (!product) return;
-	product.variants.push(variant(`v-${Date.now()}`, name, price, []));
+	product.variants.push({ id: `v-${Date.now()}`, name, price, recipe: [] });
 }
 
 export async function setVariantPrice(productId: string, variantId: string, price: number): Promise<void> {

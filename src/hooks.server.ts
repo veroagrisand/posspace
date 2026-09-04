@@ -6,16 +6,18 @@ import { env as publicEnv } from '$env/dynamic/public';
 const isProd = env.NODE_ENV === 'production';
 const serviceDb = isSupabaseConfigured ? createServiceClient() : null;
 
-/** CSP pragmatis: tetap mengizinkan gaya inline (SvelteKit) + koneksi Supabase/Realtime/iPaymu. */
+/** CSP pragmatis: tetap mengizinkan gaya inline (SvelteKit) + koneksi Supabase/Realtime/Midtrans. */
 function buildCsp(): string {
 	const supabaseUrl = (publicEnv.PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 	const supabaseWs = supabaseUrl.replace(/^https?/, 'wss');
-	const ipaymu = (env.IPAYMU_BASE_URL ?? 'https://sandbox.ipaymu.com').replace(/\/$/, '');
+	const midtrans = (env.MIDTRANS_ENV === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com').replace(/\/$/, '');
+	const midtransApi = (env.MIDTRANS_ENV === 'production' ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com').replace(/\/$/, '');
 	const connect = [
 		"'self'",
 		supabaseUrl,
 		supabaseWs,
-		ipaymu
+		midtrans,
+		midtransApi
 	]
 		.filter(Boolean)
 		.join(' ');

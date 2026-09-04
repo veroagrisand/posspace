@@ -440,6 +440,7 @@ transactionsService.post('/', async (c) => {
 		paymentMethod?: 'cash' | 'qris' | 'debit';
 		channel?: string;
 		gatewayRef?: string;
+		cashReceived?: number;
 		items?: { variantId: string; qty: number }[];
 		paymentStatus?: 'pending' | 'completed';
 	};
@@ -451,6 +452,7 @@ transactionsService.post('/', async (c) => {
 		p_payment_method: body.paymentMethod ?? 'cash',
 		p_payment_channel: body.channel ?? null,
 		p_payment_gateway_ref: body.gatewayRef ?? null,
+		p_cash_received: body.cashReceived ?? null,
 		p_items: body.items.map((i) => ({ variantId: i.variantId, qty: i.qty })),
 		p_payment_status: body.paymentStatus ?? 'completed'
 	});
@@ -459,6 +461,7 @@ transactionsService.post('/', async (c) => {
 		const msg = String(rpcError.message);
 		if (msg.includes('NO_ACTIVE_SUBSCRIPTION')) httpError(403, 'SUBSCRIPTION_REQUIRED');
 		if (msg.includes('INSUFFICIENT_STOCK')) httpError(422, 'INSUFFICIENT_STOCK');
+		if (msg.includes('INSUFFICIENT_CASH')) httpError(422, 'INSUFFICIENT_CASH');
 		if (msg.includes('INVALID_VARIANT')) httpError(422, 'INVALID_VARIANT');
 		httpError(500, 'TRANSACTION_FAILED');
 	}

@@ -300,7 +300,7 @@
 			<p class="auth-switch">Sudah punya akun? <a href="/login">Masuk</a></p>
 			<p class="auth-terms">
 				Dengan mendaftar Anda menyetujui Syarat &amp; Ketentuan, Kebijakan Privasi, dan Kebijakan Cookie posspace.
-				Pembayaran digital menggunakan iPaymu (QRIS/VA/e-wallet).
+				Pembayaran digital menggunakan Midtrans (QRIS/VA/e-wallet).
 			</p>
 		</div>
 	</main>

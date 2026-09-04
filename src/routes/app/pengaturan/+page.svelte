@@ -81,7 +81,7 @@
 		<div class="heading-actions">
 			<span class="lp-footer-demo" style="display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;background:#fff;border:1px solid var(--line-strong);font-size:10px">
 				<i style="width:6px;height:6px;border-radius:50%;background:var(--amber)"></i>
-				Paket {store.plan} · {store.shop.currency}
+				Paket {backend.subscription?.planName ?? '—'} · {store.shop.currency}
 			</span>
 		</div>
 	</section>
