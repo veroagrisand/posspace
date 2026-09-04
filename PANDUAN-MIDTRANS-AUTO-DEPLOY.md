@@ -85,6 +85,14 @@ https://posspace.id/api/payments/midtrans/notification
 URL ini harus dapat diakses publik melalui HTTPS. Aplikasi memvalidasi
 `signature_key` notifikasi menggunakan Server Key (HMAC-SHA512).
 
+Selain notifikasi, atur **Payment Finish Redirect URL** di dashboard Midtrans
+(Settings → Snap → Payment Finish Redirect URL) agar pelanggan kembali ke
+aplikasi setelah menyelesaikan pembayaran di Snap:
+
+```text
+https://posspace.id/subscribe?status=paid
+```
+
 Alur yang digunakan aplikasi:
 
 - Langganan baru diarahkan ke halaman Snap Midtrans.

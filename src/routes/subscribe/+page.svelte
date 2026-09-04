@@ -176,15 +176,6 @@
 				<button class="btn-pill btn-pill--ghost btn-pill--block" style="margin-top:14px" type="button" onclick={checkStatus} disabled={polling}>
 					{polling ? 'Memeriksa...' : 'Saya sudah membayar'}
 				</button>
-				{#if !data.pendingInvoice.payment_url && !data.pendingInvoice.qr_string}
-					<div class="auth-note" style="margin-top:14px">
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="M12 9v4M12 16h.01" /></svg>
-						<span>
-							Metode pembayaran belum dikonfigurasi. Langganan Anda akan diaktifkan oleh
-							<strong>administrator posspace</strong> — hubungi admin bila perlu.
-						</span>
-					</div>
-				{/if}
 				{#if notice}
 					<p class="auth-notice" style="margin-top:12px">{notice}</p>
 				{/if}

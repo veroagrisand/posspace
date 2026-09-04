@@ -126,6 +126,7 @@
 			return;
 		}
 		submitting = true;
+		let registerResult: { paymentUrl?: string } = {};
 		try {
 			const supabase = getBrowserClient();
 			if (supabase) {
@@ -143,6 +144,7 @@
 					})
 				});
 				const json = await res.json().catch(() => ({}));
+				registerResult = json as { paymentUrl?: string };
 				if (!res.ok) {
 					if (res.status === 409) {
 						error =
@@ -165,8 +167,15 @@
 				createDemoUser({ name: name.trim(), shopName: shopName.trim(), email: email.trim(), password }, plan);
 			}
 			success = true;
+			// Langsung tampilkan pembayaran Midtrans (Snap) setelah daftar;
+			// jika gateway belum tersedia, arahkan ke halaman langganan.
+			const paymentUrl = registerResult.paymentUrl;
 			window.setTimeout(() => {
-				window.location.href = '/subscribe?new=1';
+				if (paymentUrl) {
+					window.location.href = paymentUrl;
+				} else {
+					window.location.href = '/subscribe?new=1';
+				}
 			}, 900);
 		} catch {
 			error = 'Terjadi kesalahan. Silakan coba lagi.';
