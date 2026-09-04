@@ -188,8 +188,10 @@ paymentService.post('/midtrans/notification', async (c) => {
 	}
 	const raw = jsonBody as Record<string, unknown>;
 
+	// Selalu akui (200) — Midtrans tidak retry untuk payload yang tidak valid,
+	// dan hanya notifikasi dengan signature_key benar yang diproses.
 	if (!verifyNotificationSignature(raw)) {
-		return new Response('FAILED: invalid signature', { status: 400 });
+		return new Response('ok');
 	}
 
 	const orderId = String(raw.order_id ?? '');
