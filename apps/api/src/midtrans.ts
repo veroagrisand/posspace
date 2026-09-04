@@ -30,6 +30,8 @@ function authHeader(): string {
 }
 
 async function midtransRequest<T>(url: string, body?: unknown, method: 'POST' | 'GET' = 'POST'): Promise<T> {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 15_000);
 	const res = await fetch(url, {
 		method,
 		headers: {
@@ -37,8 +39,9 @@ async function midtransRequest<T>(url: string, body?: unknown, method: 'POST' | 
 			Accept: 'application/json',
 			Authorization: authHeader()
 		},
-		...(body !== undefined ? { body: JSON.stringify(body) } : {})
-	});
+		...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+		signal: controller.signal
+	}).finally(() => clearTimeout(timer));
 
 	const text = await res.text().catch(() => '');
 	let json: unknown = null;

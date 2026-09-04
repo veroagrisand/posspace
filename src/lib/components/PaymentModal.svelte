@@ -86,7 +86,6 @@
 							});
 				} else if (json.paymentUrl) {
 					paymentUrl = json.paymentUrl;
-					window.open(json.paymentUrl, '_blank');
 				}
 				startPolling();
 			} catch {
@@ -183,10 +182,9 @@
 							<img src={qrDataUrl} alt="Kode QR Midtrans (QRIS)" style="width:220px;height:220px;border-radius:14px;border:1px solid var(--line-strong)" />
 							<p>Pindai kode QR ini menggunakan aplikasi e-wallet / m-banking pelanggan.</p>
 						{:else if backend.enabled && paymentUrl}
-							<div class="paying-redirect">
-								<span class="paying-spinner" aria-hidden="true"></span>
-								<p>Halaman pembayaran Midtrans dibuka di tab baru.<br />Selesaikan pembayaran lalu tunggu verifikasi otomatis di sini.</p>
-								<a class="button button-primary" href={paymentUrl} target="_blank" rel="noopener">Buka lagi halaman pembayaran</a>
+							<div class="snap-embed">
+								<iframe src={paymentUrl} title="Halaman pembayaran Midtrans" loading="eager" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"></iframe>
+								<p class="snap-embed-hint">Selesaikan pembayaran di dalam jendela ini — status diverifikasi otomatis.</p>
 							</div>
 						{:else if !backend.enabled}
 							<div class="fake-qr" aria-hidden="true">
@@ -224,33 +222,24 @@
 {/if}
 
 <style>
-	.paying-redirect {
+	.snap-embed {
 		display: grid;
-		justify-items: center;
-		text-align: center;
-		gap: 10px;
-		padding: 8px 0 4px;
+		gap: 8px;
+		width: 100%;
 	}
 
-	.paying-spinner {
-		width: 34px;
-		height: 34px;
-		border: 3px solid var(--line-strong);
-		border-top-color: var(--forest-700);
-		border-radius: 50%;
-		animation: ps-spin 0.9s linear infinite;
+	.snap-embed iframe {
+		width: 100%;
+		height: min(560px, 62vh);
+		border: 1px solid var(--line-strong);
+		border-radius: 14px;
+		background: #fff;
 	}
 
-	.paying-redirect p {
+	.snap-embed-hint {
 		color: var(--ink-soft);
-		font-size: 11.5px;
-		line-height: 1.6;
+		font-size: 10px;
+		text-align: center;
 		margin: 0;
-	}
-
-	@keyframes ps-spin {
-		to {
-			transform: rotate(360deg);
-		}
 	}
 </style>

@@ -28,6 +28,7 @@ function buildCsp(): string {
 		"style-src 'self' 'unsafe-inline'",
 		`img-src 'self' data: blob:`,
 		`connect-src ${connect}`,
+		`frame-src ${midtrans}`,
 		"font-src 'self' data:",
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
