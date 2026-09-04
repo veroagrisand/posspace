@@ -59,7 +59,7 @@
 			return sum + (v?.price ?? 0) * item.qty;
 		}, 0)
 	);
-	const tax = $derived(subtotal * 0.1);
+	const tax = $derived(Math.round(subtotal * 0.1));
 	const total = $derived(subtotal + tax);
 	const itemCount = $derived(cart.reduce((sum, item) => sum + item.qty, 0));
 	const change = $derived(cashReceived - total);
