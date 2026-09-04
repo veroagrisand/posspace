@@ -11,6 +11,48 @@ import { createShopSubscription, payPendingInvoice, redeemVoucherToPendingInvoic
 export const shopService = new Hono();
 export const subscriptionService = new Hono();
 
+/** GET /api/shop/printer — pengaturan printer struk toko (null jika belum disetup). */
+shopService.get('/printer', async (c) => {
+	const ctx = await requireApiAuth(c);
+
+	const { data } = await ctx.db
+		.from('shop_printer_settings')
+		.select('printer_type, paper_width, agent_url')
+		.eq('shop_id', ctx.shop.shopId)
+		.maybeSingle();
+
+	return json({ printerSettings: data ?? null });
+});
+
+/** PUT /api/shop/printer — simpan pengaturan printer (khusus pemilik). */
+shopService.put('/printer', async (c) => {
+	const ctx = await requireApiAuth(c);
+	if (ctx.shop.profileRole !== 'pemilik') httpError(403, 'FORBIDDEN');
+
+	const body = (await c.req.json().catch(() => ({}))) as {
+		printerType?: string;
+		paperWidth?: string;
+		agentUrl?: string;
+	};
+
+	const printerType = body.printerType ?? 'browser';
+	if (!['webusb', 'browser', 'agent'].includes(printerType)) httpError(400, 'INVALID_PRINTER_TYPE');
+	const paperWidth = body.paperWidth === '58' ? '58' : '80';
+	const agentUrl = printerType === 'agent' ? String(body.agentUrl ?? '').trim().replace(/\/+$/, '') : null;
+
+	const { error } = await ctx.db
+		.from('shop_printer_settings')
+		.upsert(
+			{ shop_id: ctx.shop.shopId, printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl, updated_at: new Date().toISOString() },
+			{ onConflict: 'shop_id' }
+		)
+		.eq('shop_id', ctx.shop.shopId);
+
+	if (error) httpError(500, 'UPDATE_FAILED');
+
+	return json({ ok: true, printerSettings: { printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl } });
+});
+
 /** GET /api/shop — profil toko + anggota + subscription (untuk halaman Pengaturan). */
 shopService.get('/', async (c) => {
 	const ctx = await requireApiAuth(c);

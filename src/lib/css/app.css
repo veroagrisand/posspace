@@ -3157,6 +3157,11 @@
 	font-weight: 700;
 }
 
+@page {
+	size: 80mm auto;
+	margin: 4mm 2mm;
+}
+
 @media print {
 	body * {
 		visibility: hidden !important;
@@ -3181,6 +3186,12 @@
 	.receipt {
 		border: 0 !important;
 		padding: 0 !important;
+		width: 80mm;
+		font-size: 11px;
+	}
+
+	.receipt * {
+		visibility: visible !important;
 	}
 
 	.no-print {

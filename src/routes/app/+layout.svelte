@@ -3,12 +3,15 @@
 	import { page } from '$app/state';
 	import { getDemoSession, clearDemoSession } from '$lib/demo';
 	import { toastState } from '$lib/toast.svelte';
-	import { backend } from '$lib/store.svelte';
+	import { backend, printer } from '$lib/store.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import PrinterSetup from '$lib/components/PrinterSetup.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: any } = $props();
 
 	let user = $state<{ name: string; role: string; shopName: string } | null>(null);
+	let printerSetupOpen = $state(false);
+	let wizardDismissed = $state(false);
 
 	const navItems = [
 		{ href: '/app', label: 'Kasir', icon: 'cashier', module: 'Kasir' },
@@ -44,8 +47,15 @@
 	});
 
 	async function hydrateBackend() {
-		const { hydrateStore } = await import('$lib/store.svelte');
+		const { hydrateStore, loadPrinterSettings } = await import('$lib/store.svelte');
 		await hydrateStore();
+		await loadPrinterSettings();
+		// Wizard setup printer: muncul untuk pemilik saat pertama kali login
+		// setelah langganan aktif dan pengaturan printer belum pernah disimpan.
+		if (backend.role === 'pemilik' && printer.loaded && !printer.configured && !wizardDismissed) {
+			wizardDismissed = true;
+			printerSetupOpen = true;
+		}
 	}
 
 	function initials(name: string) {
@@ -129,4 +139,5 @@
 	</div>
 
 	<Toast message={toastState.message} />
+	<PrinterSetup bind:open={printerSetupOpen} />
 {/if}

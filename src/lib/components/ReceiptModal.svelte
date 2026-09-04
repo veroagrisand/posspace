@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { store } from '$lib/store.svelte';
+	import { store, printer, backend } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
+	import { printReceipt } from '$lib/printing';
 
 	let {
 		open = $bindable(false),
@@ -30,8 +31,38 @@
 
 	const methodLabels: Record<string, string> = { cash: 'Tunai', qris: 'QRIS', debit: 'Kartu Debit' };
 
-	function print() {
-		window.print();
+	let printing = $state(false);
+
+	async function print() {
+		if (printing) return;
+		printing = true;
+		try {
+			const cashier = store.profiles.find((p) => p.role === 'kasir')?.name ?? '';
+			const message = await printReceipt(
+				{
+					shop: { name: store.shop.name, address: store.shop.address, phone: store.shop.phone },
+					receiptNo,
+					dateLabel,
+					timeLabel,
+					cashier,
+					items,
+					subtotal,
+					tax,
+					total,
+					paymentMethod,
+					channel,
+					gatewayRef,
+					cashReceived,
+					changeAmount
+				},
+				backend.enabled ? { printerType: printer.printerType, paperWidth: printer.paperWidth, agentUrl: printer.agentUrl } : null
+			);
+			if (message !== 'Menggunakan dialog cetak browser') showToast(message);
+		} catch (err) {
+			showToast(err instanceof Error ? err.message : 'Gagal mencetak struk.');
+		} finally {
+			printing = false;
+		}
 	}
 
 	function send() {
@@ -98,9 +129,9 @@
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z" /><path d="m8 16 4-4-4-4M16 8l-4 4 4 4" /></svg>
 						Kirim struk
 					</button>
-					<button class="button button-primary" type="button" onclick={print}>
+					<button class="button button-primary" type="button" onclick={print} disabled={printing}>
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" /></svg>
-						Cetak struk
+						{printing ? 'Mencetak…' : 'Cetak struk'}
 					</button>
 				</div>
 			</div>

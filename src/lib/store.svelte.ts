@@ -148,6 +148,51 @@ export const backend = $state<{
 	subscription: null
 });
 
+// ===== Pengaturan printer struk (diisi wizard setup pemilik) =====
+export const printer = $state<{
+	printerType: 'webusb' | 'browser' | 'agent';
+	paperWidth: '58' | '80';
+	agentUrl: string;
+	loaded: boolean;
+	configured: boolean;
+}>({
+	printerType: 'browser',
+	paperWidth: '80',
+	agentUrl: '',
+	loaded: false,
+	configured: false
+});
+
+export async function loadPrinterSettings(): Promise<void> {
+	if (!backend.enabled) return;
+	try {
+		const j = (await apiFetch('/api/shop/printer')) as { printerSettings: { printer_type: string; paper_width: string; agent_url: string | null } | null };
+		if (j.printerSettings) {
+			printer.printerType = (j.printerSettings.printer_type as 'webusb' | 'browser' | 'agent') ?? 'browser';
+			printer.paperWidth = j.printerSettings.paper_width === '58' ? '58' : '80';
+			printer.agentUrl = j.printerSettings.agent_url ?? '';
+			printer.configured = true;
+		} else {
+			printer.configured = false;
+		}
+	} catch {
+		printer.configured = false;
+	}
+	printer.loaded = true;
+}
+
+export async function savePrinterSettings(input: { printerType: 'webusb' | 'browser' | 'agent'; paperWidth: '58' | '80'; agentUrl?: string }): Promise<void> {
+	if (!backend.enabled) return;
+	await apiFetch('/api/shop/printer', {
+		method: 'PUT',
+		body: JSON.stringify({ printerType: input.printerType, paperWidth: input.paperWidth, agentUrl: input.agentUrl })
+	});
+	printer.printerType = input.printerType;
+	printer.paperWidth = input.paperWidth;
+	printer.agentUrl = input.agentUrl ?? '';
+	printer.configured = true;
+}
+
 async function apiFetch(path: string, init?: RequestInit) {
 	const res = await fetch(path, {
 		...init,
