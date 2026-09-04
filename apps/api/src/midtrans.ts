@@ -72,13 +72,18 @@ export async function createSnapTransaction(input: {
 	expiredMinutes?: number;
 }): Promise<{ token: string; redirectUrl: string }> {
 	const amount = Math.round(input.amount);
+	const email = (input.buyerEmail ?? '').trim();
+	const customerDetails: Record<string, unknown> = {
+		first_name: (input.buyerName ?? 'Pelanggan').slice(0, 60)
+	};
+	// Midtrans menolak email kosong/format tidak valid — kirim hanya jika valid.
+	if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+		customerDetails.email = email.slice(0, 100);
+	}
 	const body: Record<string, unknown> = {
 		transaction_details: { order_id: input.orderId, gross_amount: amount },
 		item_details: [{ id: input.orderId, price: amount, quantity: 1, name: input.product.slice(0, 50) }],
-		customer_details: {
-			first_name: (input.buyerName ?? 'Pelanggan').slice(0, 60),
-			email: (input.buyerEmail ?? '').slice(0, 100)
-		},
+		customer_details: customerDetails,
 		expiry: {
 			start_time: wibStartTime(),
 			unit: 'minutes',
@@ -105,14 +110,18 @@ export async function createQrisCharge(input: {
 	buyerEmail?: string;
 }): Promise<{ transactionId: string; qrDataUrl: string }> {
 	const amount = Math.round(input.amount);
+	const email = (input.buyerEmail ?? '').trim();
+	const customerDetails: Record<string, unknown> = {
+		first_name: (input.buyerName ?? 'Pelanggan').slice(0, 60)
+	};
+	if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+		customerDetails.email = email.slice(0, 100);
+	}
 	const body: Record<string, unknown> = {
 		payment_type: 'qris',
 		transaction_details: { order_id: input.orderId, gross_amount: amount },
 		item_details: [{ id: input.orderId, price: amount, quantity: 1, name: 'Pembayaran posspace' }],
-		customer_details: {
-			first_name: (input.buyerName ?? 'Pelanggan').slice(0, 60),
-			email: (input.buyerEmail ?? '').slice(0, 100)
-		},
+		customer_details: customerDetails,
 		qris: { acquirer: 'gopay' }
 	};
 
