@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { json, httpError } from '../http.js';
 import { requirePlatformAdmin } from '../guards.js';
-import { service } from '../db.js';
+import { service, type SupabaseClient } from '../db.js';
 
 /**
  * Service admin — kontrol seluruh SaaS (khusus platform admin):
@@ -11,6 +11,33 @@ import { service } from '../db.js';
 export const adminService = new Hono();
 
 const ACTIVE_STATUSES = ['active', 'trialing'];
+
+/** Map profile id → email pemilik (auth.users) via GoTrue admin API. */
+async function fetchEmails(db: SupabaseClient, profileIds: string[]): Promise<Map<string, string>> {
+	const map = new Map<string, string>();
+	const wanted = new Set(profileIds.filter(Boolean));
+	if (wanted.size === 0) return map;
+	let page = 1;
+	while (true) {
+		const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+		if (error || !data) break;
+		for (const u of data.users ?? []) {
+			if (wanted.has(u.id) && u.email) map.set(u.id, u.email);
+		}
+		if ((data.users?.length ?? 0) === 0 || page * 1000 >= (data.total ?? 0)) break;
+		page += 1;
+	}
+	return map;
+}
+
+/** Map shop id → profile id owner (pemilik) pertama toko tersebut. */
+function ownerProfileByShop(profiles: { id: string; shop_id: string | null; role: string }[] | null): Map<string, string> {
+	const map = new Map<string, string>();
+	for (const p of profiles ?? []) {
+		if (p.shop_id && p.role === 'pemilik' && !map.has(p.shop_id)) map.set(p.shop_id, p.id);
+	}
+	return map;
+}
 
 // ============ OVERVIEW ============
 /** GET /api/admin/overview — ringkasan seluruh SaaS. */
@@ -28,6 +55,9 @@ adminService.get('/overview', async (c) => {
 	]);
 
 	if (shops.error) httpError(500, 'FETCH_FAILED');
+
+	const ownerByShop = ownerProfileByShop(profiles.data as { id: string; shop_id: string | null; role: string }[] | null);
+	const ownerEmails = await fetchEmails(db, [...ownerByShop.values()]);
 
 	const planPrice = new Map((plans.data ?? []).map((p) => [p.id, Number(p.monthly_price ?? 0)]));
 	const planName = new Map((plans.data ?? []).map((p) => [p.id, p.name ?? p.id]));
@@ -92,10 +122,12 @@ adminService.get('/overview', async (c) => {
 	const recentShops = (shops.data ?? []).slice(0, 8).map((shop) => {
 		const info = byShop.get(shop.id);
 		const sub = info?.sub;
+		const ownerProfileId = ownerByShop.get(shop.id);
 		return {
 			id: shop.id,
 			name: shop.name,
 			createdAt: shop.created_at,
+			ownerEmail: ownerProfileId ? (ownerEmails.get(ownerProfileId) ?? null) : null,
 			subStatus: !sub ? 'none' : info?.active ? sub.status : sub.status === 'pending' ? 'pending' : 'expired',
 			planId: sub?.plan_id ?? null,
 			planName: sub ? (planName.get(sub.plan_id) ?? sub.plan_id) : null,
@@ -135,6 +167,9 @@ adminService.get('/shops', async (c) => {
 	]);
 
 	if (shops.error) httpError(500, 'FETCH_FAILED');
+
+	const ownerByShop = ownerProfileByShop(profiles.data as { id: string; shop_id: string | null; role: string }[] | null);
+	const ownerEmails = await fetchEmails(db, [...ownerByShop.values()]);
 
 	const planName = new Map((plans.data ?? []).map((p) => [p.id, p.name ?? p.id]));
 	const now = new Date();
@@ -183,8 +218,10 @@ adminService.get('/shops', async (c) => {
 		const stats = statsByShop.get(shop.id) ?? { tx: 0, omzet: 0 };
 		const members = membersByShop.get(shop.id) ?? { total: 0, pemilik: 0 };
 		const products = productsByShop.get(shop.id) ?? { total: 0, active: 0 };
+		const ownerProfileId = ownerByShop.get(shop.id);
 		return {
 			...shop,
+			ownerEmail: ownerProfileId ? (ownerEmails.get(ownerProfileId) ?? null) : null,
 			subscription: sub
 				? { status: sub.status, planId: sub.plan_id, planName: planName.get(sub.plan_id) ?? sub.plan_id, periodEnd: sub.period_end }
 				: null,

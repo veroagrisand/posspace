@@ -8,6 +8,7 @@
 		phone: string;
 		currency: string;
 		createdAt: string;
+		ownerEmail: string | null;
 		subscription: { status: string; planId: string; planName: string; periodEnd: string | null } | null;
 		membersCount: number;
 		productsCount: number;
@@ -107,6 +108,7 @@
 				<thead>
 					<tr>
 						<th>Toko</th>
+						<th>Email owner</th>
 						<th>Langganan</th>
 						<th>Anggota</th>
 						<th>Menu</th>
@@ -125,6 +127,7 @@
 									<span><strong>{shop.name}</strong><small>{shop.address || shop.currency || '—'}</small></span>
 								</a>
 							</td>
+							<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '—'}</td>
 							<td>
 								{#if shop.subscription}
 									<span class="admin-status admin-status-{shop.subscription.status}">{statusMeta[shop.subscription.status].label}</span>
@@ -155,7 +158,7 @@
 						</tr>
 					{:else}
 						<tr>
-							<td colspan="8"><div class="admin-empty">Tidak ada toko ditemukan.</div></td>
+							<td colspan="9"><div class="admin-empty">Tidak ada toko ditemukan.</div></td>
 						</tr>
 					{/each}
 				</tbody>

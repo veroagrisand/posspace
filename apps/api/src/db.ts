@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env, isSupabaseConfigured } from './env.js';
 
+export type { SupabaseClient };
+
 /**
  * Klien Supabase terpusat — kunci optimasi latensi:
  * 1) SATU instance service-role dibagi seluruh request (bukan dibuat per-request),

@@ -10,6 +10,7 @@
 			id: string;
 			name: string;
 			createdAt: string;
+			ownerEmail: string | null;
 			subStatus: string;
 			planName: string | null;
 		}[];
@@ -164,6 +165,7 @@
 					<thead>
 						<tr>
 							<th>Toko</th>
+							<th>Email owner</th>
 							<th>Terdaftar</th>
 							<th>Paket</th>
 							<th>Status langganan</th>
@@ -178,12 +180,13 @@
 										<span><strong>{shop.name}</strong><small>{shop.id.slice(0, 8)}</small></span>
 									</a>
 								</td>
+								<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '—'}</td>
 								<td style="white-space:nowrap">{new Date(shop.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
 								<td>{shop.planName ?? '—'}</td>
 								<td><span class="admin-status admin-status-{shop.subStatus}">{statusLabel[shop.subStatus]}</span></td>
 							</tr>
 						{:else}
-							<tr><td colspan="4"><div class="admin-empty">Belum ada toko terdaftar.</div></td></tr>
+							<tr><td colspan="5"><div class="admin-empty">Belum ada toko terdaftar.</div></td></tr>
 						{/each}
 					</tbody>
 				</table>
