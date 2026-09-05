@@ -73,23 +73,6 @@
 		URL.revokeObjectURL(url);
 	}
 
-	function exportSales() {
-		const rows: (string | number)[][] = [['No. Struk', 'Waktu', 'Item', 'Metode', 'Channel', 'Ref ID', 'Total']];
-		for (const txn of todaySales) {
-			rows.push([
-				txn.receiptNo,
-				new Date(txn.paidAt).toLocaleString('id-ID'),
-				txn.items.map((i) => `${i.qty}× ${i.productName} (${i.variant})`).join('; '),
-				txn.paymentMethod,
-				txn.channel ?? '-',
-				txn.gatewayRef ?? '-',
-				txn.total
-			]);
-		}
-		exportCSV(`posspace-laporan-penjualan-${new Date().toISOString().slice(0, 10)}.csv`, rows);
-		showToast('Laporan penjualan diunduh (CSV)');
-	}
-
 	function exportStock() {
 		const rows: (string | number)[][] = [['Bahan', 'Satuan', 'Stok', 'Batas Minimum', 'Status']];
 		for (const row of stockRows) {
@@ -97,6 +80,38 @@
 		}
 		exportCSV(`posspace-laporan-stok-${new Date().toISOString().slice(0, 10)}.csv`, rows);
 		showToast('Laporan stok diunduh (CSV)');
+	}
+
+	let period = $state<'weekly' | 'monthly' | 'yearly' | 'all'>('monthly');
+	const periodLabels: Record<string, string> = { weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan', all: 'Keseluruhan' };
+	let exporting = $state(false);
+
+	async function exportReport(format: 'csv' | 'xlsx' | 'pdf') {
+		if (exporting) return;
+		exporting = true;
+		try {
+			const res = await fetch(`/api/reports/export/sales?period=${period}&format=${format}`);
+			if (!res.ok) {
+				showToast('Gagal mengekspor laporan');
+				return;
+			}
+			const blob = await res.blob();
+			const cd = res.headers.get('content-disposition') ?? '';
+			const m = cd.match(/filename="?([^"]+)"?/);
+			const ext = format === 'xlsx' ? 'xlsx' : format;
+			const filename = m ? m[1] : `posspace-laporan-${period}.${ext}`;
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			a.click();
+			URL.revokeObjectURL(url);
+			showToast(`Laporan ${periodLabels[period]} (${format.toUpperCase()}) diunduh`);
+		} catch {
+			showToast('Gagal mengekspor laporan');
+		} finally {
+			exporting = false;
+		}
 	}
 </script>
 
@@ -116,13 +131,26 @@
 			<p>Ringkasan penjualan, menu terlaris, dan margin per menu — tanpa spreadsheet.</p>
 		</div>
 		<div class="heading-actions">
+			<label class="period-picker">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3.5v4M16 3.5v4M4 10h16" /></svg>
+				<select bind:value={period} aria-label="Periode laporan">
+					<option value="weekly">Mingguan</option>
+					<option value="monthly">Bulanan</option>
+					<option value="yearly">Tahunan</option>
+					<option value="all">Keseluruhan</option>
+				</select>
+			</label>
 			<button class="button button-secondary" type="button" onclick={exportStock}>
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
 				Ekspor stok
 			</button>
-			<button class="button button-primary" type="button" onclick={exportSales}>
+			<button class="button button-secondary" type="button" disabled={exporting} onclick={() => exportReport('xlsx')}>
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
-				Ekspor penjualan
+				{exporting ? 'Memproses...' : 'Excel'}
+			</button>
+			<button class="button button-primary" type="button" disabled={exporting} onclick={() => exportReport('pdf')}>
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+				{exporting ? 'Memproses...' : 'PDF'}
 			</button>
 		</div>
 	</section>
@@ -195,8 +223,45 @@
 			</div>
 		{/if}
 		<div class="export-banner">
-			<p><strong>Ekspor laporan</strong><br />Unduh laporan penjualan &amp; stok dalam format CSV untuk dibagikan atau diarsipkan.</p>
-			<button class="button button-primary" type="button" onclick={exportSales}>Ekspor CSV</button>
+			<p><strong>Ekspor laporan</strong><br />Unduh laporan {periodLabels[period]} dalam format Excel atau PDF — lengkap dengan ringkasan, transaksi, per menu, dan per hari.</p>
+			<div style="display:flex;gap:8px">
+				<button class="button button-secondary" type="button" disabled={exporting} onclick={() => exportReport('xlsx')}>
+					{exporting ? 'Memproses...' : 'Ekspor Excel'}
+				</button>
+				<button class="button button-primary" type="button" disabled={exporting} onclick={() => exportReport('pdf')}>
+					{exporting ? 'Memproses...' : 'Ekspor PDF'}
+				</button>
+			</div>
 		</div>
 	</section>
 </div>
+
+<style>
+	.period-picker {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		background: var(--surface);
+		border: 1px solid var(--line-strong);
+		border-radius: 12px;
+		padding: 0 12px;
+		height: 42px;
+		color: var(--ink-soft);
+	}
+	.period-picker svg {
+		width: 15px;
+		height: 15px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.6;
+	}
+	.period-picker select {
+		border: none;
+		background: none;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--forest-800);
+		cursor: pointer;
+	}
+</style>

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { json, httpError } from '../http.js';
 import { requireApiAuth } from '../guards.js';
+import { buildExcelReport, buildPdfReport, periodRange, type ExportData, type ExportTx } from '../report-export.js';
 
 /**
  * Service POS — data operasional toko:
@@ -816,24 +817,120 @@ reportsService.get('/summary', async (c) => {
 	});
 });
 
-/** GET /api/reports/export/sales?from=...&to=... — ekspor penjualan CSV. */
+/** GET /api/reports/export/sales?period=weekly|monthly|yearly|all&format=csv|xlsx|pdf — ekspor laporan. */
 reportsService.get('/export/sales', async (c) => {
 	const ctx = await requireApiAuth(c);
 
-	const from = c.req.query('from') ?? new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
-	const to = c.req.query('to') ?? new Date().toISOString().slice(0, 10);
+	const period = c.req.query('period') ?? 'all';
+	const format = (c.req.query('format') ?? 'csv').toLowerCase();
+	const explicitFrom = c.req.query('from');
+	const explicitTo = c.req.query('to');
 
-	const { data, error: selectError } = await ctx.db
-		.from('transactions')
-		.select('receipt_no, paid_at, total_amount, payment_method, payment_channel, payment_gateway_ref, transaction_items(product_name, quantity, unit_price, line_total)')
-		.gte('paid_at', `${from}T00:00:00.000Z`)
-		.lte('paid_at', `${to}T23:59:59.999Z`)
-		.order('paid_at', { ascending: false })
-		.limit(5000);
-	if (selectError) httpError(500, 'FETCH_FAILED');
+	const range = periodRange(period);
+	const from = explicitFrom ?? range.from;
+	const to = explicitTo ?? range.to;
+	const fromIso = `${from}T00:00:00.000Z`;
+	const toIso = `${to}T23:59:59.999Z`;
 
+	const [txResult, ingResult, recipeResult, expenseResult] = await Promise.all([
+		ctx.db
+			.from('transactions')
+			.select(
+				'receipt_no, paid_at, total_amount, payment_method, payment_channel, payment_gateway_ref, transaction_items(product_name, quantity, unit_price, line_total, variant_id, unit_cost)'
+			)
+			.gte('paid_at', fromIso)
+			.lte('paid_at', toIso)
+			.order('paid_at', { ascending: false })
+			.limit(10000),
+		ctx.db.from('ingredients').select('id, cost_per_unit'),
+		ctx.db.from('recipes').select('variant_id, ingredient_id, quantity_required'),
+		ctx.db
+			.from('operational_expenses')
+			.select('category, amount')
+			.eq('shop_id', ctx.shop.shopId)
+			.gte('expense_date', from)
+			.lte('expense_date', to)
+	]);
+	if (txResult.error) httpError(500, 'FETCH_FAILED');
+
+	const costMap = new Map((ingResult.data ?? []).map((i) => [i.id, Number(i.cost_per_unit ?? 0)]));
+	const recipeCost = new Map<string, number>();
+	for (const r of recipeResult.data ?? []) {
+		recipeCost.set(r.variant_id, (recipeCost.get(r.variant_id) ?? 0) + Number(r.quantity_required) * (costMap.get(r.ingredient_id) ?? 0));
+	}
+
+	const transactions = (txResult.data ?? []) as ExportTx[];
+	const expenses = (expenseResult.data ?? []) as { category: string; amount: number }[];
+
+	let omzet = 0;
+	let hpp = 0;
+	const menuMap = new Map<string, { name: string; qty: number; revenue: number; hpp: number }>();
+	const dailyMap = new Map<string, { date: string; omzet: number; count: number }>();
+	for (const t of transactions) {
+		omzet += Number(t.total_amount ?? 0);
+		const day = (t.paid_at ?? '').slice(0, 10);
+		const dl = dailyMap.get(day) ?? { date: day, omzet: 0, count: 0 };
+		dl.omzet += Number(t.total_amount ?? 0);
+		dl.count += 1;
+		dailyMap.set(day, dl);
+		for (const item of t.transaction_items ?? []) {
+			const qty = Number(item.quantity ?? 0);
+			const unitCost =
+				item.unit_cost != null ? Number(item.unit_cost) : item.variant_id ? (recipeCost.get(item.variant_id) ?? 0) : 0;
+			const itemHpp = unitCost * qty;
+			hpp += itemHpp;
+			const key = `${item.product_name}|${item.variant_id ?? ''}`;
+			const cur = menuMap.get(key) ?? { name: item.product_name, qty: 0, revenue: 0, hpp: 0 };
+			cur.qty += qty;
+			cur.revenue += Number(item.line_total ?? 0);
+			cur.hpp += itemHpp;
+			menuMap.set(key, cur);
+		}
+	}
+
+	const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount ?? 0), 0);
+	const profit = omzet - hpp;
+	const data: ExportData = {
+		summary: {
+			shopName: ctx.shop.shopName,
+			from,
+			to,
+			omzet,
+			txCount: transactions.length,
+			hpp,
+			profit,
+			expenses: expensesTotal,
+			netProfit: profit - expensesTotal
+		},
+		transactions,
+		perMenu: [...menuMap.values()]
+			.sort((a, b) => b.revenue - a.revenue)
+			.map((m) => ({ ...m, profit: m.revenue - m.hpp })),
+		daily: [...dailyMap.values()].sort((a, b) => a.date.localeCompare(b.date))
+	};
+
+	if (format === 'xlsx') {
+		const buf = await buildExcelReport(data);
+		return new Response(buf, {
+			headers: {
+				'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+				'Content-Disposition': `attachment; filename="posspace-laporan-${from}-${to}.xlsx"`
+			}
+		});
+	}
+	if (format === 'pdf') {
+		const buf = await buildPdfReport(data);
+		return new Response(buf, {
+			headers: {
+				'Content-Type': 'application/pdf',
+				'Content-Disposition': `attachment; filename="posspace-laporan-${from}-${to}.pdf"`
+			}
+		});
+	}
+
+	// CSV (default)
 	const rows: string[][] = [['No. Struk', 'Waktu', 'Item', 'Metode', 'Channel', 'Ref ID', 'Total']];
-	for (const t of data ?? []) {
+	for (const t of transactions) {
 		rows.push([
 			t.receipt_no ?? '',
 			new Date(t.paid_at).toLocaleString('id-ID'),
@@ -844,9 +941,7 @@ reportsService.get('/export/sales', async (c) => {
 			String(Number(t.total_amount ?? 0))
 		]);
 	}
-
 	const csv = '\uFEFF' + rows.map((r) => r.map((cell) => (/[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(',')).join('\n');
-
 	return new Response(csv, {
 		headers: {
 			'Content-Type': 'text/csv;charset=utf-8',
