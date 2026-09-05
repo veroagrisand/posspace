@@ -915,3 +915,24 @@ export async function setMemberRole(profileId: string, role: string): Promise<vo
 	const profile = store.profiles.find((p) => p.id === profileId);
 	if (profile) profile.role = role;
 }
+
+export async function updateMember(profileId: string, data: { name?: string; role?: string }): Promise<void> {
+	if (backend.enabled) {
+		await apiFetch(`/api/shop/members/${profileId}`, { method: 'PATCH', body: JSON.stringify(data) });
+		await hydrateStore();
+		return;
+	}
+	const profile = store.profiles.find((p) => p.id === profileId);
+	if (!profile) return;
+	if (data.name !== undefined) profile.name = data.name;
+	if (data.role !== undefined) profile.role = data.role;
+}
+
+export async function removeMember(profileId: string): Promise<void> {
+	if (backend.enabled) {
+		await apiFetch(`/api/shop/members/${profileId}`, { method: 'DELETE' });
+		await hydrateStore();
+		return;
+	}
+	store.profiles = store.profiles.filter((p) => p.id !== profileId);
+}

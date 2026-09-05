@@ -188,7 +188,7 @@ function escapeHtml(value: string): string {
 	return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string);
 }
 
-/** PATCH /api/shop/members/[id] — ubah peran anggota (pemilik toko). */
+/** PATCH /api/shop/members/[id] — ubah nama & peran anggota (pemilik toko). */
 shopService.patch('/members/:id', async (c) => {
 	const ctx = await requireApiAuth(c);
 	const profileId = c.req.param('id');
@@ -197,9 +197,12 @@ shopService.patch('/members/:id', async (c) => {
 		httpError(403, 'OWNER_ONLY');
 	}
 
-	const body = (await c.req.json().catch(() => ({}))) as { role?: string };
-	if (!['kasir', 'admin_gudang', 'pemilik'].includes(body.role ?? '')) {
+	const body = (await c.req.json().catch(() => ({}))) as { name?: string; role?: string };
+	if (body.role !== undefined && !['kasir', 'admin_gudang', 'pemilik'].includes(body.role)) {
 		httpError(400, 'INVALID_ROLE');
+	}
+	if (body.name !== undefined && !String(body.name).trim()) {
+		httpError(400, 'NAME_REQUIRED');
 	}
 
 	const db = service();
@@ -212,12 +215,59 @@ shopService.patch('/members/:id', async (c) => {
 	if (!member || member.shop_id !== ctx.shop.shopId) {
 		httpError(404, 'NOT_FOUND');
 	}
-	if (member.role === 'pemilik' && body.role !== 'pemilik') {
+	// Pemilik terakhir tidak boleh diturunkan perannya.
+	if (member.role === 'pemilik' && body.role !== undefined && body.role !== 'pemilik') {
 		httpError(400, 'LAST_OWNER');
 	}
 
-	const { error: updateError } = await db.from('profiles').update({ role: body.role }).eq('id', profileId);
+	const patch: Record<string, unknown> = {};
+	if (body.role !== undefined) patch.role = body.role;
+	if (body.name !== undefined) patch.full_name = String(body.name).trim();
+
+	const { error: updateError } = await db.from('profiles').update(patch).eq('id', profileId);
 	if (updateError) httpError(500, 'UPDATE_FAILED');
+
+	return json({ ok: true });
+});
+
+/** DELETE /api/shop/members/[id] — keluarkan anggota dari toko (pemilik toko). */
+shopService.delete('/members/:id', async (c) => {
+	const ctx = await requireApiAuth(c);
+	const profileId = c.req.param('id');
+
+	if (ctx.shop.profileRole !== 'pemilik') {
+		httpError(403, 'OWNER_ONLY');
+	}
+	if (profileId === ctx.user.id) {
+		httpError(400, 'CANNOT_REMOVE_SELF');
+	}
+
+	const db = service();
+	const { data: member } = await db
+		.from('profiles')
+		.select('id, shop_id, role')
+		.eq('id', profileId)
+		.single();
+
+	if (!member || member.shop_id !== ctx.shop.shopId) {
+		httpError(404, 'NOT_FOUND');
+	}
+
+	// Pemilik terakhir toko tidak boleh dihapus.
+	if (member.role === 'pemilik') {
+		const { count } = await db
+			.from('profiles')
+			.select('id', { count: 'exact', head: true })
+			.eq('shop_id', ctx.shop.shopId)
+			.eq('role', 'pemilik');
+		if (Number(count ?? 0) <= 1) {
+			httpError(400, 'LAST_OWNER');
+		}
+	}
+
+	// Keluarkan anggota dari toko (akun tetap ada, tapi tak lagi punya akses toko ini).
+	const { error: unlinkError } = await db.from('profiles').update({ shop_id: null }).eq('id', profileId);
+	if (unlinkError) httpError(500, 'REMOVE_FAILED');
 
 	return json({ ok: true });
 });

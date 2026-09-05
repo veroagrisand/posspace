@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, saveShop, setMemberRole, backend, printer, savePrinterSettings, dismissPrinterSetup } from '$lib/store.svelte';
+	import { store, saveShop, setMemberRole, backend, printer, savePrinterSettings, dismissPrinterSetup, updateMember, removeMember } from '$lib/store.svelte';
 	import PrinterSetup from '$lib/components/PrinterSetup.svelte';
 
 	let name = $state(store.shop.name);
@@ -9,6 +9,11 @@
 	let currency = $state(store.shop.currency);
 
 	let printerSetupOpen = $state(false);
+
+	let editMemberOpen = $state(false);
+	let editMember = $state<{ id: string; name: string; email: string; role: string } | null>(null);
+	let editMemberName = $state('');
+	let editMemberRole = $state('kasir');
 
 	async function togglePrinter() {
 		if (backend.role !== 'pemilik') {
@@ -61,6 +66,35 @@
 		if (!profile) return;
 		await setMemberRole(id, role);
 		showToast(`Hak akses ${profile.name} diubah menjadi ${roles.find((r) => r.id === role)?.label}`);
+	}
+
+	function openEditMember(p: { id: string; name: string; email: string; role: string }) {
+		editMember = p;
+		editMemberName = p.name;
+		editMemberRole = p.role;
+		editMemberOpen = true;
+	}
+
+	async function saveEditMember() {
+		if (!editMember || !editMemberName.trim()) return;
+		try {
+			await updateMember(editMember.id, { name: editMemberName.trim(), role: editMemberRole });
+			editMemberOpen = false;
+			editMember = null;
+			showToast('Data anggota diperbarui');
+		} catch {
+			showToast('Gagal memperbarui anggota');
+		}
+	}
+
+	async function deleteMember(p: { id: string; name: string; email: string; role: string }) {
+		if (!confirm(`Keluarkan ${p.name || p.email} dari toko? Anggota tidak lagi bisa mengakses dashboard toko ini.`)) return;
+		try {
+			await removeMember(p.id);
+			showToast('Anggota dikeluarkan dari toko');
+		} catch {
+			showToast('Gagal mengeluarkan anggota');
+		}
 	}
 
 	async function addMember() {
@@ -180,7 +214,9 @@
 	<section class="panel" style="padding: 24px;margin-top: 19px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
 			<div><div class="section-kicker">ATUR HAK AKSES</div><h2>Anggota tim &amp; peran</h2></div>
-			<button class="button button-secondary" type="button" onclick={() => (addMemberOpen = true)}>+ Undang anggota</button>
+			{#if backend.role === 'pemilik'}
+				<button class="button button-secondary" type="button" onclick={() => (addMemberOpen = true)}>+ Undang anggota</button>
+			{/if}
 		</div>
 		<div style="overflow-x:auto">
 			<table class="data-table">
@@ -189,6 +225,7 @@
 						<th>Nama</th>
 						<th>Email</th>
 						<th>Peran</th>
+						{#if backend.role === 'pemilik'}<th>Aksi</th>{/if}
 					</tr>
 				</thead>
 				<tbody>
@@ -198,13 +235,21 @@
 							<td>{profile.email}</td>
 							<td>
 								<div class="form-input" style="height:36px;min-width:210px">
-									<select value={profile.role} onchange={(e) => setRole(profile.id, (e.currentTarget as HTMLSelectElement).value)}>
+									<select value={profile.role} onchange={(e) => setRole(profile.id, (e.currentTarget as HTMLSelectElement).value)} disabled={backend.role !== 'pemilik'}>
 										{#each roles as role}
 											<option value={role.id} disabled={profile.role === 'pemilik' && role.id !== 'pemilik'}>{role.label}</option>
 										{/each}
 									</select>
 								</div>
 							</td>
+							{#if backend.role === 'pemilik'}
+								<td>
+									<div style="display:flex;gap:6px">
+										<button class="text-button" type="button" onclick={() => openEditMember(profile)}>Ubah</button>
+										<button class="text-button" type="button" style="color:var(--red)" onclick={() => deleteMember(profile)}>Hapus</button>
+									</div>
+								</td>
+							{/if}
 						</tr>
 					{/each}
 				</tbody>
@@ -263,6 +308,47 @@
 {/if}
 
 <PrinterSetup bind:open={printerSetupOpen} />
+
+{#if editMemberOpen && editMember}
+	<div class="modal-overlay" role="presentation" onclick={(e) => {
+		if (e.target === e.currentTarget) editMemberOpen = false;
+	}}>
+		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Ubah anggota">
+			<div class="modal-head">
+				<h3>Ubah anggota</h3>
+				<button class="icon-button" type="button" onclick={() => (editMemberOpen = false)} aria-label="Tutup dialog">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="form-grid">
+					<div class="form-row">
+						<label for="editMemberEmail">Email (tidak bisa diubah)</label>
+						<div class="form-input"><input id="editMemberEmail" type="email" value={editMember.email} disabled /></div>
+					</div>
+					<div class="form-row">
+						<label for="editMemberName">Nama lengkap</label>
+						<div class="form-input"><input id="editMemberName" type="text" bind:value={editMemberName} /></div>
+					</div>
+					<div class="form-row">
+						<label for="editMemberRole">Peran</label>
+						<div class="form-input">
+							<select id="editMemberRole" bind:value={editMemberRole}>
+								{#each roles as role}
+									<option value={role.id} disabled={editMember.role === 'pemilik' && role.id !== 'pemilik'}>{role.label}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="modal-actions">
+					<button class="button button-secondary" type="button" onclick={() => (editMemberOpen = false)}>Batal</button>
+					<button class="button button-primary" type="button" onclick={saveEditMember}>Simpan perubahan</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if inviteResult}
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
