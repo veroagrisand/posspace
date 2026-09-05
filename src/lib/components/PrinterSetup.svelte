@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { printer, savePrinterSettings, backend } from '$lib/store.svelte';
+	import { printer, savePrinterSettings, dismissPrinterSetup, backend } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import { buildReceiptLines, printAgent, printWebUsb, type PrinterType } from '$lib/printing';
 
@@ -10,14 +10,15 @@
 	} = $props();
 
 	let step = $state<'choose' | 'test' | 'done'>('choose');
-	let printerType = $state<PrinterType>('webusb');
+	let printerType = $state<PrinterType | 'none'>('webusb');
 	let paperWidth = $state<'58' | '80'>('80');
 	let agentUrl = $state('http://127.0.0.1:9123');
 	let testing = $state(false);
 	let testResult = $state('');
 	let saving = $state(false);
 
-	const options: { id: PrinterType; label: string; desc: string }[] = [
+	const options: { id: PrinterType | 'none'; label: string; desc: string }[] = [
+		{ id: 'none', label: 'Tidak mencetak struk', desc: 'Struk cukup tampil di layar — bisa diaktifkan kapan saja dari menu Pengaturan' },
 		{ id: 'webusb', label: 'Printer USB (thermal)', desc: 'Kabel USB langsung ke PC kasir — dicetak tanpa driver (Chrome/Edge)' },
 		{ id: 'browser', label: 'Printer sistem (browser)', desc: 'Pakai printer yang sudah terpasang di Windows/Mac lewat dialog cetak' },
 		{ id: 'agent', label: 'Printer jaringan / agen lokal', desc: 'Printer Ethernet/WiFi (TCP 9100) atau USB — lewat agen cetak di PC kasir' }
@@ -27,7 +28,7 @@
 		if (open) {
 			step = 'choose';
 			testResult = '';
-			printerType = printer.printerType === 'webusb' || printer.printerType === 'agent' ? printer.printerType : 'webusb';
+			printerType = printer.enabled ? (printer.printerType === 'webusb' || printer.printerType === 'agent' ? printer.printerType : 'webusb') : 'none';
 			paperWidth = printer.paperWidth;
 			agentUrl = printer.agentUrl || 'http://127.0.0.1:9123';
 		}
@@ -79,14 +80,26 @@
 	async function save() {
 		saving = true;
 		try {
-			await savePrinterSettings({ printerType, paperWidth, agentUrl: printerType === 'agent' ? agentUrl : undefined });
-			showToast('Pengaturan printer disimpan.');
+			if (printerType === 'none') {
+				await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false });
+				showToast('Printer struk dinonaktifkan — struk tampil di layar.');
+			} else {
+				await savePrinterSettings({ printerType, paperWidth, agentUrl: printerType === 'agent' ? agentUrl : undefined, enabled: true });
+				showToast('Pengaturan printer disimpan.');
+			}
 			open = false;
 		} catch {
 			showToast('Gagal menyimpan pengaturan printer.');
 		} finally {
 			saving = false;
 		}
+	}
+
+	async function later() {
+		// Simpan pilihan "nanti saja" agar wizard tidak muncul terus-menerus.
+		await dismissPrinterSetup();
+		showToast('Bisa diatur kapan saja dari menu Pengaturan.');
+		open = false;
 	}
 </script>
 
@@ -95,13 +108,13 @@
 		<div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-label="Setup printer struk">
 			<div class="modal-head">
 				<h3>Setup printer struk</h3>
-				<button class="icon-button" type="button" onclick={() => (open = false)} aria-label="Tutup dialog">
+				<button class="icon-button" type="button" onclick={later} aria-label="Tutup dialog">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 				</button>
 			</div>
 			<div class="modal-body">
 				<p class="setup-intro">
-					Hubungkan mesin cetak struk ke kasir ini. Pengaturan ini disimpan per toko dan bisa diubah kapan saja dari menu Pengaturan.
+					Hubungkan mesin cetak struk ke kasir ini, atau pilih tidak mencetak. Pengaturan disimpan per toko dan bisa diubah kapan saja dari menu Pengaturan.
 				</p>
 
 				{#if step === 'choose'}
@@ -117,21 +130,23 @@
 						{/each}
 					</div>
 
-					<div class="setup-fields">
-						<label class="setup-field">
-							<span>Lebar kertas struk</span>
-							<select bind:value={paperWidth}>
-								<option value="80">80 mm</option>
-								<option value="58">58 mm</option>
-							</select>
-						</label>
-						{#if printerType === 'agent'}
+					{#if printerType !== 'none'}
+						<div class="setup-fields">
 							<label class="setup-field">
-								<span>Alamat agen cetak (di PC kasir)</span>
-								<input type="text" bind:value={agentUrl} placeholder="http://127.0.0.1:9123" />
+								<span>Lebar kertas struk</span>
+								<select bind:value={paperWidth}>
+									<option value="80">80 mm</option>
+									<option value="58">58 mm</option>
+								</select>
 							</label>
-						{/if}
-					</div>
+							{#if printerType === 'agent'}
+								<label class="setup-field">
+									<span>Alamat agen cetak (di PC kasir)</span>
+									<input type="text" bind:value={agentUrl} placeholder="http://127.0.0.1:9123" />
+								</label>
+							{/if}
+						</div>
+					{/if}
 				{:else if step === 'test'}
 					<div class="setup-test">
 						<p>Cetak uji sedang dikirim ke printer…</p>
@@ -152,10 +167,15 @@
 				{/if}
 
 				<div class="modal-actions">
-					<button class="button button-secondary" type="button" onclick={() => (open = false)}>Nanti saja</button>
+					<button class="button button-secondary" type="button" onclick={later}>Nanti saja</button>
 					{#if step === 'choose'}
-						<button class="button button-primary" type="button" onclick={runTest} disabled={testing}>
-							{testing ? 'Mencetak…' : 'Cetak uji'}
+						{#if printerType !== 'none'}
+							<button class="button button-primary" type="button" onclick={runTest} disabled={testing}>
+								{testing ? 'Mencetak…' : 'Cetak uji'}
+							</button>
+						{/if}
+						<button class="button button-primary" type="button" onclick={save} disabled={saving}>
+							{saving ? 'Menyimpan…' : printerType === 'none' ? 'Simpan pilihan' : 'Simpan pengaturan'}
 						</button>
 					{:else if step === 'test'}
 						<button class="button button-primary" type="button" onclick={save} disabled={testing}>Simpan pengaturan</button>

@@ -129,12 +129,25 @@
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z" /><path d="m8 16 4-4-4-4M16 8l-4 4 4 4" /></svg>
 						Kirim struk
 					</button>
-					<button class="button button-primary" type="button" onclick={print} disabled={printing}>
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" /></svg>
-						{printing ? 'Mencetak…' : 'Cetak struk'}
-					</button>
+					{#if backend.enabled && printer.enabled === false}
+						<span class="print-off-note">Printer struk dinonaktifkan — ubah di menu Pengaturan.</span>
+					{:else}
+						<button class="button button-primary" type="button" onclick={print} disabled={printing}>
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" /></svg>
+							{printing ? 'Mencetak…' : 'Cetak struk'}
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
 {/if}
+
+<style>
+	.print-off-note {
+		color: var(--ink-soft);
+		font-size: 11px;
+		line-height: 1.5;
+		padding: 4px 2px;
+	}
+</style>

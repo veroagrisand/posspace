@@ -1,11 +1,27 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, saveShop, setMemberRole, backend } from '$lib/store.svelte';
+	import { store, saveShop, setMemberRole, backend, printer, savePrinterSettings, dismissPrinterSetup } from '$lib/store.svelte';
+	import PrinterSetup from '$lib/components/PrinterSetup.svelte';
 
 	let name = $state(store.shop.name);
 	let address = $state(store.shop.address);
 	let phone = $state(store.shop.phone);
 	let currency = $state(store.shop.currency);
+
+	let printerSetupOpen = $state(false);
+
+	async function togglePrinter() {
+		if (backend.role !== 'pemilik') {
+			showToast('Hanya pemilik yang dapat mengubah pengaturan printer.');
+			return;
+		}
+		if (printer.enabled) {
+			await dismissPrinterSetup();
+			showToast('Printer struk dinonaktifkan.');
+		} else {
+			printerSetupOpen = true;
+		}
+	}
 
 	const roles = [
 		{ id: 'kasir', label: 'Kasir / Barista', desc: 'Mencatat pesanan, pembayaran, dan shift' },
@@ -124,6 +140,32 @@
 
 	<section class="panel" style="padding: 24px;margin-top: 19px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
+			<div><div class="section-kicker">PRINTER STRUK</div><h2>Cetak struk</h2></div>
+		</div>
+		<div class="au-demo-note" style="margin-top:0;max-width:560px">
+			<span style="font-weight:700;min-width:150px">{printer.enabled ? 'Aktif' : 'Nonaktif'}</span>
+			<span style="color:#718078">
+				{printer.enabled
+					? printer.printerType === 'webusb'
+						? 'Printer USB (thermal)'
+						: printer.printerType === 'agent'
+							? 'Printer jaringan / agen lokal'
+							: 'Printer sistem (browser)'
+					: 'Struk tidak dicetak — hanya tampil di layar.'}
+			</span>
+		</div>
+		<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+			<button class="button button-secondary" type="button" onclick={togglePrinter}>
+				{printer.enabled ? 'Matikan pencetakan struk' : 'Aktifkan pencetakan struk'}
+			</button>
+			{#if printer.enabled}
+				<button class="button button-primary" type="button" onclick={() => (printerSetupOpen = true)}>Atur printer</button>
+			{/if}
+		</div>
+	</section>
+
+	<section class="panel" style="padding: 24px;margin-top: 19px">
+		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
 			<div><div class="section-kicker">ATUR HAK AKSES</div><h2>Anggota tim &amp; peran</h2></div>
 			<button class="button button-secondary" type="button" onclick={() => (addMemberOpen = true)}>+ Undang anggota</button>
 		</div>
@@ -206,3 +248,5 @@
 		</div>
 	</div>
 {/if}
+
+<PrinterSetup bind:open={printerSetupOpen} />

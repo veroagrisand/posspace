@@ -17,7 +17,7 @@ shopService.get('/printer', async (c) => {
 
 	const { data } = await ctx.db
 		.from('shop_printer_settings')
-		.select('printer_type, paper_width, agent_url')
+		.select('printer_type, paper_width, agent_url, enabled')
 		.eq('shop_id', ctx.shop.shopId)
 		.maybeSingle();
 
@@ -33,8 +33,10 @@ shopService.put('/printer', async (c) => {
 		printerType?: string;
 		paperWidth?: string;
 		agentUrl?: string;
+		enabled?: boolean;
 	};
 
+	const enabled = body.enabled !== false;
 	const printerType = body.printerType ?? 'browser';
 	if (!['webusb', 'browser', 'agent'].includes(printerType)) httpError(400, 'INVALID_PRINTER_TYPE');
 	const paperWidth = body.paperWidth === '58' ? '58' : '80';
@@ -43,14 +45,14 @@ shopService.put('/printer', async (c) => {
 	const { error } = await ctx.db
 		.from('shop_printer_settings')
 		.upsert(
-			{ shop_id: ctx.shop.shopId, printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl, updated_at: new Date().toISOString() },
+			{ shop_id: ctx.shop.shopId, printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl, enabled, updated_at: new Date().toISOString() },
 			{ onConflict: 'shop_id' }
 		)
 		.eq('shop_id', ctx.shop.shopId);
 
 	if (error) httpError(500, 'UPDATE_FAILED');
 
-	return json({ ok: true, printerSettings: { printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl } });
+	return json({ ok: true, printerSettings: { printer_type: printerType, paper_width: paperWidth, agent_url: agentUrl, enabled } });
 });
 
 /** GET /api/shop — profil toko + anggota + subscription (untuk halaman Pengaturan). */
