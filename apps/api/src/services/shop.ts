@@ -127,7 +127,9 @@ shopService.post('/members', async (c) => {
 	const { data: created, error: createError } = await db.auth.admin.createUser({
 		email: body.email.trim(),
 		password: tempPassword,
-		email_confirm: true,
+		// email_confirm sengaja TIDAK di-set true → anggota wajib verifikasi email
+		// (klik tautan konfirmasi dari Supabase) sebelum bisa login. Membutuhkan
+		// SMTP Supabase terkonfigurasi di dashboard.
 		user_metadata: { full_name: body.name.trim() }
 	});
 	if (createError || !created.user) {

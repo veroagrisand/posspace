@@ -24,7 +24,9 @@
 			if (supabase) {
 				const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 				if (authError) {
-					error = 'Email atau kata sandi salah.';
+					error = /email not confirmed/i.test(authError.message)
+						? 'Email belum diverifikasi. Klik tautan konfirmasi yang dikirim ke email Anda, lalu coba lagi.'
+						: 'Email atau kata sandi salah.';
 					submitting = false;
 					return;
 				}

@@ -19,8 +19,11 @@
 		{ href: '/app/inventaris', label: 'Inventaris', icon: 'stock', module: 'Inventaris' },
 		{ href: '/app/laporan', label: 'Laporan', icon: 'report', module: 'Laporan' },
 		{ href: '/app/operasional', label: 'Operasional', icon: 'ops', module: 'Operasional' },
-		{ href: '/app/pengaturan', label: 'Pengaturan', icon: 'settings', module: 'Pengaturan' }
+		{ href: '/app/pengaturan', label: 'Pengaturan', icon: 'settings', module: 'Pengaturan' },
+		{ href: '/app/tutorial', label: 'Tutorial', icon: 'help', module: 'Tutorial', ownerOnly: true }
 	];
+
+	const visibleNavItems = $derived(navItems.filter((i) => !(i as { ownerOnly?: boolean }).ownerOnly || user?.role === 'pemilik'));
 
 	// Data otorisasi berasal dari server (guard layout server) — bukan localStorage.
 	$effect(() => {
@@ -92,7 +95,7 @@
 
 			<div class="sidebar-label">Menu utama</div>
 			<nav class="sidebar-nav">
-				{#each navItems as item}
+				{#each visibleNavItems as item}
 					<a class="nav-item" class:active={pathname === item.href} href={item.href}>
 						{#if item.icon === 'cashier'}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" /><path d="M7.5 8h9M7.5 12h2M12 12h2M16.5 12h.01M7.5 16h2M12 16h2M16.5 16h.01" /></svg>
@@ -104,6 +107,8 @@
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" /><path d="M19.4 15v.03a1.7 1.7 0 0 1-.62 3.1l-.62.1a1.7 1.7 0 0 1-1.58-.7l-.35-.5a7.6 7.6 0 0 1-1.7 1l-.07.6a1.7 1.7 0 0 1-3.15.65l-.3-.54a7.8 7.8 0 0 1-1.96-.02l-.31.54a1.7 1.7 0 0 1-3.14-.66l-.07-.61a7.7 7.7 0 0 1-1.68-.99l-.52.31a1.7 1.7 0 0 1-2.53-1.91l.2-.6a7.8 7.8 0 0 1-.98-1.7l-.6-.07a1.7 1.7 0 0 1-.66-3.14l.54-.31a7.7 7.7 0 0 1 .02-1.96l-.54-.31a1.7 1.7 0 0 1 .66-3.14l.6-.07a7.8 7.8 0 0 1 .99-1.68l-.31-.52a1.7 1.7 0 0 1 1.91-2.53l.6.2a7.8 7.8 0 0 1 1.7-.98l.07-.6a1.7 1.7 0 0 1 3.14-.66l.31.54a7.7 7.7 0 0 1 1.96.02l.31-.54a1.7 1.7 0 0 1 3.14.66l.07.6a7.7 7.7 0 0 1 1.68.99l.52-.31a1.7 1.7 0 0 1 2.53 1.91l-.2.6a7.8 7.8 0 0 1 .98 1.7l.6.07a1.7 1.7 0 0 1 .66 3.14l-.54.31a7.7 7.7 0 0 1-.02 1.96l.54.31" /></svg>
 						{:else if item.icon === 'ops'}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6l1-8Z" /></svg>
+						{:else if item.icon === 'help'}
+							<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.8-1.1 1.6v.3M12 16.6h.01" /></svg>
 						{:else}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9L19 7v13.5H6V3.5Z" /><path d="M14 3.5V8h5M9 12h7M9 15.5h7" /></svg>
 						{/if}
