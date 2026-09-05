@@ -82,7 +82,7 @@
 		try {
 			if (printerType === 'none') {
 				await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false });
-				showToast('Printer struk dinonaktifkan — struk tampil di layar.');
+				showToast('Struk tidak dicetak — struk tampil di layar.');
 			} else {
 				await savePrinterSettings({ printerType, paperWidth, agentUrl: printerType === 'agent' ? agentUrl : undefined, enabled: true });
 				showToast('Pengaturan printer disimpan.');
@@ -93,6 +93,17 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	async function chooseOption(id: PrinterType | 'none') {
+		// Pilih "Tidak mencetak struk" = langsung simpan & tutup, tanpa langkah lagi.
+		if (id === 'none') {
+			await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false });
+			showToast('Struk tidak dicetak — struk tampil di layar.');
+			open = false;
+			return;
+		}
+		printerType = id;
 	}
 
 	async function later() {
@@ -120,7 +131,7 @@
 				{#if step === 'choose'}
 					<div class="setup-options">
 						{#each options as opt}
-							<button class="setup-option" class:active={printerType === opt.id} type="button" onclick={() => (printerType = opt.id)}>
+							<button class="setup-option" class:active={printerType === opt.id} type="button" onclick={() => chooseOption(opt.id)}>
 								<span class="radio-dot" class:active={printerType === opt.id}></span>
 								<span class="setup-option-copy">
 									<strong>{opt.label}</strong>

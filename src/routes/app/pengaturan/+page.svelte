@@ -22,7 +22,7 @@
 		}
 		if (printer.enabled) {
 			await dismissPrinterSetup();
-			showToast('Printer struk dinonaktifkan.');
+			showToast('Struk tidak dicetak — struk tampil di layar.');
 		} else {
 			printerSetupOpen = true;
 		}
