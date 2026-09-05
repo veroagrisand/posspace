@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, backend, findVariant, stockStatus, lowStockIngredients, createTransaction, hydrateStore, formatClockLabel, hppOf } from '$lib/store.svelte';
+	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, hppOf } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
-	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
@@ -19,8 +18,7 @@
 	let paymentSubmitting = $state(false);
 
 	let shiftOpen = $state(false);
-	let paymentOpen = $state(false);
-	let pendingTxn = $state<{ id: string; receiptNo: string; total: number } | null>(null);
+	let qrRef = $state('');
 	let orderType = $state<'takeaway' | 'dinein'>('takeaway');
 	let chartPeriod = $state<'7' | '30'>('7');
 	let receipt: {
@@ -84,7 +82,8 @@
 		todayTransactions.reduce((sum, t) => {
 			for (const item of t.items) {
 				const v = store.products.map((p) => p.variants.find((x) => x.name === item.variant && x.price === item.unitPrice)).find((x) => x);
-				if (v) sum += hppOf(v) * item.qty;
+				const unitHpp = item.unitCost != null ? item.unitCost : v ? hppOf(v) : 0;
+				sum += unitHpp * item.qty;
 			}
 			return sum;
 		}, 0)
@@ -191,26 +190,9 @@
 			if (paymentMethod === 'cash') {
 				await finishPayment('cash', undefined, undefined, undefined);
 			} else {
-				// Pembayaran digital: transaksi dibuat PENDING dulu (stok belum dipotong),
-				// lalu QR Midtrans dibuat; stok dipotong saat pembayaran terkonfirmasi.
-				const items = cart.map((item) => {
-					const v = findVariant(item.productId, item.variantName)!;
-					return {
-						variantId: item.variantId,
-						productName: store.products.find((p) => p.id === item.productId)?.name ?? 'Menu',
-						variant: item.variantName,
-						qty: item.qty,
-						unitPrice: v.price,
-						lineTotal: v.price * item.qty
-					};
-				});
-				const txn = await createTransaction({
-					items,
-					paymentMethod,
-					paymentStatus: 'pending'
-				});
-				pendingTxn = txn;
-				paymentOpen = true;
+				// QRIS/debit: tanpa payment gateway — hanya catatan keuangan.
+				// Pemilik memakai QRIS statis sendiri; transaksi langsung dicatat lunas.
+				await finishPayment(paymentMethod, undefined, qrRef.trim() || undefined);
 			}
 		} catch (err) {
 			showToast(transactionErrorMessage(err));
@@ -242,8 +224,11 @@
 				changeAmount
 			});
 		} else {
-			txn = paymentTxn ?? { id: '', receiptNo: '', total: 0 };
-			if (backend.enabled) await hydrateStore().catch(() => undefined);
+			txn = await createTransaction({
+				items,
+				paymentMethod: method,
+				gatewayRef
+			});
 		}
 		receipt = {
 			receiptNo: txn.receiptNo,
@@ -260,15 +245,9 @@
 		cart = [];
 		cashReceived = 50000;
 		paymentMethod = 'cash';
+		qrRef = '';
 		receiptOpen = true;
-		pendingTxn = null;
 		showToast('Transaksi selesai. Stok bahan dipotong otomatis sesuai resep.');
-	}
-
-	function handleDigitalPaid(result: { channel: string; gatewayRef: string }) {
-		void finishPayment(paymentMethod, result.channel, result.gatewayRef, pendingTxn ?? undefined).catch((err) => {
-			showToast(transactionErrorMessage(err));
-		});
 	}
 
 	function openShiftDialog() {
@@ -517,7 +496,7 @@
 			</div>
 
 			<div class="payment-section">
-				<div class="payment-label"><span>Metode pembayaran</span><button type="button" onclick={() => showToast('Metode pembayaran digital dikelola oleh Midtrans (QRIS)')}>Midtrans terhubung</button></div>
+				<div class="payment-label"><span>Metode pembayaran</span></div>
 				<div class="payment-methods" role="group" aria-label="Metode pembayaran">
 					{#each ['cash', 'qris', 'debit'] as method}
 						<button class="payment-method" class:active={paymentMethod === method} type="button" onclick={() => (paymentMethod = method as 'cash' | 'qris' | 'debit')}>
@@ -552,7 +531,14 @@
 				{:else}
 					<div class="digital-payment">
 						<span class="digital-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M18 14h2M14 18h2M18 18h2" /></svg></span>
-						<span><strong>QRIS Midtrans siap dibuat</strong><small>QRIS dinamis ditampilkan saat Bayar ditekan — stok dipotong setelah pembayaran terkonfirmasi.</small></span>
+						<span>
+							<strong>{paymentMethod === 'qris' ? 'QRIS statis toko' : 'Kartu debit / transfer'}</strong>
+							<small>{paymentMethod === 'qris' ? 'Pelanggan memindai QRIS milik toko — pembayaran hanya dicatat sebagai QRIS.' : 'Pembayaran dicatat sebagai debit untuk laporan keuangan.'}</small>
+						</span>
+					</div>
+					<div class="cash-payment" style="margin-top:10px">
+						<label for="qrRef">Referensi / ID transaksi (opsional)</label>
+						<div class="cash-input-wrap" style="border:1px solid var(--line-strong);border-radius:12px;background:#fff"><input id="qrRef" type="text" bind:value={qrRef} placeholder="cth. ref bank/e-wallet" /></div>
 					</div>
 				{/if}
 
@@ -561,7 +547,7 @@
 					<strong>{formatIDR(total)}</strong>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 				</button>
-				<p class="secure-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="m9 12 2 2 4-4" /></svg> Stok dipotong otomatis setelah pembayaran terkonfirmasi</p>
+				<p class="secure-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="m9 12 2 2 4-4" /></svg> Stok dipotong otomatis sesuai resep &amp; transaksi tercatat untuk laporan keuangan</p>
 			</div>
 		</aside>
 	</section>
@@ -644,12 +630,6 @@
 </div>
 
 <ShiftModal bind:open={shiftOpen} />
-<PaymentModal
-	bind:open={paymentOpen}
-	total={total}
-	transactionId={pendingTxn?.id ?? ''}
-	onPaid={handleDigitalPaid}
-/>
 <ReceiptModal
 	bind:open={receiptOpen}
 	receiptNo={receipt?.receiptNo ?? ''}

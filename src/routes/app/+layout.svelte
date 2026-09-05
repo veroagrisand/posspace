@@ -18,6 +18,7 @@
 		{ href: '/app/menu', label: 'Menu & resep', icon: 'menu', module: 'Menu & Resep' },
 		{ href: '/app/inventaris', label: 'Inventaris', icon: 'stock', module: 'Inventaris' },
 		{ href: '/app/laporan', label: 'Laporan', icon: 'report', module: 'Laporan' },
+		{ href: '/app/operasional', label: 'Operasional', icon: 'ops', module: 'Operasional' },
 		{ href: '/app/pengaturan', label: 'Pengaturan', icon: 'settings', module: 'Pengaturan' }
 	];
 
@@ -101,6 +102,8 @@
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 8-4 8 4-8 4-8-4Z" /><path d="m4 12 8 4 8-4M4 16l8 4 8-4" /></svg>
 						{:else if item.icon === 'settings'}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" /><path d="M19.4 15v.03a1.7 1.7 0 0 1-.62 3.1l-.62.1a1.7 1.7 0 0 1-1.58-.7l-.35-.5a7.6 7.6 0 0 1-1.7 1l-.07.6a1.7 1.7 0 0 1-3.15.65l-.3-.54a7.8 7.8 0 0 1-1.96-.02l-.31.54a1.7 1.7 0 0 1-3.14-.66l-.07-.61a7.7 7.7 0 0 1-1.68-.99l-.52.31a1.7 1.7 0 0 1-2.53-1.91l.2-.6a7.8 7.8 0 0 1-.98-1.7l-.6-.07a1.7 1.7 0 0 1-.66-3.14l.54-.31a7.7 7.7 0 0 1 .02-1.96l-.54-.31a1.7 1.7 0 0 1 .66-3.14l.6-.07a7.8 7.8 0 0 1 .99-1.68l-.31-.52a1.7 1.7 0 0 1 1.91-2.53l.6.2a7.8 7.8 0 0 1 1.7-.98l.07-.6a1.7 1.7 0 0 1 3.14-.66l.31.54a7.7 7.7 0 0 1 1.96.02l.31-.54a1.7 1.7 0 0 1 3.14.66l.07.6a7.7 7.7 0 0 1 1.68.99l.52-.31a1.7 1.7 0 0 1 2.53 1.91l-.2.6a7.8 7.8 0 0 1 .98 1.7l.6.07a1.7 1.7 0 0 1 .66 3.14l-.54.31a7.7 7.7 0 0 1-.02 1.96l.54.31" /></svg>
+						{:else if item.icon === 'ops'}
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6l1-8Z" /></svg>
 						{:else}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9L19 7v13.5H6V3.5Z" /><path d="M14 3.5V8h5M9 12h7M9 15.5h7" /></svg>
 						{/if}

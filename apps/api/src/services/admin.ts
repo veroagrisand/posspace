@@ -251,7 +251,7 @@ adminService.get('/shops/:id', async (c) => {
 		db.from('product_variants').select('id, product_id, name, price, is_active'),
 		db.from('ingredients').select('id, name, unit, stock_quantity, min_stock, cost_per_unit').eq('shop_id', shopId).order('name', { ascending: true }),
 		db.from('recipes').select('variant_id, ingredient_id, quantity_required'),
-		db.from('transactions').select('id, receipt_no, total_amount, payment_method, payment_channel, payment_gateway_ref, paid_at, transaction_items(product_name, quantity, line_total)').eq('shop_id', shopId).order('paid_at', { ascending: false }).limit(30),
+		db.from('transactions').select('id, receipt_no, total_amount, payment_method, payment_channel, payment_gateway_ref, paid_at, transaction_items(product_name, quantity, line_total, variant_id, unit_cost)').eq('shop_id', shopId).order('paid_at', { ascending: false }).limit(30),
 		db.from('shifts').select('id, profile_id, opened_at, closed_at, opening_cash, expected_cash, actual_cash, status').eq('shop_id', shopId).order('opened_at', { ascending: false }).limit(10)
 	]);
 
@@ -287,7 +287,10 @@ adminService.get('/shops/:id', async (c) => {
 
 	const transactions = (txns.data ?? []).map((t) => ({
 		...t,
-		hpp: (t.transaction_items ?? []).reduce((sum: number, it: any) => sum + (it.variant_id ? (recipeCost.get(it.variant_id) ?? 0) : 0) * Number(it.quantity ?? 0), 0)
+		hpp: (t.transaction_items ?? []).reduce((sum: number, it: any) => {
+			const unitCost = it.unit_cost != null ? Number(it.unit_cost) : it.variant_id ? (recipeCost.get(it.variant_id) ?? 0) : 0;
+			return sum + unitCost * Number(it.quantity ?? 0);
+		}, 0)
 	}));
 
 	let omzet = 0;

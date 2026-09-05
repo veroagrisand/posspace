@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel } from '$lib/store.svelte';
+	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost } from '$lib/store.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
@@ -9,7 +9,12 @@
 	let purchaseIngredient = $state('');
 	let purchaseSupplier = $state('');
 	let purchaseQty = $state(0);
-	let purchasePrice = $state(0);
+	let purchaseUnit = $state('gram');
+	let purchaseTotal = $state(0);
+
+	let costOpen = $state(false);
+	let costIngredient = $state('');
+	let costValue = $state(0);
 
 	let opnameOpen = $state(false);
 	let opnameIngredient = $state('');
@@ -27,19 +32,65 @@
 		{ id: 'adjustment', label: 'Penyesuaian' }
 	];
 
+	const selectedPurchaseIng = $derived(store.ingredients.find((i) => i.id === purchaseIngredient));
+	const purchaseUnits = $derived(purchaseUnitsFor(selectedPurchaseIng?.unit ?? 'gram'));
+	const purchaseFactor = $derived(purchaseUnits.find((u) => u.id === purchaseUnit)?.factor ?? 1);
+	const baseQuantity = $derived(purchaseQty * purchaseFactor);
+	const purchaseUnitPrice = $derived(baseQuantity > 0 ? purchaseTotal / baseQuantity : 0);
+	const selectedCostIng = $derived(store.ingredients.find((i) => i.id === costIngredient));
+
 	function openPurchase() {
-		purchaseIngredient = store.ingredients[0]?.id ?? '';
+		const first = store.ingredients[0];
+		purchaseIngredient = first?.id ?? '';
 		purchaseSupplier = '';
 		purchaseQty = 0;
-		purchasePrice = 0;
+		purchaseUnit = first ? purchaseUnitsFor(first.unit)[0].id : 'gram';
+		purchaseTotal = 0;
 		purchaseOpen = true;
 	}
 
+	function changePurchaseIngredient() {
+		const ing = store.ingredients.find((i) => i.id === purchaseIngredient);
+		if (ing) purchaseUnit = purchaseUnitsFor(ing.unit)[0].id;
+		purchaseQty = 0;
+		purchaseTotal = 0;
+	}
+
 	async function submitPurchase() {
-		if (!purchaseIngredient || purchaseQty <= 0) return;
-		await recordPurchase({ ingredientId: purchaseIngredient, supplier: purchaseSupplier || 'Pemasok', quantity: purchaseQty, unitPrice: purchasePrice });
+		if (!purchaseIngredient || baseQuantity <= 0) {
+			showToast('Isi jumlah pembelian yang valid');
+			return;
+		}
+		if (purchaseTotal <= 0) {
+			showToast('Isi total harga pembelian');
+			return;
+		}
+		await recordPurchase({
+			ingredientId: purchaseIngredient,
+			supplier: purchaseSupplier || 'Pemasok',
+			quantity: purchaseQty,
+			unit: purchaseUnit,
+			totalPrice: purchaseTotal
+		});
 		purchaseOpen = false;
 		showToast('Pembelian dicatat, stok bertambah otomatis');
+	}
+
+	function openCost(ing: { id: string; name: string; costPerUnit: number }) {
+		costIngredient = ing.id;
+		costValue = ing.costPerUnit;
+		costOpen = true;
+	}
+
+	async function submitCost() {
+		if (!costIngredient) return;
+		if (!Number.isFinite(costValue) || costValue < 0) {
+			showToast('Harga modal tidak valid');
+			return;
+		}
+		await setIngredientCost(costIngredient, costValue);
+		costOpen = false;
+		showToast('Harga modal diperbarui — HPP & laporan terhitung ulang');
 	}
 
 	function openOpname() {
@@ -114,6 +165,7 @@
 						<th>Satuan</th>
 						<th>Stok</th>
 						<th>Batas minimum</th>
+						<th>Harga modal</th>
 						<th>Status</th>
 					</tr>
 				</thead>
@@ -125,6 +177,12 @@
 							<td>{ing.unit}</td>
 							<td style="font-family:var(--font-display)">{ing.stock.toLocaleString('id-ID')} {ing.unit}</td>
 							<td>{ing.minStock.toLocaleString('id-ID')} {ing.unit}</td>
+							<td>
+								<button class="hpp-cell" type="button" onclick={() => openCost(ing)} title="Klik untuk ubah harga modal">
+									<span>{ing.costPerUnit > 0 ? formatIDR(ing.costPerUnit) : '—'}</span>
+									<small>/{ing.unit} · set</small>
+								</button>
+							</td>
 							<td>
 								<span class="stock-status {status === 'critical' ? 'critical' : status === 'warning' ? 'warning' : 'ok'}">
 									{status === 'critical' ? 'Kritis' : status === 'warning' ? 'Menipis' : 'Aman'}
@@ -220,7 +278,7 @@
 		<div class="form-row">
 			<label for="purchaseIngredient">Bahan</label>
 			<div class="form-input">
-				<select id="purchaseIngredient" bind:value={purchaseIngredient}>
+				<select id="purchaseIngredient" bind:value={purchaseIngredient} onchange={changePurchaseIngredient}>
 					{#each store.ingredients as ing}
 						<option value={ing.id}>{ing.name} ({ing.unit})</option>
 					{/each}
@@ -233,18 +291,59 @@
 		</div>
 		<div class="form-grid two">
 			<div class="form-row">
-				<label for="purchaseQty">Jumlah ({store.ingredients.find((i) => i.id === purchaseIngredient)?.unit ?? ''})</label>
-				<div class="form-input"><input id="purchaseQty" type="number" min="0" bind:value={purchaseQty} /></div>
+				<label for="purchaseQty">Jumlah</label>
+				<div class="form-input"><input id="purchaseQty" type="number" min="0" step="any" bind:value={purchaseQty} /></div>
 			</div>
 			<div class="form-row">
-				<label for="purchasePrice">Harga satuan (Rp)</label>
-				<div class="form-input"><input id="purchasePrice" type="number" min="0" bind:value={purchasePrice} /></div>
+				<label for="purchaseUnit">Satuan beli</label>
+				<div class="form-input">
+					<select id="purchaseUnit" bind:value={purchaseUnit}>
+						{#each purchaseUnits as u}
+							<option value={u.id}>{u.label}</option>
+						{/each}
+					</select>
+				</div>
 			</div>
 		</div>
+		<div class="form-row">
+			<label for="purchaseTotal">Total harga pembelian (Rp)</label>
+			<div class="form-input"><input id="purchaseTotal" type="number" min="0" step="any" bind:value={purchaseTotal} placeholder="cth. 150000 untuk 1 kg" /></div>
+		</div>
+		<p class="purchase-preview" style="margin:2px 0 0">
+			{baseQuantity > 0
+				? `≈ ${formatIDR(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
+				: 'Masukkan jumlah & total harga untuk melihat HPP/satuan.'}
+		</p>
 	</div>
 	<div class="modal-actions">
 		<button class="button button-secondary" type="button" onclick={() => (purchaseOpen = false)}>Batal</button>
 		<button class="button button-primary" type="button" onclick={submitPurchase}>Simpan pembelian</button>
+	</div>
+</Modal>
+
+<Modal bind:open={costOpen} title="Atur harga modal (HPP)">
+	<div class="form-grid">
+		<div class="form-row">
+			<label for="costIngredient">Bahan</label>
+			<div class="form-input">
+				<select id="costIngredient" bind:value={costIngredient}>
+					{#each store.ingredients as ing}
+						<option value={ing.id}>{ing.name} ({ing.unit})</option>
+					{/each}
+				</select>
+			</div>
+		</div>
+		<div class="form-row">
+			<label for="costValue">Harga modal per {selectedCostIng?.unit ?? ''} (Rp)</label>
+			<div class="form-input"><input id="costValue" type="number" min="0" step="any" bind:value={costValue} /></div>
+		</div>
+		<p class="purchase-preview" style="margin:2px 0 0">
+			HPP menu = Σ (bahan × jumlah resep). Koreksi di sini tidak menambah/mengurangi stok.
+		</p>
+	</div>
+	<div class="modal-actions">
+		<button class="button button-secondary" type="button" onclick={() => (costOpen = false)}>Batal</button>
+		<button class="button button-primary" type="button" onclick={submitCost}>Simpan harga modal</button>
 	</div>
 </Modal>
 
@@ -287,3 +386,36 @@
 		</div>
 	{/if}
 </Modal>
+
+<style>
+	.hpp-cell {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1px;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0;
+		color: var(--forest-800);
+		text-align: left;
+	}
+	.hpp-cell span {
+		font-family: var(--font-display);
+		font-weight: 700;
+	}
+	.hpp-cell small {
+		color: var(--brand-orange);
+		font-size: 9px;
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+	.hpp-cell:hover small {
+		text-decoration: underline;
+	}
+	.purchase-preview {
+		color: #7f8b82;
+		font-size: 11px;
+		line-height: 1.5;
+	}
+</style>

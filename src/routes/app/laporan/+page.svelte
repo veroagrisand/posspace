@@ -19,7 +19,8 @@
 				const variant = store.products
 					.map((p) => p.variants.find((v) => v.name === item.variant && v.price === item.unitPrice))
 					.find((v) => v);
-				sum += variant ? hppOf(variant) * item.qty : 0;
+				const unitHpp = item.unitCost != null ? item.unitCost : variant ? hppOf(variant) : 0;
+				sum += unitHpp * item.qty;
 			}
 			return sum;
 		}, 0)
@@ -36,7 +37,8 @@
 				const variant = store.products
 					.map((p) => p.variants.find((v) => v.name === item.variant && v.price === item.unitPrice))
 					.find((v) => v);
-				const hpp = variant ? hppOf(variant) * item.qty : 0;
+				const unitHpp = item.unitCost != null ? item.unitCost : variant ? hppOf(variant) : 0;
+				const hpp = unitHpp * item.qty;
 				const current = map.get(key) ?? { name: `${item.productName} (${item.variant})`, qty: 0, revenue: 0, hpp: 0 };
 				current.qty += item.qty;
 				current.revenue += item.lineTotal;

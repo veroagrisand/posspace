@@ -43,7 +43,7 @@ export type Shift = {
 	note?: string;
 };
 
-export type TxItem = { productName: string; variant: string; qty: number; unitPrice: number; lineTotal: number };
+export type TxItem = { productName: string; variant: string; qty: number; unitPrice: number; lineTotal: number; unitCost?: number };
 
 export type PaymentMethod = 'cash' | 'qris' | 'debit';
 
@@ -94,6 +94,32 @@ export type Opname = {
 	createdAt: string;
 };
 
+export type ExpenseCategory = 'listrik' | 'air' | 'internet' | 'sewa' | 'gas' | 'kebersihan' | 'gaji' | 'lainnya';
+
+export type Expense = {
+	id: string;
+	category: ExpenseCategory;
+	amount: number;
+	note: string;
+	expenseDate: string;
+	createdAt: string;
+};
+
+export const EXPENSE_CATEGORIES: { id: ExpenseCategory; label: string }[] = [
+	{ id: 'listrik', label: 'Listrik' },
+	{ id: 'air', label: 'Air' },
+	{ id: 'internet', label: 'Internet' },
+	{ id: 'sewa', label: 'Sewa tempat' },
+	{ id: 'gas', label: 'Gas' },
+	{ id: 'kebersihan', label: 'Kebersihan' },
+	{ id: 'gaji', label: 'Gaji & upah' },
+	{ id: 'lainnya', label: 'Lainnya' }
+];
+
+export function expenseLabel(category: string): string {
+	return EXPENSE_CATEGORIES.find((c) => c.id === category)?.label ?? category;
+}
+
 export const categories = ['Kopi', 'Non-kopi', 'Makanan'] as const;
 
 let shiftSeq = 0;
@@ -101,6 +127,7 @@ let txSeq = 0;
 let moveSeq = 0;
 let purchaseSeq = 0;
 let opnameSeq = 0;
+let expenseSeq = 0;
 
 function now(): string {
 	return new Date().toISOString();
@@ -117,6 +144,7 @@ export const store = $state({
 	transactions: [] as Transaction[],
 	purchases: [] as PurchaseOrder[],
 	opnames: [] as Opname[],
+	expenses: [] as Expense[],
 	shift: {
 		id: '',
 		openingCash: 0,
@@ -153,12 +181,14 @@ export const printer = $state<{
 	printerType: 'webusb' | 'browser' | 'agent';
 	paperWidth: '58' | '80';
 	agentUrl: string;
+	enabled: boolean;
 	loaded: boolean;
 	configured: boolean;
 }>({
 	printerType: 'browser',
 	paperWidth: '80',
 	agentUrl: '',
+	enabled: true,
 	loaded: false,
 	configured: false
 });
@@ -166,30 +196,44 @@ export const printer = $state<{
 export async function loadPrinterSettings(): Promise<void> {
 	if (!backend.enabled) return;
 	try {
-		const j = (await apiFetch('/api/shop/printer')) as { printerSettings: { printer_type: string; paper_width: string; agent_url: string | null } | null };
+		const j = (await apiFetch('/api/shop/printer')) as {
+			printerSettings: { printer_type: string; paper_width: string; agent_url: string | null; enabled: boolean | null } | null;
+		};
 		if (j.printerSettings) {
 			printer.printerType = (j.printerSettings.printer_type as 'webusb' | 'browser' | 'agent') ?? 'browser';
 			printer.paperWidth = j.printerSettings.paper_width === '58' ? '58' : '80';
 			printer.agentUrl = j.printerSettings.agent_url ?? '';
+			printer.enabled = j.printerSettings.enabled !== false;
 			printer.configured = true;
 		} else {
+			printer.enabled = true;
 			printer.configured = false;
 		}
 	} catch {
+		printer.enabled = true;
 		printer.configured = false;
 	}
 	printer.loaded = true;
 }
 
-export async function savePrinterSettings(input: { printerType: 'webusb' | 'browser' | 'agent'; paperWidth: '58' | '80'; agentUrl?: string }): Promise<void> {
+export async function savePrinterSettings(input: { printerType: 'webusb' | 'browser' | 'agent'; paperWidth: '58' | '80'; agentUrl?: string; enabled?: boolean }): Promise<void> {
 	if (!backend.enabled) return;
 	await apiFetch('/api/shop/printer', {
 		method: 'PUT',
-		body: JSON.stringify({ printerType: input.printerType, paperWidth: input.paperWidth, agentUrl: input.agentUrl })
+		body: JSON.stringify({ printerType: input.printerType, paperWidth: input.paperWidth, agentUrl: input.agentUrl, enabled: input.enabled ?? true })
 	});
 	printer.printerType = input.printerType;
 	printer.paperWidth = input.paperWidth;
 	printer.agentUrl = input.agentUrl ?? '';
+	printer.enabled = input.enabled ?? true;
+	printer.configured = true;
+}
+
+/** Pemilik memilih TIDAK mencetak struk (atau menutup wizard) — pilihan tersimpan agar tidak muncul lagi. */
+export async function dismissPrinterSetup(): Promise<void> {
+	if (!backend.enabled) return;
+	await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false }).catch(() => undefined);
+	printer.enabled = false;
 	printer.configured = true;
 }
 
@@ -279,7 +323,8 @@ export async function hydrateStore() {
 			variant: '',
 			qty: it.quantity,
 			unitPrice: Number(it.unit_price),
-			lineTotal: Number(it.line_total)
+			lineTotal: Number(it.line_total),
+			unitCost: it.unit_cost != null ? Number(it.unit_cost) : undefined
 		})),
 		total: Number(t.total_amount),
 		paymentMethod: t.payment_method,
@@ -336,6 +381,21 @@ export async function hydrateStore() {
 		quantity: Number(p.quantity),
 		unitPrice: Number(p.unit_price),
 		receivedAt: p.received_at
+	}));
+
+	const { data: expenses } = await getBrowserClient()!
+		.from('operational_expenses')
+		.select('*')
+		.eq('shop_id', backend.shopId)
+		.order('expense_date', { ascending: false })
+		.limit(200);
+	store.expenses = (expenses ?? []).map((e) => ({
+		id: e.id,
+		category: e.category,
+		amount: Number(e.amount),
+		note: e.note,
+		expenseDate: e.expense_date,
+		createdAt: e.created_at
 	}));
 }
 
@@ -545,36 +605,85 @@ export async function updateIngredient(id: string, data: { name: string; unit: U
 }
 
 // ===== Pembelian =====
-export async function recordPurchase(data: { ingredientId: string; supplier: string; quantity: number; unitPrice: number }): Promise<void> {
+export type PurchaseUnitOption = { id: string; label: string; factor: number };
+
+/** Opsi satuan beli sesuai satuan dasar bahan — 1 kg kopi = 1000 gram, 1 L air = 1000 ml. */
+export function purchaseUnitsFor(unit: Unit): PurchaseUnitOption[] {
+	if (unit === 'gram') {
+		return [
+			{ id: 'gram', label: 'gram', factor: 1 },
+			{ id: 'ons', label: 'ons (100 g)', factor: 100 },
+			{ id: 'kg', label: 'kg', factor: 1000 }
+		];
+	}
+	if (unit === 'ml') {
+		return [
+			{ id: 'ml', label: 'ml', factor: 1 },
+			{ id: 'L', label: 'Liter', factor: 1000 }
+		];
+	}
+	return [{ id: 'pcs', label: 'pcs', factor: 1 }];
+}
+
+export async function recordPurchase(data: { ingredientId: string; supplier: string; quantity: number; unit: string; totalPrice: number }): Promise<void> {
+	const ing = getIngredient(data.ingredientId);
+	if (!ing) return;
+	const option = purchaseUnitsFor(ing.unit).find((u) => u.id === data.unit) ?? purchaseUnitsFor(ing.unit)[0];
+	const baseQty = data.quantity * option.factor;
+	if (baseQty <= 0) return;
+
 	if (backend.enabled) {
 		await apiFetch('/api/data/purchases', {
 			method: 'POST',
-			body: JSON.stringify(data)
+			body: JSON.stringify({
+				ingredientId: data.ingredientId,
+				supplier: data.supplier,
+				quantity: data.quantity,
+				unit: option.id,
+				totalPrice: data.totalPrice
+			})
 		});
 		await hydrateStore();
 		return;
 	}
-	const ing = getIngredient(data.ingredientId)!;
+	const unitPrice = data.totalPrice / baseQty;
 	const purchase: PurchaseOrder = {
 		id: `po-${purchaseSeq++}`,
 		ingredientId: data.ingredientId,
 		ingredientName: ing.name,
 		supplier: data.supplier,
-		quantity: data.quantity,
-		unitPrice: data.unitPrice,
+		quantity: baseQty,
+		unitPrice,
 		receivedAt: now()
 	};
 	store.purchases.push(purchase);
-	ing.stock += data.quantity;
+	// Rata-rata tertimbang (sama dengan RPC record_purchase di backend).
+	ing.costPerUnit = Math.round(((ing.stock * ing.costPerUnit) + (baseQty * unitPrice)) / (ing.stock + baseQty) * 100) / 100;
+	ing.stock += baseQty;
 	store.movements.unshift({
 		id: `mv-${moveSeq++}`,
 		ingredientId: data.ingredientId,
 		ingredientName: ing.name,
-		change: data.quantity,
+		change: baseQty,
 		type: 'purchase',
 		note: `Pembelian dari ${data.supplier}`,
 		at: now()
 	});
+}
+
+/** Koreksi harga modal (cost_per_unit) — dipakai pemilik untuk memperbaiki HPP tanpa menambah stok. */
+export async function setIngredientCost(id: string, costPerUnit: number): Promise<void> {
+	if (!Number.isFinite(costPerUnit) || costPerUnit < 0) return;
+	if (backend.enabled) {
+		await apiFetch(`/api/data/ingredients/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify({ costPerUnit })
+		});
+		await hydrateStore();
+		return;
+	}
+	const ing = getIngredient(id);
+	if (ing) ing.costPerUnit = costPerUnit;
 }
 
 // ===== Stock opname & koreksi selisih =====
@@ -629,6 +738,53 @@ export async function approveOpname(opnameId: string, reason: string): Promise<v
 		note: `Koreksi opname: ${reason}`,
 		at: now()
 	});
+}
+
+// ===== Beban operasional (listrik, sewa, gaji, dll) =====
+export async function addExpense(data: { category: ExpenseCategory; amount: number; note: string; expenseDate: string }): Promise<void> {
+	if (backend.enabled) {
+		await apiFetch('/api/data/expenses', {
+			method: 'POST',
+			body: JSON.stringify(data)
+		});
+		await hydrateStore();
+		return;
+	}
+	const expense: Expense = {
+		id: `exp-${expenseSeq++}`,
+		category: data.category,
+		amount: data.amount,
+		note: data.note,
+		expenseDate: data.expenseDate,
+		createdAt: now()
+	};
+	store.expenses.unshift(expense);
+}
+
+export async function updateExpense(id: string, data: Partial<{ category: ExpenseCategory; amount: number; note: string; expenseDate: string }>): Promise<void> {
+	if (backend.enabled) {
+		await apiFetch(`/api/data/expenses/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify(data)
+		});
+		await hydrateStore();
+		return;
+	}
+	const expense = store.expenses.find((e) => e.id === id);
+	if (!expense) return;
+	if (data.category) expense.category = data.category;
+	if (data.amount !== undefined) expense.amount = data.amount;
+	if (data.note !== undefined) expense.note = data.note;
+	if (data.expenseDate) expense.expenseDate = data.expenseDate;
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+	if (backend.enabled) {
+		await apiFetch(`/api/data/expenses/${id}`, { method: 'DELETE' });
+		await hydrateStore();
+		return;
+	}
+	store.expenses = store.expenses.filter((e) => e.id !== id);
 }
 
 // ===== Produk, varian, resep =====

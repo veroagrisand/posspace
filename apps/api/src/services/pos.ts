@@ -245,7 +245,7 @@ posDataService.post('/ingredients', async (c) => {
 	return json({ ingredient: data });
 });
 
-/** PATCH /api/data/ingredients/[id] — ubah nama, satuan, batas minimum. */
+/** PATCH /api/data/ingredients/[id] — ubah nama, satuan, batas minimum, harga modal. */
 posDataService.patch('/ingredients/:id', async (c) => {
 	const ctx = await requireApiAuth(c);
 	const ingredientId = c.req.param('id');
@@ -254,19 +254,23 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		name?: string;
 		unit?: string;
 		minStock?: number;
+		costPerUnit?: number;
 	};
 
 	if (body.name !== undefined && !body.name.trim()) httpError(400, 'NAME_REQUIRED');
 	if (body.unit !== undefined && !['gram', 'ml', 'pcs'].includes(body.unit)) httpError(400, 'INVALID_UNIT');
 	if (body.minStock !== undefined && (!Number.isFinite(Number(body.minStock)) || Number(body.minStock) < 0))
 		httpError(400, 'INVALID_MIN_STOCK');
+	if (body.costPerUnit !== undefined && (!Number.isFinite(Number(body.costPerUnit)) || Number(body.costPerUnit) < 0))
+		httpError(400, 'INVALID_COST');
 
 	const { data, error: updateError } = await ctx.db
 		.from('ingredients')
 		.update({
 			name: body.name ?? undefined,
 			unit: body.unit ?? undefined,
-			min_stock: body.minStock ?? undefined
+			min_stock: body.minStock ?? undefined,
+			cost_per_unit: body.costPerUnit !== undefined ? Number(body.costPerUnit) : undefined
 		})
 		.eq('id', ingredientId)
 		.eq('shop_id', ctx.shop.shopId)
@@ -334,6 +338,13 @@ posDataService.post('/shifts/:id/close', async (c) => {
 });
 
 // ============ PURCHASES ============
+/** Satuan beli yang didukung per satuan dasar bahan (gram/ml/pcs). */
+const PURCHASE_UNITS: Record<string, Record<string, number>> = {
+	gram: { gram: 1, g: 1, ons: 100, hg: 100, kg: 1000 },
+	ml: { ml: 1, l: 1000, liter: 1000 },
+	pcs: { pcs: 1, pc: 1 }
+};
+
 /** POST /api/data/purchases — catat pembelian, stok bertambah atomik via RPC. */
 posDataService.post('/purchases', async (c) => {
 	const ctx = await requireApiAuth(c);
@@ -342,15 +353,44 @@ posDataService.post('/purchases', async (c) => {
 		ingredientId?: string;
 		supplier?: string;
 		quantity?: number;
+		unit?: string;
+		totalPrice?: number;
 		unitPrice?: number;
 	};
 	if (!body.ingredientId || !body.quantity || body.quantity <= 0) httpError(400, 'INVALID_INPUT');
 
+	const { data: ingredient } = await ctx.db
+		.from('ingredients')
+		.select('unit')
+		.eq('id', body.ingredientId)
+		.eq('shop_id', ctx.shop.shopId)
+		.maybeSingle();
+	if (!ingredient) httpError(404, 'NOT_FOUND');
+
+	// Konversi satuan beli → satuan dasar bahan (mis. 1 kg kopi → 1000 gram).
+	const baseUnit = ingredient.unit as 'gram' | 'ml' | 'pcs';
+	const purchaseUnit = String(body.unit ?? baseUnit).trim().toLowerCase();
+	const factor = PURCHASE_UNITS[baseUnit]?.[purchaseUnit];
+	if (!factor) httpError(400, 'INVALID_UNIT');
+
+	const baseQty = Number(body.quantity) * factor;
+	if (!Number.isFinite(baseQty) || baseQty <= 0 || baseQty > 1_000_000) httpError(400, 'INVALID_QUANTITY');
+
+	let unitPrice: number;
+	if (body.totalPrice !== undefined) {
+		const total = Number(body.totalPrice);
+		if (!Number.isFinite(total) || total < 0 || total > 1_000_000_000) httpError(400, 'INVALID_PRICE');
+		unitPrice = total / baseQty;
+	} else {
+		unitPrice = Number(body.unitPrice ?? 0);
+		if (!Number.isFinite(unitPrice) || unitPrice < 0) httpError(400, 'INVALID_PRICE');
+	}
+
 	const { data, error: rpcError } = await ctx.db.rpc('record_purchase', {
 		p_ingredient_id: body.ingredientId,
 		p_supplier: body.supplier ?? 'Pemasok',
-		p_quantity: body.quantity,
-		p_unit_price: body.unitPrice ?? 0
+		p_quantity: baseQty,
+		p_unit_price: unitPrice
 	});
 
 	if (rpcError) {
@@ -359,7 +399,7 @@ posDataService.post('/purchases', async (c) => {
 		httpError(500, 'PURCHASE_FAILED');
 	}
 
-	return json({ ok: true, id: data?.id });
+	return json({ ok: true, id: data?.id, unitPrice, baseQuantity: baseQty });
 });
 
 // ============ OPNAMES ============
@@ -504,6 +544,137 @@ transactionsService.post('/:id/confirm', async (c) => {
 	return json({ ok: true, ...data });
 });
 
+// ============ OPERATIONAL EXPENSES ============
+const EXPENSE_CATEGORIES = ['listrik', 'air', 'internet', 'sewa', 'gas', 'kebersihan', 'gaji', 'lainnya'] as const;
+const EXPENSE_LABEL: Record<string, string> = {
+	listrik: 'Listrik',
+	air: 'Air',
+	internet: 'Internet',
+	sewa: 'Sewa tempat',
+	gas: 'Gas',
+	kebersihan: 'Kebersihan',
+	gaji: 'Gaji & upah',
+	lainnya: 'Lainnya'
+};
+
+/** GET /api/data/expenses?from=...&to=... — beban operasional toko (bisa filter tanggal). */
+posDataService.get('/expenses', async (c) => {
+	const ctx = await requireApiAuth(c);
+	const from = c.req.query('from') ?? `${new Date().toISOString().slice(0, 7)}-01`;
+	const to = c.req.query('to') ?? new Date().toISOString().slice(0, 10);
+
+	let query = ctx.db
+		.from('operational_expenses')
+		.select('*')
+		.eq('shop_id', ctx.shop.shopId)
+		.order('expense_date', { ascending: false });
+
+	if (from) query = query.gte('expense_date', from);
+	if (to) query = query.lte('expense_date', to);
+
+	const { data, error: selectError } = await query.limit(2000);
+	if (selectError) httpError(500, 'FETCH_FAILED');
+	return json({ expenses: data ?? [], labels: EXPENSE_LABEL });
+});
+
+/** POST /api/data/expenses — catat beban operasional (listrik, sewa, gaji, dll). */
+posDataService.post('/expenses', async (c) => {
+	const ctx = await requireApiAuth(c);
+
+	const body = (await c.req.json().catch(() => ({}))) as {
+		category?: string;
+		amount?: number;
+		note?: string;
+		expenseDate?: string;
+	};
+
+	const category = String(body.category ?? '').trim();
+	const amount = Number(body.amount ?? 0);
+	const expenseDate = String(body.expenseDate ?? new Date().toISOString().slice(0, 10));
+
+	if (!EXPENSE_CATEGORIES.includes(category as (typeof EXPENSE_CATEGORIES)[number])) httpError(400, 'INVALID_CATEGORY');
+	if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) httpError(400, 'INVALID_AMOUNT');
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) httpError(400, 'INVALID_DATE');
+
+	const { data, error: insertError } = await ctx.db
+		.from('operational_expenses')
+		.insert({
+			shop_id: ctx.shop.shopId,
+			category,
+			amount,
+			note: String(body.note ?? '').trim().slice(0, 500),
+			expense_date: expenseDate,
+			recorded_by: ctx.user.id
+		})
+		.select('*')
+		.single();
+
+	if (rlsDenied(insertError)) httpError(403, 'FORBIDDEN');
+	if (insertError || !data) httpError(500, 'INSERT_FAILED');
+	return json({ expense: data });
+});
+
+/** PATCH /api/data/expenses/[id] — ubah beban operasional (hanya pemilik via RLS). */
+posDataService.patch('/expenses/:id', async (c) => {
+	const ctx = await requireApiAuth(c);
+	const expenseId = c.req.param('id');
+
+	const body = (await c.req.json().catch(() => ({}))) as {
+		category?: string;
+		amount?: number;
+		note?: string;
+		expenseDate?: string;
+	};
+
+	const patch: Record<string, unknown> = {};
+	if (body.category !== undefined) {
+		const category = String(body.category).trim();
+		if (!EXPENSE_CATEGORIES.includes(category as (typeof EXPENSE_CATEGORIES)[number])) httpError(400, 'INVALID_CATEGORY');
+		patch.category = category;
+	}
+	if (body.amount !== undefined) {
+		const amount = Number(body.amount);
+		if (!Number.isFinite(amount) || amount <= 0) httpError(400, 'INVALID_AMOUNT');
+		patch.amount = amount;
+	}
+	if (body.note !== undefined) patch.note = String(body.note).trim().slice(0, 500);
+	if (body.expenseDate !== undefined) {
+		if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.expenseDate))) httpError(400, 'INVALID_DATE');
+		patch.expense_date = body.expenseDate;
+	}
+	if (Object.keys(patch).length === 0) httpError(400, 'NO_CHANGES');
+
+	const { data, error: updateError } = await ctx.db
+		.from('operational_expenses')
+		.update(patch)
+		.eq('id', expenseId)
+		.eq('shop_id', ctx.shop.shopId)
+		.select('*')
+		.single();
+
+	if (rlsDenied(updateError)) httpError(403, 'FORBIDDEN');
+	if (updateError || !data) httpError(500, 'UPDATE_FAILED');
+	return json({ expense: data });
+});
+
+/** DELETE /api/data/expenses/[id] — hapus beban operasional (hanya pemilik via RLS). */
+posDataService.delete('/expenses/:id', async (c) => {
+	const ctx = await requireApiAuth(c);
+	const expenseId = c.req.param('id');
+
+	const { data, error: deleteError } = await ctx.db
+		.from('operational_expenses')
+		.delete()
+		.eq('id', expenseId)
+		.eq('shop_id', ctx.shop.shopId)
+		.select('id, category, amount, expense_date')
+		.single();
+
+	if (rlsDenied(deleteError)) httpError(403, 'FORBIDDEN');
+	if (deleteError || !data) httpError(500, 'DELETE_FAILED');
+	return json({ ok: true, deleted: data });
+});
+
 // ============ REPORTS ============
 /** GET /api/reports/summary?from=...&to=... — ringkasan penjualan & HPP. */
 reportsService.get('/summary', async (c) => {
@@ -514,16 +685,22 @@ reportsService.get('/summary', async (c) => {
 	const fromIso = `${from}T00:00:00.000Z`;
 	const toIso = `${to}T23:59:59.999Z`;
 
-	const [txResult, ingResult, recipeResult] = await Promise.all([
+	const [txResult, ingResult, recipeResult, expenseResult] = await Promise.all([
 		ctx.db
 			.from('transactions')
-			.select('id, receipt_no, total_amount, payment_method, paid_at, transaction_items(variant_id, product_name, quantity, unit_price, line_total)')
+			.select('id, receipt_no, total_amount, payment_method, paid_at, transaction_items(variant_id, product_name, quantity, unit_price, line_total, unit_cost)')
 			.gte('paid_at', fromIso)
 			.lte('paid_at', toIso)
 			.order('paid_at', { ascending: false })
 			.limit(2000),
 		ctx.db.from('ingredients').select('id, name, unit, stock_quantity, min_stock, cost_per_unit'),
-		ctx.db.from('recipes').select('variant_id, ingredient_id, quantity_required')
+		ctx.db.from('recipes').select('variant_id, ingredient_id, quantity_required'),
+		ctx.db
+			.from('operational_expenses')
+			.select('category, amount, expense_date')
+			.eq('shop_id', ctx.shop.shopId)
+			.gte('expense_date', from)
+			.lte('expense_date', to)
 	]);
 	if (txResult.error) httpError(500, 'FETCH_FAILED');
 
@@ -560,6 +737,7 @@ reportsService.get('/summary', async (c) => {
 			quantity: number;
 			unit_price: number;
 			line_total: number;
+			unit_cost: number | null;
 		}[];
 	}[];
 
@@ -580,7 +758,13 @@ reportsService.get('/summary', async (c) => {
 
 		for (const item of t.transaction_items ?? []) {
 			const qty = Number(item.quantity ?? 0);
-			const unitHpp = item.variant_id ? (recipeCost.get(item.variant_id) ?? 0) : 0;
+			// HPP historis (unit_cost) lebih akurat; fallback ke hitung dari harga saat ini.
+			const unitHpp =
+				item.unit_cost != null
+					? Number(item.unit_cost)
+					: item.variant_id
+						? (recipeCost.get(item.variant_id) ?? 0)
+						: 0;
 			const itemHpp = unitHpp * qty;
 			hppTotal += itemHpp;
 			const key = `${item.product_name}|${item.variant_id ?? ''}`;
@@ -594,6 +778,16 @@ reportsService.get('/summary', async (c) => {
 
 	const topMenus = [...menuMap.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 10);
 	const profit = omzet - hppTotal;
+
+	// Beban operasional periode ini → laba BERSIH = laba kotor − beban.
+	const expenses = (expenseResult.data ?? []) as { category: string; amount: number; expense_date: string }[];
+	const expensesTotal = expenses.reduce((s, e) => s + Number(e.amount ?? 0), 0);
+	const expensesByCategory = new Map<string, number>();
+	for (const e of expenses) {
+		expensesByCategory.set(e.category, (expensesByCategory.get(e.category) ?? 0) + Number(e.amount ?? 0));
+	}
+	const netProfit = profit - expensesTotal;
+
 	const lowStock = ingredients
 		.filter((i) => Number(i.stock_quantity) <= Number(i.min_stock))
 		.map((i) => ({ id: i.id, name: i.name, unit: i.unit, stock: Number(i.stock_quantity), minStock: Number(i.min_stock) }));
@@ -611,6 +805,10 @@ reportsService.get('/summary', async (c) => {
 		hpp: hppTotal,
 		profit,
 		marginPct: omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0,
+		expenses: expensesTotal,
+		expensesByCategory: Object.fromEntries(expensesByCategory),
+		netProfit,
+		netMarginPct: omzet > 0 ? Math.round((netProfit / omzet) * 1000) / 10 : 0,
 		topMenus: topMenus.map((m) => ({ ...m, profit: m.revenue - m.hpp })),
 		lowStock,
 		daily,
