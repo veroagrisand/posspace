@@ -937,3 +937,13 @@
 		padding: 16px 12px 32px;
 	}
 }
+/* ===== Responsive hardening (HP/tablet) ===== */
+.admin-grid > *,
+.admin-panel,
+.admin-card {
+	min-width: 0;
+}
+
+.admin-card-value {
+	overflow-wrap: anywhere;
+}

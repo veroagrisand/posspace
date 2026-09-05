@@ -3198,3 +3198,29 @@
 		display: none !important;
 	}
 }
+
+/* ===== Responsive hardening (HP/tablet) ===== */
+.metric-card {
+	min-width: 0;
+}
+
+.metric-value {
+	overflow-wrap: anywhere;
+}
+
+.panel-heading,
+.compact-heading,
+.panel-heading > *,
+.compact-heading > * {
+	min-width: 0;
+}
+
+.page-content {
+	min-width: 0;
+}
+
+@media (max-width: 720px) {
+	.metric-card {
+		width: 100%;
+	}
+}
