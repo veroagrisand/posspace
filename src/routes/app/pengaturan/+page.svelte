@@ -34,7 +34,7 @@
 	let addEmail = $state('');
 	let addRole = $state('kasir');
 
-	let inviteResult = $state<{ name: string; email: string; tempPassword: string } | null>(null);
+	let inviteResult = $state<{ name: string; email: string; tempPassword: string; emailSent: boolean } | null>(null);
 
 	async function copyTempPassword() {
 		if (!inviteResult) return;
@@ -71,13 +71,13 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ name: addName.trim(), email: addEmail.trim(), role: addRole })
 			});
-			const result = (await res.json().catch(() => ({}))) as { ok?: boolean; tempPassword?: string };
+			const result = (await res.json().catch(() => ({}))) as { ok?: boolean; tempPassword?: string; emailSent?: boolean };
 			if (!res.ok || !result.ok) {
 				showToast('Gagal mengundang anggota (email mungkin sudah terdaftar)');
 				return;
 			}
 			// Tampilkan password sementara di dialog tengah yang bisa disalin.
-			inviteResult = { name: addName.trim(), email: addEmail.trim(), tempPassword: result.tempPassword ?? '' };
+			inviteResult = { name: addName.trim(), email: addEmail.trim(), tempPassword: result.tempPassword ?? '', emailSent: result.emailSent === true };
 		} else {
 			store.profiles.push({ id: `u-${Date.now()}`, name: addName.trim(), email: addEmail.trim(), role: addRole });
 			showToast('Anggota baru ditambahkan (mode demo)');
@@ -282,7 +282,12 @@
 					<p>{inviteResult.email}</p>
 				</div>
 				<p style="color:#718078;font-size:12px;line-height:1.6;margin:14px 0 8px">
-					Berikan password sementara ini kepada anggota baru. Segera minta mereka mengganti setelah masuk pertama kali.
+					{#if inviteResult.emailSent}
+						Email aktivasi sudah dikirim ke <strong>{inviteResult.email}</strong>. Simpan password sementara ini sebagai cadangan.
+					{:else}
+						Email aktivasi <strong>belum terkirim</strong> (SMTP belum aktif). Bagikan password sementara ini langsung ke anggota.
+					{/if}
+					Anggota wajib verifikasi email sebelum login pertama.
 				</p>
 				<div class="invite-password">
 					<code>{inviteResult.tempPassword || '—'}</code>
