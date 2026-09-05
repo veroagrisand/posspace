@@ -128,19 +128,22 @@ export async function isOtpVerified(email: string, purpose = 'register'): Promis
 	return Boolean(data?.verified_at && Date.now() - Date.parse(data.verified_at) < TTL_MS);
 }
 
-/** Cek email sudah terdaftar di Supabase Auth (admin API GoTrue). */
+/**
+ * Cek email sudah terdaftar di Supabase Auth (admin API GoTrue).
+ * Tidak memakai parameter `filter` (case-sensitive/substring di sebagian
+ * versi GoTrue) — enumerasi user lalu cocokkan persis, abaikan besar/kecil.
+ */
 export async function isEmailRegistered(email: string): Promise<boolean> {
-	const url = `${String(env.SUPABASE_URL).replace(/\/$/, '')}/auth/v1/admin/users`;
-	const res = await fetch(`${url}?filter=${encodeURIComponent(email)}&per_page=50`, {
-		headers: {
-			Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-			apikey: String(env.SUPABASE_SERVICE_ROLE_KEY)
-		}
-	});
-	if (!res.ok) {
-		throw new Error(`AUTH_ADMIN_UNAVAILABLE: HTTP ${res.status}`);
-	}
-	const data = (await res.json().catch(() => ({}))) as { users?: { email?: string | null }[] };
 	const needle = email.trim().toLowerCase();
-	return (data.users ?? []).some((u) => (u.email ?? '').toLowerCase() === needle);
+	let page = 1;
+	while (true) {
+		const { data, error } = await service().auth.admin.listUsers({ page, perPage: 200 });
+		if (error) throw new Error(`AUTH_ADMIN_UNAVAILABLE: ${error.message}`);
+		for (const u of data?.users ?? []) {
+			if ((u.email ?? '').toLowerCase() === needle) return true;
+		}
+		if ((data?.users?.length ?? 0) === 0 || page * 200 >= (data?.total ?? 0)) break;
+		page += 1;
+	}
+	return false;
 }

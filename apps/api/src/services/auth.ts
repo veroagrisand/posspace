@@ -114,7 +114,15 @@ authService.post('/register', async (c) => {
 		email_confirm: true,
 		user_metadata: { full_name: fullName, shop_name: shopName }
 	});
-	if (createError || !created?.user) httpError(500, 'USER_CREATE_FAILED');
+	if (createError || !created?.user) {
+		// GoTrue menolak email yang sudah dipakai (termasuk beda besar/kecil) —
+		// jangan bocorkan sebagai 500; beri 409 EMAIL_TAKEN.
+		const message = createError?.message ?? '';
+		if (/already registered|already been registered|duplicate key|already exists|in use/i.test(message)) {
+			httpError(409, 'EMAIL_TAKEN');
+		}
+		httpError(500, 'USER_CREATE_FAILED');
+	}
 
 	const result = await createShopSubscription({
 		user: created.user,
