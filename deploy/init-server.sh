@@ -72,6 +72,24 @@ sudo apt-get update -qq
 sudo apt-get upgrade -y -qq
 sudo apt-get install -y -qq curl git build-essential ufw nginx ca-certificates gnupg >/dev/null
 
+log "1b/12 Swapfile (anti OOM-kill → mencegah ERR_CONNECTION_RESET/502)"
+# VPS kecil mudah kehabisan RAM saat `npm ci`/build atau lonjakan traffic.
+# Tanpa swap, kernel membunuh proses Node secara paksa (koneksi terputus
+# tanpa peringatan). Swap 2G aman & idempotent.
+if [ "$(sudo swapon --show | wc -l)" -eq 0 ]; then
+	sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+	sudo chmod 600 /swapfile
+	sudo mkswap /swapfile >/dev/null
+	sudo swapon /swapfile
+	if ! grep -q '^/swapfile ' /etc/fstab; then
+		echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+	fi
+	sudo sysctl -w vm.swappiness=10 >/dev/null || true
+	echo "swap: 2G aktif"
+else
+	echo "swap sudah aktif — dilewati"
+fi
+
 log "2/12 Node.js 22 LTS (NodeSource)"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 22 ]; then
 	curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - >/dev/null

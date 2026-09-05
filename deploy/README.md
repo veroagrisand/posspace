@@ -139,6 +139,34 @@ build backend + frontend → `pm2 reload` (env dari `.env`) → **health check**
 Jika health check gagal, skrip menampilkan 40 baris log PM2 terakhir dan
 keluar dengan status error (workflow GitHub akan tampil merah).
 
+### Menghilangkan 502 / ERR_CONNECTION_RESET
+
+Penyebab utama putus koneksi di sisi user adalah worker Node dibunuh paksa
+(OOM-kill / SIGKILL PM2 saat reload) dan `Connection: close` per request.
+Arsitektur deploy sudah diperbaiki di tiga lapisan:
+
+- **Nginx (`deploy/nginx.conf`)** — upstream `posspace_web` memakai `keepalive`
+  + `proxy_http_version 1.1` + `proxy_set_header Connection ""`; koneksi ke
+  Node dipakai ulang, bukan dibuka baru tiap request. `proxy_next_upstream`
+  mencoba worker lain saat reload (502 sekilas hilang).
+- **PM2 (`deploy/ecosystem.config.cjs`)** — `kill_timeout` 15s (web) / 10s (api)
+  memberi waktu request yang sedang berjalan selesai sebelum worker dihentikan,
+  plus `restart_delay` agar tidak crash-loop. `WEB_INSTANCES=<n>` menyesuaikan
+  jumlah worker web sesuai RAM VPS.
+- **Swapfile (`deploy/init-server.sh`)** — swap 2G aktif otomatis saat setup;
+  tanpa swap, kernel membunuh proses Node saat RAM penuh → koneksi terputus
+  tanpa peringatan.
+
+Setelah menarik perubahan ini, jalankan sekali di VPS:
+
+```bash
+cd /var/www/posspace
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/posspace
+sudo sed -i "s/posspace\.id/$(grep -oE 'server_name [^;]+' /etc/nginx/sites-available/posspace | awk '{print $2}' | head -1)/g" /etc/nginx/sites-available/posspace 2>/dev/null || true
+sudo nginx -t && sudo systemctl reload nginx
+pm2 reload deploy/ecosystem.config.cjs --update-env && pm2 save
+```
+
 ---
 
 ## 5. Monitoring & log
