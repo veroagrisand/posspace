@@ -34,6 +34,18 @@
 	let addEmail = $state('');
 	let addRole = $state('kasir');
 
+	let inviteResult = $state<{ name: string; email: string; tempPassword: string } | null>(null);
+
+	async function copyTempPassword() {
+		if (!inviteResult) return;
+		try {
+			await navigator.clipboard.writeText(inviteResult.tempPassword);
+			showToast('Password sementara disalin ke clipboard');
+		} catch {
+			showToast('Tidak bisa menyalin otomatis — pilih teks password lalu salin manual');
+		}
+	}
+
 	async function saveShopData() {
 		await saveShop({
 			name: name.trim() || store.shop.name,
@@ -64,7 +76,8 @@
 				showToast('Gagal mengundang anggota (email mungkin sudah terdaftar)');
 				return;
 			}
-			showToast(`Anggota diundang. Password sementara: ${result.tempPassword}`);
+			// Tampilkan password sementara di dialog tengah yang bisa disalin.
+			inviteResult = { name: addName.trim(), email: addEmail.trim(), tempPassword: result.tempPassword ?? '' };
 		} else {
 			store.profiles.push({ id: `u-${Date.now()}`, name: addName.trim(), email: addEmail.trim(), role: addRole });
 			showToast('Anggota baru ditambahkan (mode demo)');
@@ -250,3 +263,74 @@
 {/if}
 
 <PrinterSetup bind:open={printerSetupOpen} />
+
+{#if inviteResult}
+	<div class="modal-overlay" role="presentation" onclick={(e) => {
+		if (e.target === e.currentTarget) inviteResult = null;
+	}}>
+		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Password sementara anggota">
+			<div class="modal-head">
+				<h3>Anggota berhasil diundang</h3>
+				<button class="icon-button" type="button" onclick={() => (inviteResult = null)} aria-label="Tutup dialog">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="invite-success">
+					<span class="toast-check">✓</span>
+					<strong>{inviteResult.name}</strong>
+					<p>{inviteResult.email}</p>
+				</div>
+				<p style="color:#718078;font-size:12px;line-height:1.6;margin:14px 0 8px">
+					Berikan password sementara ini kepada anggota baru. Segera minta mereka mengganti setelah masuk pertama kali.
+				</p>
+				<div class="invite-password">
+					<code>{inviteResult.tempPassword || '—'}</code>
+					<button class="button button-secondary" type="button" onclick={copyTempPassword}>
+						<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
+						Salin
+					</button>
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="button button-primary" type="button" style="flex:1" onclick={() => (inviteResult = null)}>Selesai</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	.invite-success {
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		padding: 8px 0 4px;
+	}
+	.invite-success strong {
+		font-size: 15px;
+		color: var(--forest-800);
+	}
+	.invite-success p {
+		margin: 0;
+		color: var(--ink-soft);
+		font-size: 12px;
+	}
+	.invite-password {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		background: #f4f6f2;
+		border: 1px dashed var(--line-strong);
+		border-radius: 12px;
+		padding: 10px 12px;
+	}
+	.invite-password code {
+		flex: 1;
+		font-family: var(--font-mono);
+		font-size: 16px;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		color: var(--forest-800);
+		word-break: break-all;
+	}
+</style>
