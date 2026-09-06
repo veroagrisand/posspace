@@ -506,7 +506,11 @@ transactionsService.post('/', async (c) => {
 	if (rpcError) {
 		const msg = String(rpcError.message);
 		if (msg.includes('NO_ACTIVE_SUBSCRIPTION')) httpError(403, 'SUBSCRIPTION_REQUIRED');
-		if (msg.includes('INSUFFICIENT_STOCK')) httpError(422, 'INSUFFICIENT_STOCK');
+		if (msg.includes('INSUFFICIENT_STOCK')) {
+			// Teruskan detail bahan yang kurang (nama, butuh, stok) ke frontend.
+			const detail = msg.split('INSUFFICIENT_STOCK:')[1]?.trim() ?? '';
+			httpError(422, detail ? `INSUFFICIENT_STOCK:${detail}` : 'INSUFFICIENT_STOCK');
+		}
 		if (msg.includes('INSUFFICIENT_CASH')) httpError(422, 'INSUFFICIENT_CASH');
 		if (msg.includes('INVALID_VARIANT')) httpError(422, 'INVALID_VARIANT');
 		httpError(500, 'TRANSACTION_FAILED');

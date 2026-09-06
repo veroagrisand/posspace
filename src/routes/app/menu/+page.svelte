@@ -394,6 +394,7 @@
 						<button class="rm-row" type="button" disabled={saving} onclick={() => draftRemoveVariant(variant.id!)} aria-label="Hapus varian {variant.name}" title="Hapus varian">×</button>
 					</div>
 					{#each variant.recipe as entry, ri}
+						{@const riIng = store.ingredients.find((i) => i.id === entry.ingredientId)}
 						<div class="recipe-row">
 							<div class="form-input">
 								<select
@@ -409,6 +410,14 @@
 							<div class="form-input"><input type="number" min="0" step="1" value={entry.qty} disabled={saving} onchange={(e) => (variant.recipe[ri].qty = Number((e.currentTarget as HTMLInputElement).value))} /></div>
 							<button class="rm-row" type="button" disabled={saving} onclick={() => draftRemoveIngredient(variant, ri)} aria-label="Hapus bahan">×</button>
 						</div>
+						{#if riIng}
+							<div class="recipe-hint">
+								Stok {riIng.stock.toLocaleString('id-ID')} {riIng.unit} · {entry.qty || 0} × {formatRupiahExact(riIng.costPerUnit)}/{riIng.unit} = {formatRupiahExact(riIng.costPerUnit * (entry.qty || 0))}
+								{#if riIng.costPerUnit === 0}
+									<span class="recipe-hint-warn">— harga modal 0, isi di Kelola bahan agar HPP akurat</span>
+								{/if}
+							</div>
+						{/if}
 					{/each}
 					<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
 						<span style="color:#98a29a;font-size:10px">HPP: <b style="color:var(--forest-800)">{formatRupiahExact(draftHpp(variant))}</b></span>
@@ -574,5 +583,16 @@
 		font-size: 10px;
 		font-weight: 700;
 		margin-bottom: 8px;
+	}
+
+	.recipe-hint {
+		color: #98a29a;
+		font-size: 9px;
+		line-height: 1.4;
+		margin: 3px 0 8px;
+	}
+
+	.recipe-hint-warn {
+		color: var(--red);
 	}
 </style>

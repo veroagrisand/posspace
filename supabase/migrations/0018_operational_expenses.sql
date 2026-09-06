@@ -23,17 +23,23 @@ create index if not exists operational_expenses_shop_date_idx
 alter table public.operational_expenses enable row level security;
 
 -- Baca: semua anggota toko.
+-- (drop if exists + create agar idempotent — objek sudah pernah diterapkan
+-- manual di remote; bentuk & definisinya sama persis.)
+drop policy if exists "expenses read shopmates" on public.operational_expenses;
 create policy "expenses read shopmates" on public.operational_expenses
   for select using (shop_id = public.auth_shop_id());
 
 -- Catat: semua anggota toko (pemilik mengisi; kasir juga boleh mencatat).
+drop policy if exists "expenses insert members" on public.operational_expenses;
 create policy "expenses insert members" on public.operational_expenses
   for insert with check (shop_id = public.auth_shop_id());
 
 -- Ubah/hapus: hanya pemilik.
+drop policy if exists "expenses update owner" on public.operational_expenses;
 create policy "expenses update owner" on public.operational_expenses
   for update using (shop_id = public.auth_shop_id() and public.auth_role() = 'pemilik');
 
+drop policy if exists "expenses delete owner" on public.operational_expenses;
 create policy "expenses delete owner" on public.operational_expenses
   for delete using (shop_id = public.auth_shop_id() and public.auth_role() = 'pemilik');
 

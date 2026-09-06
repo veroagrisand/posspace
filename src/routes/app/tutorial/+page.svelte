@@ -36,6 +36,7 @@
 				['Pilih menu', 'Klik menu pada grid kiri (cari pakai kolom pencarian, filter kategori Kopi/Non-kopi/Makanan). Pilih varian (Reguler/Besar), atur jumlah di keranjang kanan, tambahkan catatan pesanan bila perlu.'],
 				['Metode bayar', 'Tunai: masukkan uang diterima, kembalian otomatis. QRIS: pindai QRIS statis toko Anda — transaksi dicatat sebagai QRIS. Debit: dicatat sebagai debit untuk laporan; isi referensi/ID transaksi (opsional) agar mudah direkonsiliasi.'],
 				['Bayar & struk', 'Klik "Bayar sekarang". Struk tampil otomatis — cetak (jika printer diatur) atau kirim. Stok bahan langsung terpotong sesuai resep & HPP transaksi dibekukan.'],
+				['Bahan tidak cukup', 'Tombol bayar otomatis terkunci jika stok bahan tidak memenuhi resep — muncul daftar bahan yang kurang (nama, butuh, stok). Tambahkan stok di Inventaris, atau kurangi jumlah/menu di keranjang. Jika tetap gagal di server, pesan error menyebutkan bahan yang kurang.'],
 				['Ringkasan atas', 'Empat kartu di atas halaman Kasir: Omzet hari ini, jumlah Pesanan, HPP hari ini (modal bahan + % dari omzet, target < 35%), dan jumlah bahan Stok menipis/kritis.']
 			]
 		},

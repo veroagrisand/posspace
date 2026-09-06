@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, formatRupiahExact } from '$lib/store.svelte';
+	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, formatRupiahExact, stockShortage, stockShortageText } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 
@@ -140,6 +140,10 @@
 
 	const activities = $derived(store.movements.slice(0, 4));
 
+	// ===== Cek stok bahan untuk isi keranjang (sebelum bayar) =====
+	const stockBlockers = $derived(stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty }))));
+	const stockBlockerText = $derived(stockShortageText(stockBlockers));
+
 	function addToCart(productId: string, variantId: string, variantName: string) {
 		const existing = cart.find((item) => item.productId === productId && item.variantId === variantId);
 		if (existing) {
@@ -157,6 +161,10 @@
 
 	function transactionErrorMessage(err: unknown): string {
 		const code = err instanceof Error ? err.message : '';
+		if (code.startsWith('INSUFFICIENT_STOCK:')) {
+			const detail = code.split(':').slice(1).join(':').trim();
+			return `Transaksi gagal — bahan tidak cukup: ${detail}. Tambah stok di Inventaris atau kurangi pesanan.`;
+		}
 		const messages: Record<string, string> = {
 			INSUFFICIENT_CASH: 'Uang diterima belum cukup.',
 			INSUFFICIENT_STOCK: 'Stok bahan tidak mencukupi.',
@@ -188,6 +196,10 @@
 		if (paymentSubmitting) return;
 		if (!cart.length) {
 			showToast('Pilih menu terlebih dahulu untuk membuat pesanan');
+			return;
+		}
+		if (stockBlockers.length) {
+			showToast(`Bahan tidak cukup — tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
 			return;
 		}
 		if (paymentMethod === 'cash') {
@@ -518,6 +530,14 @@
 				<div class="total-row"><span>Total pembayaran</span><strong>{formatIDR(total)}</strong></div>
 			</div>
 
+			{#if stockBlockers.length}
+				<div class="stock-warning" role="alert">
+					<strong>Bahan tidak cukup untuk pesanan ini</strong>
+					<p>{stockBlockerText}</p>
+					<small>Tambahkan stok di Inventaris, atau kurangi jumlah/menu di keranjang.</small>
+				</div>
+			{/if}
+
 			<div class="payment-section">
 				<div class="payment-label"><span>Metode pembayaran</span></div>
 				<div class="payment-methods" role="group" aria-label="Metode pembayaran">
@@ -565,8 +585,8 @@
 					</div>
 				{/if}
 
-				<button class="button button-primary pay-button" type="button" disabled={paymentSubmitting} onclick={handlePay}>
-					<span>{paymentSubmitting ? 'Memproses...' : 'Bayar sekarang'}</span>
+				<button class="button button-primary pay-button" type="button" disabled={paymentSubmitting || stockBlockers.length > 0} onclick={handlePay}>
+					<span>{paymentSubmitting ? 'Memproses...' : stockBlockers.length > 0 ? 'Bahan tidak cukup' : 'Bayar sekarang'}</span>
 					<strong>{formatIDR(total)}</strong>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 				</button>

@@ -461,6 +461,37 @@ function ingredientCost(ing: Ingredient, qty: number): number {
 	return (ing.costPerUnit ?? 0) * qty;
 }
 
+/**
+ * Cek kecukupan stok bahan untuk daftar item keranjang (variantId + qty).
+ * Mengembalikan daftar bahan yang KURANG: nama, satuan, butuh, dan stok —
+ * dipakai Kasir untuk memblokir bayar sebelum transaksi & menampilkan
+ * keterangan bahan mana yang harus ditambah.
+ */
+export function stockShortage(entries: { variantId: string; qty: number }[]): { name: string; unit: string; need: number; stock: number }[] {
+	const needMap = new Map<string, number>();
+	for (const e of entries) {
+		const variant = store.products
+			.map((p) => p.variants.find((v) => v.id === e.variantId))
+			.find((v) => v !== undefined);
+		if (!variant) continue;
+		for (const r of variant.recipe) {
+			needMap.set(r.ingredientId, (needMap.get(r.ingredientId) ?? 0) + r.qty * e.qty);
+		}
+	}
+	const shortage: { name: string; unit: string; need: number; stock: number }[] = [];
+	for (const [ingredientId, need] of needMap) {
+		const ing = getIngredient(ingredientId);
+		if (ing && need > ing.stock) shortage.push({ name: ing.name, unit: ing.unit, need, stock: ing.stock });
+	}
+	return shortage;
+}
+
+/** Teks ringkas kekurangan bahan untuk pesan/tost. */
+export function stockShortageText(shortage: { name: string; unit: string; need: number; stock: number }[]): string {
+	if (shortage.length === 0) return '';
+	return shortage.map((b) => `${b.name} (butuh ${b.need.toLocaleString('id-ID')} ${b.unit}, stok ${b.stock.toLocaleString('id-ID')})`).join('; ');
+}
+
 // ===== Transaksi & potong stok otomatis =====
 export type TxInputItem = TxItem & { variantId?: string };
 
