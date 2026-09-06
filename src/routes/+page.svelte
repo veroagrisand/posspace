@@ -116,7 +116,7 @@
 			{ name: 'Budi', role: 'Pemilik / Manajer Toko — 28 th', quote: '“Laporan HPP dan laba per menu langsung keluar. Saya jadi tahu menu mana yang benar-benar untung dan bahan mana yang sering menipis.”' },
 			{ name: 'Sari', role: 'Admin Gudang — 30 th', quote: '“Terima pembelian, catat stok masuk, opname, semua satu tempat. Data fisik sama persis dengan sistem dan setiap selisih ada alasannya.”' }
 		];
-		const tones = ['#111111', '#f26522', '#3e9b5f'];
+		const tones = ['#111111', '#c2410c', '#277048'];
 		if (!Array.isArray(list) || list.length === 0) {
 			return defs.map((d, i) => ({ ...d, avatar: d.name.slice(0, 2).toUpperCase(), tone: tones[i] ?? tones[0] }));
 		}
@@ -277,6 +277,7 @@
 		</div>
 	</section>
 
+	<main>
 	<section class="section" id="fitur">
 		<div class="wrap">
 			<div class="sec-head">
@@ -463,6 +464,7 @@
 			</div>
 		</section>
 	</div>
+	</main>
 
 	<PublicFooter />
 </div>

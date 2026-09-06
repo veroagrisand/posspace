@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="20%" cy="5%" r="90%">
+      <stop offset="0%" stop-color="#2c4a3a"/>
+      <stop offset="100%" stop-color="#16261e"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1080" cy="60" r="220" fill="#d8a24a" opacity="0.12"/>
+  <circle cx="90" cy="560" r="260" fill="#6ac27a" opacity="0.08"/>
+  <g font-family="'Space Grotesk','Arial',sans-serif">
+    <rect x="100" y="120" width="96" height="96" rx="22" fill="#d8a24a"/>
+    <text x="148" y="190" font-size="52" font-weight="700" fill="#16261e" text-anchor="middle">ps</text>
+    <text x="230" y="182" font-size="64" font-weight="700" fill="#ffffff">pos</text>
+    <text x="375" y="182" font-size="64" font-weight="500" fill="#8da395">space</text>
+    <text x="100" y="360" font-size="56" font-weight="700" fill="#ffffff">Kasir cepat, stok otomatis sesuai resep.</text>
+    <text x="100" y="424" font-size="30" fill="#a9bcad">POS untuk coffee shop UMKM Indonesia — QRIS, laporan HPP, dan laba bersih.</text>
+    <rect x="100" y="470" width="300" height="60" rx="30" fill="#d8a24a"/>
+    <text x="250" y="508" font-size="24" font-weight="700" fill="#16261e" text-anchor="middle">posspace.id</text>
+  </g>
+</svg>

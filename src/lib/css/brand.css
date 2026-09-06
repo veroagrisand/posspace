@@ -13,8 +13,8 @@
 	--brand-faint: #9ca3af;
 	--brand-line: #e5e5e5;
 	--brand-line-strong: #d4d4d8;
-	--brand-orange: #f26522;
-	--brand-orange-hover: #e05a1a;
+	--brand-orange: #c2410c;
+	--brand-orange-hover: #a4350a;
 	--brand-orange-soft: #fdeee7;
 	--brand-green: #2f9e63;
 	--brand-green-soft: #e6f4ec;
@@ -1060,13 +1060,13 @@ body {
 }
 
 .footer-brand .contact address {
-	color: #6b7280;
+	color: #9ca3af;
 	font-style: normal;
 }
 
 .footer-col h5 {
 	margin-bottom: 16px;
-	color: #6b7280;
+	color: #9ca3af;
 	font-size: 11px;
 	font-weight: 600;
 	letter-spacing: 0.16em;
@@ -1151,7 +1151,7 @@ body {
 
 .footer-bottom p {
 	margin: 0;
-	color: #6b7280;
+	color: #9ca3af;
 	font-size: 13px;
 }
 
@@ -1162,7 +1162,7 @@ body {
 }
 
 .footer-bottom .legal a {
-	color: #6b7280;
+	color: #9ca3af;
 	font-size: 13px;
 	transition: color 200ms ease;
 }

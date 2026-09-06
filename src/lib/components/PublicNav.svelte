@@ -25,8 +25,8 @@
 <div class="pub-nav-wrap">
 	<nav class="pub-nav" aria-label="Navigasi utama">
 		<div class="pub-nav-left">
-			<a class="pub-nav-logo" href="/" aria-label="posspace beranda">
-				<span class="mark">ps</span>
+			<a class="pub-nav-logo" href="/" aria-label="posspace">
+				<span class="mark" aria-hidden="true">ps</span>
 				<span class="word">posspace</span>
 			</a>
 			<div class="pub-nav-links">

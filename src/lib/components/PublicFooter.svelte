@@ -29,10 +29,10 @@
 	<div class="wrap">
 		<div class="footer-cols">
 			<div class="footer-brand">
-				<a class="pub-nav-logo" href="/" aria-label="posspace beranda">
-					<span class="mark mark--light">ps</span>
-					<span class="word" style="color:#fff">posspace</span>
-				</a>
+<a class="pub-nav-logo" href="/" aria-label="posspace">
+				<span class="mark mark--light" aria-hidden="true">ps</span>
+				<span class="word" style="color:#fff">posspace</span>
+			</a>
 				<p>POS kasir kopi sederhana namun kuat dengan stok gudang terintegrasi real-time untuk UMKM coffee shop Indonesia.</p>
 				<div class="contact">
 					<a href={`mailto:${businessContact.email}`}>{businessContact.email}</a>

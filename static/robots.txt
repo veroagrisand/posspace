@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /app/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /subscribe
+Disallow: /lupa-password
+Disallow: /reset-password
+
+Sitemap: https://posspace.id/sitemap.xml
