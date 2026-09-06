@@ -2696,8 +2696,8 @@
 	}
 
 	.toast {
+		top: 15px;
 		right: 15px;
-		bottom: 83px;
 	}
 }
 

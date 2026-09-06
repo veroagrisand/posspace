@@ -129,10 +129,11 @@ shopService.post('/members', async (c) => {
 	const { data: created, error: createError } = await db.auth.admin.createUser({
 		email: body.email.trim(),
 		password: tempPassword,
-		// email_confirm sengaja TIDAK di-set true → anggota wajib verifikasi email
-		// (klik tautan konfirmasi dari Supabase) sebelum bisa login. Membutuhkan
-		// SMTP Supabase terkonfigurasi di dashboard.
-		user_metadata: { full_name: body.name.trim() }
+		// email_confirm=true → akun LANGSUNG AKTIF (seperti webhook aktivasi),
+		// tanpa perlu klik tautan verifikasi email dari Supabase.
+		// must_change_password → anggota wajib ganti password saat login pertama.
+		email_confirm: true,
+		user_metadata: { full_name: body.name.trim(), must_change_password: true }
 	});
 	if (createError || !created.user) {
 		if (String(createError?.message ?? '').toLowerCase().includes('already')) httpError(409, 'EMAIL_EXISTS');
@@ -145,8 +146,8 @@ shopService.post('/members', async (c) => {
 		.eq('id', created.user.id);
 	if (linkError) httpError(500, 'LINK_FAILED');
 
-	// Kirim email aktivasi ke anggota: berisi password sementara + langkah.
-	// Verifikasi email tetap wajib (Supabase mengirim tautan konfirmasi terpisah).
+	// Kirim email notifikasi aktivasi: akun langsung aktif, tinggal login
+	// dengan password sementara lalu ganti password saat pertama masuk.
 	const email = body.email.trim();
 	const roleLabel = body.role === 'pemilik' ? 'Pemilik / Manajer' : body.role === 'admin_gudang' ? 'Admin Gudang' : 'Kasir / Barista';
 	const loginUrl = `${publicBaseUrl(c)}/login`;
@@ -155,24 +156,24 @@ shopService.post('/members', async (c) => {
 		try {
 			await sendMail({
 				to: email,
-				subject: `Aktivasi akun posspace — ${ctx.shop.shopName}`,
+				subject: `Akun posspace aktif — ${ctx.shop.shopName}`,
 				html: `
 					<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;border:1px solid #e7e9e4;border-radius:16px">
-						<h2 style="color:#1c2721;margin:0 0 8px">Selamat datang di ${escapeHtml(ctx.shop.shopName)}</h2>
-						<p style="color:#4f5e55;font-size:14px;line-height:1.6">Akun posspace Anda telah dibuat oleh pemilik toko dengan peran <strong>${roleLabel}</strong>.</p>
+						<h2 style="color:#1c2721;margin:0 0 8px">Akun Anda sudah aktif</h2>
+						<p style="color:#4f5e55;font-size:14px;line-height:1.6">Pemilik <strong>${escapeHtml(ctx.shop.shopName)}</strong> telah menambahkan Anda sebagai <strong>${roleLabel}</strong>. Akun langsung aktif — tidak perlu verifikasi email lagi.</p>
 						<div style="background:#f5f5f1;border-radius:12px;padding:16px;margin:16px 0">
 							<p style="color:#718078;font-size:12px;margin:0 0 6px">Password sementara Anda:</p>
 							<div style="font-size:24px;font-weight:700;letter-spacing:2px;color:#1c2721">${tempPassword}</div>
 						</div>
 						<ol style="color:#4f5e55;font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:20px">
-							<li>Klik tautan konfirmasi email yang dikirim Supabase (judul: "Confirm your email") untuk memverifikasi alamat email Anda.</li>
 							<li>Login di <a href="${loginUrl}" style="color:#d29a3b;font-weight:700">${loginUrl}</a> menggunakan email &amp; password sementara di atas.</li>
-							<li>Segera ganti password melalui "Lupa kata sandi?" di halaman login.</li>
+							<li>Sistem akan meminta Anda memasukkan kata sandi baru pada login pertama.</li>
+							<li>Setelah itu, mulai gunakan aplikasi sesuai peran Anda.</li>
 						</ol>
 						<p style="color:#849088;font-size:12px">Jangan bagikan password ini kepada siapa pun. — posspace</p>
 					</div>
 				`,
-				text: `Akun posspace untuk ${ctx.shop.shopName} telah dibuat (peran: ${roleLabel}).\nPassword sementara: ${tempPassword}\n1) Klik tautan konfirmasi email dari Supabase.\n2) Login di ${loginUrl} dengan email & password di atas.\n3) Ganti password setelah masuk.`
+				text: `Akun posspace Anda untuk ${ctx.shop.shopName} sudah aktif (peran: ${roleLabel}).\nPassword sementara: ${tempPassword}\n1) Login di ${loginUrl} dengan email & password di atas.\n2) Ganti kata sandi saat diminta pada login pertama.\n3) Mulai gunakan aplikasi.`
 			});
 			emailSent = true;
 		} catch {

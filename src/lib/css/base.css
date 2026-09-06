@@ -117,12 +117,12 @@ h2 {
 	letter-spacing: -0.055em;
 }
 
-/* Toast bersama */
+/* Toast bersama — posisi kanan ATAS layar, di atas modal overlay (z-index 50) */
 .toast {
 	position: fixed;
-	z-index: 20;
+	z-index: 100;
+	top: 25px;
 	right: 25px;
-	bottom: 25px;
 	display: flex;
 	align-items: center;
 	gap: 9px;
@@ -136,7 +136,7 @@ h2 {
 	font-size: 11px;
 	opacity: 0;
 	pointer-events: none;
-	transform: translateY(12px);
+	transform: translateY(-12px);
 	transition: opacity 180ms ease, transform 180ms ease;
 }
 

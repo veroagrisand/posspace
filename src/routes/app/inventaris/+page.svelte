@@ -78,7 +78,6 @@
 			return;
 		}
 		saving = true;
-		purchaseOpen = false; // tutup popup seketika, toast muncul saat selesai
 		try {
 			await recordPurchase({
 				ingredientId: purchaseIngredient,
@@ -87,10 +86,10 @@
 				unit: purchaseUnit,
 				totalPrice: purchaseTotal
 			});
+			purchaseOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Pembelian dicatat, stok bertambah otomatis');
 		} catch (err) {
-			purchaseOpen = true; // gagal → popup terbuka kembali, input tidak hilang
-			showToast(`Gagal mencatat pembelian: ${err instanceof Error ? err.message : 'error'}`);
+			showToast(`Gagal mencatat pembelian: ${err instanceof Error ? err.message : 'error'}`); // popup tetap terbuka
 		} finally {
 			saving = false;
 		}
@@ -112,12 +111,11 @@
 			return;
 		}
 		saving = true;
-		costOpen = false; // tutup popup seketika
 		try {
 			await setIngredientCost(costIngredient, costValue);
+			costOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Harga modal diperbarui — HPP & laporan terhitung ulang');
 		} catch (err) {
-			costOpen = true;
 			showToast(`Gagal mengubah harga modal: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
@@ -154,13 +152,12 @@
 			return;
 		}
 		saving = true;
-		opnameOpen = false; // tutup popup seketika
 		try {
 			await approveOpname(pendingOpname, opnameReason.trim());
 			opnameReason = '';
+			opnameOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Selisih disetujui, stok sistem disesuaikan');
 		} catch (err) {
-			opnameOpen = true;
 			showToast(`Gagal menyetujui opname: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
