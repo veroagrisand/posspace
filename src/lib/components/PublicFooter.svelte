@@ -29,7 +29,7 @@
 	<div class="wrap">
 		<div class="footer-cols">
 			<div class="footer-brand">
-<a class="pub-nav-logo" href="/" aria-label="posspace">
+<a class="pub-nav-logo" href="/" >
 				<span class="mark mark--light" aria-hidden="true">ps</span>
 				<span class="word" style="color:#fff">posspace</span>
 			</a>
@@ -45,7 +45,7 @@
 				</span>
 			</div>
 			<nav class="footer-col" aria-label="Tautan produk">
-				<h5>Produk</h5>
+				<h4>Produk</h4>
 				<ul>
 					<li><a href="/#fitur">Fitur<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/#harga">Harga<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
@@ -54,7 +54,7 @@
 				</ul>
 			</nav>
 			<nav class="footer-col" aria-label="Tautan perusahaan">
-				<h5>Perusahaan</h5>
+				<h4>Perusahaan</h4>
 				<ul>
 					<li><a href="/#testimoni">Testimoni<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/#cara-kerja">Cara kerja<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
@@ -63,7 +63,7 @@
 				</ul>
 			</nav>
 			<nav class="footer-col" aria-label="Tautan verifikasi">
-				<h5>Verifikasi Aplikasi</h5>
+				<h4>Verifikasi Aplikasi</h4>
 				<ul>
 					<li><a href="/faq">FAQ<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/refund-policy">Refund Policy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
@@ -75,7 +75,7 @@
 	</div>
 
 	<div class="wrap">
-		<p class="watermark">posspace</p>
+		<p class="watermark" aria-hidden="true">posspace</p>
 	</div>
 
 	<div class="wrap">

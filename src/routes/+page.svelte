@@ -346,7 +346,7 @@
 					</div>
 				</div>
 				<div class="bom-card">
-					<h4>Contoh BOM — 1 porsi Es Kopi Susu Reguler</h4>
+					<h3>Contoh BOM — 1 porsi Es Kopi Susu Reguler</h3>
 					{#each bomRows as row}
 						<div class="bom-row">
 							<div><strong>{row.name}</strong><small>{row.unit}</small></div>
