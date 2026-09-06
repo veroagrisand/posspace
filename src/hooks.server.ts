@@ -173,5 +173,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 		response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 	}
 
+	// Cache halaman publik statis (marketing) untuk pengunjung ANONIM —
+	// mempercepat kunjungan ulang & mengurangi beban SSR. Halaman personal
+	// (/app, /admin, form) sengaja TIDAK di-cache.
+	if (userId === null && event.request.method === 'GET') {
+		const p = event.url.pathname;
+		if (p === '/' || p === '/faq' || p === '/terms-and-conditions' || p === '/refund-policy' || p === '/kontak') {
+			response.headers.set('Cache-Control', 'public, max-age=600, s-maxage=600');
+		}
+	}
+
 	return response;
 };

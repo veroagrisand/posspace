@@ -45,12 +45,12 @@ adminService.get('/overview', async (c) => {
 	await requirePlatformAdmin(c);
 	const db = service();
 
-	const [shops, subs, plans, profiles, txns, ingredients] = await Promise.all([
+	const [shops, subs, plans, profiles, metrics, ingredients] = await Promise.all([
 		db.from('shops').select('id, name, created_at').order('created_at', { ascending: false }),
 		db.from('subscriptions').select('shop_id, plan_id, status, period_end'),
 		db.from('plans').select('id, monthly_price, name'),
 		db.from('profiles').select('id, shop_id, role'),
-		db.from('transactions').select('shop_id, total_amount, paid_at').order('paid_at', { ascending: false }).limit(50000),
+		db.rpc('admin_transaction_metrics'),
 		db.from('ingredients').select('id, shop_id, name, stock_quantity, min_stock, unit')
 	]);
 
@@ -93,22 +93,17 @@ adminService.get('/overview', async (c) => {
 		}
 	}
 
-	let totalOmzet = 0;
-	let todayOmzet = 0;
-	const dayStart = new Date();
-	dayStart.setUTCHours(0, 0, 0, 0);
+	const m = (metrics.data ?? {}) as {
+		total_count: number;
+		total_omzet: number;
+		today_omzet: number;
+		daily: { date: string; omzet: number; count: number }[];
+	};
+	const totalOmzet = Number(m.total_omzet ?? 0);
+	const todayOmzet = Number(m.today_omzet ?? 0);
 	const dailyMap = new Map<string, { date: string; omzet: number; count: number }>();
-	for (const t of txns.data ?? []) {
-		totalOmzet += Number(t.total_amount ?? 0);
-		const paid = t.paid_at ? new Date(t.paid_at) : null;
-		if (paid && paid >= dayStart) todayOmzet += Number(t.total_amount ?? 0);
-		if (paid) {
-			const day = paid.toISOString().slice(0, 10);
-			const d = dailyMap.get(day) ?? { date: day, omzet: 0, count: 0 };
-			d.omzet += Number(t.total_amount ?? 0);
-			d.count += 1;
-			dailyMap.set(day, d);
-		}
+	for (const d of m.daily ?? []) {
+		dailyMap.set(d.date, { date: d.date, omzet: Number(d.omzet ?? 0), count: Number(d.count ?? 0) });
 	}
 
 	const days: string[] = [];
@@ -139,7 +134,7 @@ adminService.get('/overview', async (c) => {
 		totals: {
 			shops: shops.data?.length ?? 0,
 			users: profiles.data?.length ?? 0,
-			transactions: txns.data?.length ?? 0,
+			transactions: Number(m.total_count ?? 0),
 			omzet: totalOmzet,
 			todayOmzet,
 			lowStockIngredients: lowStockCount
@@ -156,13 +151,13 @@ adminService.get('/shops', async (c) => {
 	await requirePlatformAdmin(c);
 	const db = service();
 
-	const [shops, subs, plans, profiles, products, txns, ingredients] = await Promise.all([
+	const [shops, subs, plans, profiles, products, shopStats, ingredients] = await Promise.all([
 		db.from('shops').select('id, name, address, phone, currency, created_at').order('created_at', { ascending: false }),
 		db.from('subscriptions').select('shop_id, plan_id, status, period_end'),
 		db.from('plans').select('id, name'),
 		db.from('profiles').select('id, shop_id, role'),
 		db.from('products').select('id, shop_id, is_active'),
-		db.from('transactions').select('shop_id, total_amount').limit(100000),
+		db.rpc('admin_shop_stats'),
 		db.from('ingredients').select('id, shop_id, stock_quantity, min_stock')
 	]);
 
@@ -199,11 +194,8 @@ adminService.get('/shops', async (c) => {
 	}
 
 	const statsByShop = new Map<string, { tx: number; omzet: number }>();
-	for (const t of txns.data ?? []) {
-		const cur = statsByShop.get(t.shop_id) ?? { tx: 0, omzet: 0 };
-		cur.tx += 1;
-		cur.omzet += Number(t.total_amount ?? 0);
-		statsByShop.set(t.shop_id, cur);
+	for (const t of (shopStats.data as { shop_id: string; tx_count: number; omzet: number }[] | null) ?? []) {
+		statsByShop.set(t.shop_id, { tx: Number(t.tx_count ?? 0), omzet: Number(t.omzet ?? 0) });
 	}
 
 	const lowByShop = new Map<string, number>();
