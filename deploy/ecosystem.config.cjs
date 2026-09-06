@@ -18,14 +18,14 @@ const path = require('path');
 const os = require('os');
 
 // RAM-aware sizing: VPS kecil mudah OOM (proses dibunuh kernel → 502).
-// Ukuran worker web (±350-450MB/worker) & api (±300-400MB) disesuaikan
-// dengan total memori mesin secara otomatis; env WEB_INSTANCES tetap bisa
-// meng-override jumlah worker web.
+// Aturan: 1 worker hanya bila RAM sangat kecil (<1.5GB); di atasnya 2 worker
+// agar restart salah satu worker TIDAK memutus layanan. Limit memori dibuat
+// lebih rendah pada mesin kecil agar tidak menekan OS.
 const totalMemMB = Math.floor(os.totalmem() / 1024 / 1024);
-const small = totalMemMB < 2048;
+const small = totalMemMB < 1536;
 const webInstances = Number(process.env.WEB_INSTANCES || 0) || (small ? 1 : 2);
-const webMem = small ? '384M' : '512M';
-const apiMem = small ? '300M' : '400M';
+const webMem = small ? '300M' : '512M';
+const apiMem = small ? '250M' : '400M';
 
 const root = path.resolve(__dirname, '..');
 
@@ -41,7 +41,7 @@ module.exports = {
 			max_memory_restart: webMem,
 			kill_timeout: 15_000, // biarkan in-flight SSR selesai sebelum stop
 			listen_timeout: 5_000, // waktu worker baru untuk mulai listen saat reload
-			restart_delay: 3_000,
+			restart_delay: 1_000,
 			min_uptime: '10s',
 			max_restarts: 10,
 			exp_backoff_restart_delay: 100,
@@ -58,7 +58,7 @@ module.exports = {
 			instances: 1,
 			max_memory_restart: apiMem,
 			kill_timeout: 10_000,
-			restart_delay: 3_000,
+			restart_delay: 1_000,
 			min_uptime: '10s',
 			max_restarts: 10,
 			exp_backoff_restart_delay: 100,
