@@ -152,10 +152,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// ===== Diagnostik sementara: cari header respons yang terlalu besar =====
 	try {
+		const cookie = event.request.headers.get('cookie') ?? '';
 		const headerSize = [...response.headers.entries()].reduce((s, [k, v]) => s + k.length + v.length + 4, 0);
-		if (headerSize > 8000) {
+		if (headerSize > 6000 || cookie.length > 3000) {
 			const big = [...response.headers.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 5);
-			console.error(`[BIG HEADER] path=${event.url.pathname} size=${headerSize} headers=${JSON.stringify(big)}`);
+			console.error(`[BIG HEADER] path=${event.url.pathname} respHeader=${headerSize} reqCookie=${cookie.length} headers=${JSON.stringify(big)} cookieStart=${cookie.slice(0, 120)}`);
 		}
 	} catch {
 		/* abaikan */

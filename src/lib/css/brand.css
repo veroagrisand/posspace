@@ -1542,46 +1542,46 @@ body {
 	border-top: 1px solid var(--brand-line);
 }
 
-.policy-body :global(h2) {
+.policy-body h2 {
 	margin: 30px 0 10px;
 	font-size: 21px;
 	font-weight: 600;
 	letter-spacing: -0.02em;
 }
 
-.policy-body :global(h2:first-child) {
+.policy-body h2:first-child {
 	margin-top: 0;
 }
 
-.policy-body :global(h3) {
+.policy-body h3 {
 	margin: 22px 0 7px;
 	font-size: 15px;
 	font-weight: 600;
 }
 
-.policy-body :global(p),
-.policy-body :global(li) {
+.policy-body p,
+.policy-body li {
 	color: var(--brand-ink-soft);
 	font-size: 13px;
 	line-height: 1.75;
 }
 
-.policy-body :global(p) {
+.policy-body p {
 	margin: 0 0 14px;
 }
 
-.policy-body :global(ul),
-.policy-body :global(ol) {
+.policy-body ul,
+.policy-body ol {
 	margin: 8px 0 18px;
 	padding-left: 22px;
 }
 
-.policy-body :global(a) {
+.policy-body a {
 	color: var(--brand-orange-hover);
 	font-weight: 700;
 }
 
-.policy-body :global(a:hover) {
+.policy-body a:hover {
 	color: var(--brand-ink);
 }
 
