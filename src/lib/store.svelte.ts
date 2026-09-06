@@ -569,11 +569,11 @@ export async function closeShift(actualCash: number): Promise<{ expectedCash: nu
 }
 
 // ===== Bahan baku =====
-export async function addIngredient(data: { name: string; unit: Unit; stock: number; minStock: number }): Promise<void> {
+export async function addIngredient(data: { name: string; unit: Unit; stock: number; minStock: number; costPerUnit?: number }): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/ingredients', {
 			method: 'POST',
-			body: JSON.stringify({ name: data.name, unit: data.unit, stock: data.stock, minStock: data.minStock })
+			body: JSON.stringify({ name: data.name, unit: data.unit, stock: data.stock, minStock: data.minStock, costPerUnit: data.costPerUnit ?? 0 })
 		});
 		await hydrateStore();
 		return;
@@ -584,15 +584,15 @@ export async function addIngredient(data: { name: string; unit: Unit; stock: num
 		unit: data.unit,
 		stock: data.stock,
 		minStock: data.minStock,
-		costPerUnit: 0
+		costPerUnit: data.costPerUnit ?? 0
 	});
 }
 
-export async function updateIngredient(id: string, data: { name: string; unit: Unit; minStock: number }): Promise<void> {
+export async function updateIngredient(id: string, data: { name: string; unit: Unit; minStock: number; costPerUnit?: number }): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch(`/api/data/ingredients/${id}`, {
 			method: 'PATCH',
-			body: JSON.stringify({ name: data.name, unit: data.unit, minStock: data.minStock })
+			body: JSON.stringify({ name: data.name, unit: data.unit, minStock: data.minStock, costPerUnit: data.costPerUnit })
 		});
 		await hydrateStore();
 		return;
@@ -602,6 +602,7 @@ export async function updateIngredient(id: string, data: { name: string; unit: U
 	ing.name = data.name;
 	ing.unit = data.unit;
 	ing.minStock = data.minStock;
+	if (data.costPerUnit !== undefined) ing.costPerUnit = data.costPerUnit;
 }
 
 // ===== Pembelian =====
@@ -657,8 +658,7 @@ export async function recordPurchase(data: { ingredientId: string; supplier: str
 		receivedAt: now()
 	};
 	store.purchases.push(purchase);
-	// Rata-rata tertimbang (sama dengan RPC record_purchase di backend).
-	ing.costPerUnit = Math.round(((ing.stock * ing.costPerUnit) + (baseQty * unitPrice)) / (ing.stock + baseQty) * 100) / 100;
+	// Harga modal TIDAK diubah otomatis oleh pembelian (HPP = input manual).
 	ing.stock += baseQty;
 	store.movements.unshift({
 		id: `mv-${moveSeq++}`,

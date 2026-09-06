@@ -2073,6 +2073,94 @@
 	white-space: nowrap;
 }
 
+.margin-summary {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.margin-summary > div {
+	display: grid;
+	gap: 4px;
+	padding: 12px;
+	border-radius: 12px;
+	background: #f4f4f5;
+}
+
+.margin-summary span {
+	color: #718078;
+	font-size: 9px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+}
+
+.margin-summary strong {
+	color: var(--ink-soft);
+	font-family: var(--font-display);
+	font-size: 16px;
+}
+
+.margin-list {
+	display: grid;
+	gap: 12px;
+	margin-top: 18px;
+}
+
+.margin-item {
+	display: grid;
+	grid-template-columns: 22px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 9px;
+}
+
+.margin-rank {
+	display: grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 50%;
+	background: var(--forest-700);
+	color: #fff;
+	font-size: 9px;
+	font-weight: 700;
+}
+
+.margin-detail {
+	display: grid;
+	min-width: 0;
+	gap: 3px;
+}
+
+.margin-detail strong {
+	overflow: hidden;
+	color: var(--ink-soft);
+	font-size: 10px;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.margin-detail small {
+	color: #a0aaa2;
+	font-size: 8px;
+}
+
+.margin-pct {
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.margin-ok {
+	color: var(--green);
+}
+
+.margin-alert {
+	color: var(--red);
+}
+
 @media (max-width: 1360px) {
 	.product-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));

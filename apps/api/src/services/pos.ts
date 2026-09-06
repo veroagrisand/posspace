@@ -221,13 +221,16 @@ posDataService.post('/ingredients', async (c) => {
 		unit?: string;
 		stock?: number;
 		minStock?: number;
+		costPerUnit?: number;
 	};
 	if (!body.name) httpError(400, 'NAME_REQUIRED');
 	if (!['gram', 'ml', 'pcs'].includes(body.unit ?? '')) httpError(400, 'INVALID_UNIT');
 	const stock = Number(body.stock ?? 0);
 	const minStock = Number(body.minStock ?? 0);
+	const costPerUnit = Number(body.costPerUnit ?? 0);
 	if (!Number.isFinite(stock) || stock < 0) httpError(400, 'INVALID_STOCK');
 	if (!Number.isFinite(minStock) || minStock < 0) httpError(400, 'INVALID_MIN_STOCK');
+	if (!Number.isFinite(costPerUnit) || costPerUnit < 0) httpError(400, 'INVALID_COST');
 
 	const { data, error: insertError } = await ctx.db
 		.from('ingredients')
@@ -236,7 +239,8 @@ posDataService.post('/ingredients', async (c) => {
 			name: body.name,
 			unit: body.unit ?? 'gram',
 			stock_quantity: stock,
-			min_stock: minStock
+			min_stock: minStock,
+			cost_per_unit: costPerUnit
 		})
 		.select('*')
 		.single();

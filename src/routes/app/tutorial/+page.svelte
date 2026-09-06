@@ -3,66 +3,98 @@
 
 	const sections = [
 		{
-			title: '1. Kasir cepat',
-			subtitle: 'Layani pesanan & terima pembayaran setiap hari.',
+			title: '1. HPP & harga modal — baca dulu',
+			subtitle: 'Semua data rumus HPP diisi manual sekali, lalu HPP dihitung otomatis untuk setiap transaksi.',
 			steps: [
-				['Buka shift', 'Klik "Buka shift" di halaman Kasir, masukkan uang awal laci. Shift aktif = transaksi tercatat ke kasir & laporan.'],
-				['Pilih menu', 'Klik menu/minuman pada grid kiri (cari pakai kolom pencarian, filter kategori). Tentukan varian & jumlahnya di keranjang.'],
-				['Bayar', 'Pilih metode: Tunai (masukkan uang diterima — kembalian otomatis), QRIS (QRIS statis toko Anda, transaksi dicatat sebagai QRIS), atau Debit. Klik "Bayar sekarang".'],
-				['Cetak / kirim struk', 'Setelah bayar, struk tampil otomatis. Pilih "Cetak struk" (jika printer aktif) atau "Kirim struk". Stok bahan langsung terpotong sesuai resep.']
+				[
+					'Rumus HPP',
+					'HPP 1 porsi = Σ (jumlah bahan di resep × harga modal bahan). Contoh: 14 g biji kopi × Rp 120/g + 1 pcs filter × Rp 500 = HPP Rp 2.180 per porsi. HPP setiap transaksi dibekukan otomatis saat penjualan — mengubah harga modal nanti tidak mengubah laporan lama.'
+				],
+				[
+					'Input harga modal (data 1)',
+					'Menu → "+ Kelola bahan" → isi kolom "Harga modal per satuan (Rp)" saat menambah/ubah bahan (cth. 120000 untuk 1 kg biji kopi → otomatis jadi Rp 120/gram). Bisa juga diklik langsung di kolom "Harga modal" pada halaman Inventaris. Diisi manual oleh pemilik atau anggota admin gudang.'
+				],
+				[
+					'Input resep (data 2)',
+					'Menu → "Kelola" pada produk → untuk tiap varian klik "+ Tambah bahan", pilih bahan & jumlah yang dipakai untuk 1 porsi (mis. 14 gram kopi, 200 ml susu, 1 pcs cup).'
+				],
+				[
+					'HPP otomatis',
+					'Setelah harga modal & resep lengkap, HPP dan marjin (%) tampil otomatis di kolom tabel Menu (per varian), di kartu HPP dashboard, dan di Laporan. Target sehat: marjin > 35% (HPP < 65% harga jual).'
+				],
+				[
+					'Penting: pembelian tidak mengubah HPP',
+					'Catat pembelian di Inventaris hanya menambah stok & riwayat — harga modal TIDAK ikut berubah. Perbarui manual lewat kolom "Harga modal" hanya jika harga beli benar-benar berubah.'
+				]
 			]
 		},
 		{
-			title: '2. Menu & resep',
-			subtitle: 'Kelola produk, varian, dan resep (BOM) — dasar HPP otomatis.',
+			title: '2. Kasir cepat',
+			subtitle: 'Layani pesanan, terima pembayaran, dan stok terpotong otomatis.',
 			steps: [
-				['Tambah menu', 'Menu → "+ Menu": nama, kategori (Kopi/Non-kopi/Makanan), harga. Satu produk bisa punya beberapa varian (mis. Reguler/Besar) dengan harga berbeda.'],
-				['Atur resep (BOM)', 'Untuk tiap varian, tambahkan bahan + jumlah yang dibutuhkan (mis. 14 gram roast beans, 1 pcs paper filter, 200 ml air).'],
-				['Pantau HPP', 'HPP per porsi dihitung otomatis dari resep × harga modal bahan. Kolom HPP & margin (%) muncul di daftar menu — jaga margin sehat (> 35%).']
+				['Buka shift', 'Klik "Buka shift" di halaman Kasir, masukkan uang awal laci. Shift aktif = transaksi tercatat ke kasir, rekap kas, dan laporan. Tutup shift di akhir jam kerja untuk mencocokkan kas.'],
+				['Pilih menu', 'Klik menu pada grid kiri (cari pakai kolom pencarian, filter kategori Kopi/Non-kopi/Makanan). Pilih varian (Reguler/Besar), atur jumlah di keranjang kanan, tambahkan catatan pesanan bila perlu.'],
+				['Metode bayar', 'Tunai: masukkan uang diterima, kembalian otomatis. QRIS: pindai QRIS statis toko Anda — transaksi dicatat sebagai QRIS. Debit: dicatat sebagai debit untuk laporan; isi referensi/ID transaksi (opsional) agar mudah direkonsiliasi.'],
+				['Bayar & struk', 'Klik "Bayar sekarang". Struk tampil otomatis — cetak (jika printer diatur) atau kirim. Stok bahan langsung terpotong sesuai resep & HPP transaksi dibekukan.'],
+				['Ringkasan atas', 'Empat kartu di atas halaman Kasir: Omzet hari ini, jumlah Pesanan, HPP hari ini (modal bahan + % dari omzet, target < 35%), dan jumlah bahan Stok menipis/kritis.']
 			]
 		},
 		{
-			title: '3. Inventaris (stok)',
-			subtitle: 'Bahan baku selalu terkontrol.',
+			title: '3. Menu & resep',
+			subtitle: 'Produk, varian, resep (BOM), dan data HPP — diatur di satu tempat.',
 			steps: [
-				['Catat pembelian', 'Inventaris → "+ Catat pembelian". Pilih bahan, masukkan jumlah & satuan beli (mis. 1 kg / 2 Liter), lalu TOTAL harga. Sistem menghitung harga per satuan & stok otomatis.'],
-				['Koreksi harga modal', 'Klik harga modal pada kolom tabel untuk memperbaiki HPP bahan secara manual (mis. saat harga beli berubah) — tanpa menambah stok.'],
-				['Hitung fisik (opname)', 'Klik "Hitung fisik", isi jumlah aktual, setujui selisih dengan alasan. Stok sistem menyesuaikan & tercatat di riwayat audit.'],
-				['Pantau status', 'Stok ditandai Menipis/Kritis saat mendekati batas minimum. Riwayat pergerakan (terjual/masuk/opname) selalu terekam.']
+				['Tambah menu', 'Menu → "+ Tambah menu": nama, kategori (Kopi/Non-kopi/Makanan), varian awal & harga. Satu produk bisa punya banyak varian (mis. Reguler/Besar) dengan harga berbeda.'],
+				['Kelola varian', 'Menu → "Kelola" pada produk: ubah nama/kategori, tambah varian (nama + harga), atur resep tiap varian. Saat mengubah resep, HPP & marjin di kolom tabel langsung diperbarui.'],
+				['Kelola bahan baku', 'Menu → "+ Kelola bahan": tambah/ubah nama, satuan (gram/ml/pcs), batas minimum, dan HARGA MODAL per satuan (dasar HPP). Anggota dengan peran admin gudang juga bisa mengisi.'],
+				['Aktif/nonaktif menu', 'Gunakan saklar Status di tabel untuk menyembunyikan menu dari kasir tanpa menghapusnya (mis. stok bahan habis).'],
+				['Hapus menu', 'Menu → "Kelola" → tombol "Hapus menu" (menghapus varian & resep, tidak bisa dibatalkan). Transaksi lama tetap tersimpan.']
 			]
 		},
 		{
-			title: '4. Laporan & keuangan',
-			subtitle: 'Lihat omzet, HPP, dan laba tanpa spreadsheet.',
+			title: '4. Inventaris (stok)',
+			subtitle: 'Pembelian, harga modal, hitung fisik, dan riwayat — semua terkontrol.',
 			steps: [
-				['Laporan harian', 'Menu Laporan menampilkan omzet hari ini, HPP, laba kotor, dan menu terlaris. Bisa ekspor stok & penjualan (CSV).'],
-				['Laba bersih bulanan', 'Menu Operasional → pilih bulan: omzet − HPP − beban operasional = laba bersih. Catat tagihan listrik, sewa, gaji, dll di sini.']
+				['Catat pembelian', 'Inventaris → "+ Catat pembelian": pilih bahan, pemasok, jumlah & satuan beli (mis. 1 kg / 2 Liter), total harga. Sistem menghitung harga/satuan sebagai INFO dan menambah stok otomatis. Harga modal tidak berubah (lihat modul 1).'],
+				['Ubah harga modal', 'Klik angka pada kolom "Harga modal" untuk mengubahnya manual (mis. saat harga beli berubah). Perubahan langsung mengupdate HPP semua menu yang memakai bahan itu — stok tidak terpengaruh.'],
+				['Hitung fisik (opname)', 'Klik "Hitung fisik", pilih bahan, isi jumlah aktual di lapangan → buat draft → setujui selisih dengan alasan. Stok sistem disesuaikan & tercatat di riwayat audit.'],
+				['Pantau stok & riwayat', 'Status bahan: Aman / Menipis / Kritis berdasarkan batas minimum. Tab riwayat menampilkan semua pergerakan: terjual, masuk, opname, penyesuaian.']
 			]
 		},
 		{
-			title: '5. Operasional (beban)',
-			subtitle: 'Catat pengeluaran non-bahan untuk laba bersih.',
+			title: '5. Laporan & keuangan',
+			subtitle: 'Omzet, HPP, laba, dan menu terlaris — tanpa spreadsheet.',
 			steps: [
-				['Catat beban', 'Operasional → "+ Catat beban": pilih kategori (Listrik, Air, Internet, Sewa, Gas, Kebersihan, Gaji), jumlah, tanggal, keterangan.'],
-				['Pantau laba bersih', 'Kartu Laba BERSIH = omzet − HPP − beban. Klik kategori untuk melihat rincian per jenis beban.']
+				['Ringkasan otomatis', 'Menu Laporan menampilkan omzet hari ini, HPP, laba kotor, dan menu terlaris beserta marjin per menu. Semua dihitung dari transaksi yang sudah dibayar lunas.'],
+				['Periode & ekspor', 'Pilih periode (harian/mingguan/bulanan/tahunan), lalu unduh laporan penjualan (Excel/PDF/CSV) atau stok (CSV) untuk dibagikan ke akuntan.'],
+				['Laba bersih bulanan', 'Menu Operasional → pilih bulan: omzet − HPP − beban operasional = laba bersih. Catat tagihan listrik, sewa, gaji, dll agar angka akurat.']
 			]
 		},
 		{
-			title: '6. Pengaturan',
-			subtitle: 'Profil toko, tim, dan printer.',
+			title: '6. Operasional (beban)',
+			subtitle: 'Pengeluaran non-bahan untuk menghitung laba bersih.',
 			steps: [
-				['Profil toko', 'Ubah nama, alamat, telepon, mata uang — tampil di struk.'],
-				['Anggota tim', 'Undang kasir / admin gudang dengan peran. Password sementara muncul di dialog yang bisa disalin. Anggota wajib verifikasi email sebelum login.'],
-				['Printer struk', 'Pilih pakai printer (USB/browser/agen) atau tidak. Pilihan tersimpan — tidak muncul terus-menerus.']
+				['Catat beban', 'Operasional → "+ Catat beban": kategori (Listrik, Air, Internet, Sewa, Gas, Kebersihan, Gaji & upah, Lainnya), jumlah, tanggal, keterangan. Anggota bisa mencatat — hanya pemilik yang bisa menghapus.'],
+				['Pantau laba bersih', 'Kartu "Laba bersih" = omzet − HPP − beban pada bulan terpilih. Klik kategori untuk melihat rincian per jenis beban dan bandingkan antar bulan.']
 			]
 		},
 		{
-			title: '7. Tips keuangan',
-			subtitle: 'Agar usaha tetap untung.',
+			title: '7. Pengaturan',
+			subtitle: 'Profil toko, anggota tim, dan printer struk.',
 			steps: [
-				['Jaga HPP', 'Cek HPP per menu di Menu & resep. Jika margin < 35%, pertimbangkan naikkan harga atau cari pemasok lebih murah.'],
+				['Profil toko', 'Ubah nama, alamat, telepon, mata uang — data ini tampil di struk pelanggan.'],
+				['Anggota tim', 'Undang kasir / admin gudang: pilih peran, password sementara muncul di dialog untuk disalin. Peran menentukan hak akses: kasir = layani transaksi; admin gudang = tambah stok, isi harga modal, opname; pemilik = semua termasuk hapus data & beban. Anggota wajib verifikasi email sebelum login.'],
+				['Printer struk', 'Pilih printer (USB/browser/agen) atau matikan cetak struk. Pengaturan tersimpan — wizard tidak muncul terus-menerus.'],
+				['Wizard awal', 'Setelah toko dibuat, wizard memandu: atur profil, printer, dan lengkapi bahan baku beserta harga modalnya.']
+			]
+		},
+		{
+			title: '8. Tips keuangan',
+			subtitle: 'Agar usaha tetap untung dan angka laporan akurat.',
+			steps: [
+				['Jaga marjin menu', 'Cek kolom Marjin di Menu & resep. Jika < 35%, naikkan harga atau cari pemasok lebih murah. Pantau juga kartu "Margin per menu" di dashboard.'],
+				['Disiplin input harga modal', 'Isi harga modal setiap kali harga beli berubah — inilah satu-satunya sumber HPP. Jangan biarkan bahan baru berharga modal 0 (HPP akan tampak terlalu murah).'],
 				['Catat semua beban', 'Listrik, sewa, gaji, internet — catat tiap bulan agar laba bersih akurat.'],
-				['Rutin opname', 'Cocokkan stok fisik vs sistem secara berkala untuk mendeteksi kehilangan lebih dini.'],
+				['Rutin opname', 'Cocokkan stok fisik vs sistem berkala untuk mendeteksi kehilangan/penyusutan lebih dini.'],
 				['Gunakan referensi pembayaran', 'Untuk QRIS/debit, isi referensi transaksi agar mudah direkonsiliasi di laporan.']
 			]
 		}

@@ -312,7 +312,8 @@
 		<p class="purchase-preview" style="margin:2px 0 0">
 			{baseQuantity > 0
 				? `≈ ${formatIDR(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
-				: 'Masukkan jumlah & total harga untuk melihat HPP/satuan.'}
+				: 'Masukkan jumlah & total harga untuk melihat harga/satuan.'}
+			<br />Harga modal (HPP) <b>tidak berubah otomatis</b> — sesuaikan manual di kolom "Harga modal" bila harga beli berubah.
 		</p>
 	</div>
 	<div class="modal-actions">

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, hppOf } from '$lib/store.svelte';
+	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 
@@ -78,16 +78,32 @@
 
 	const todayTransactions = $derived(store.transactions.filter((t) => dateKey(new Date(t.paidAt)) === dateKey(new Date())));
 	const todayOmzet = $derived(todayTransactions.reduce((s, t) => s + t.total, 0));
+	// HPP hari ini = Σ (unit_cost × qty) — unit_cost dibekukan saat penjualan
+	// (resep × harga modal saat itu), jadi laporan tidak berubah retroaktif.
 	const todayHpp = $derived(
 		todayTransactions.reduce((sum, t) => {
 			for (const item of t.items) {
-				const v = store.products.map((p) => p.variants.find((x) => x.name === item.variant && x.price === item.unitPrice)).find((x) => x);
-				const unitHpp = item.unitCost != null ? item.unitCost : v ? hppOf(v) : 0;
-				sum += unitHpp * item.qty;
+				sum += (item.unitCost != null ? item.unitCost : 0) * item.qty;
 			}
 			return sum;
 		}, 0)
 	);
+	const todayGrossProfit = $derived(todayOmzet - todayHpp);
+	// Statistik per menu hari ini: qty, omzet, HPP, & marjin.
+	const todayMenuStats = $derived.by(() => {
+		const map = new Map<string, { name: string; qty: number; revenue: number; hpp: number }>();
+		for (const t of todayTransactions) {
+			for (const item of t.items) {
+				const key = `${item.productName}|${item.variant ?? ''}`;
+				const cur = map.get(key) ?? { name: item.productName, qty: 0, revenue: 0, hpp: 0 };
+				cur.qty += item.qty;
+				cur.revenue += Number(item.lineTotal ?? 0);
+				cur.hpp += (item.unitCost != null ? item.unitCost : 0) * item.qty;
+				map.set(key, cur);
+			}
+		}
+		return [...map.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+	});
 	const yesterdayOmzet = $derived(() => {
 		const d = new Date();
 		d.setDate(d.getDate() - 1);
@@ -332,8 +348,15 @@
 			<div class="metric-topline"><span class="metric-label">HPP hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">{hppPct}% <small>dari omzet</small></strong>
-			<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>target &lt; 35%</span></div>
+			<strong class="metric-value">{formatIDR(todayHpp)} <small>modal bahan</small></strong>
+			<div class="metric-meta">
+				{#if todayOmzet > 0}
+					<span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct}% dari omzet</span>
+					<span>target &lt; 35%</span>
+				{:else}
+					<span>Belum ada penjualan</span>
+				{/if}
+			</div>
 		</article>
 		<article class="metric-card metric-stock">
 			<div class="metric-topline"><span class="metric-label">Stok perlu perhatian</span><span class="metric-icon">
@@ -625,6 +648,38 @@
 				{/each}
 			</div>
 			<a class="full-link" href="/app/inventaris">Lihat riwayat <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
+		</article>
+
+		<article class="panel margin-panel">
+			<div class="panel-heading compact-heading">
+				<div><div class="section-kicker">LABA &amp; MARGIN</div><h2>Margin per menu</h2></div>
+				<span class="live-label"><i></i> Hari ini</span>
+			</div>
+			{#if todayMenuStats.length === 0}
+				<div class="cart-empty" style="padding-top:18px">
+					<strong style="font-size:12px">Belum ada penjualan hari ini</strong>
+					<p>Laba kotor &amp; margin per menu muncul setelah transaksi pertama.</p>
+				</div>
+			{:else}
+				<div class="margin-summary">
+					<div><span>Laba kotor</span><strong>{formatIDR(todayGrossProfit)}</strong></div>
+					<div><span>Rasio HPP</span><strong class="{hppPct <= 35 ? 'margin-ok' : 'margin-alert'}">{hppPct}%</strong></div>
+				</div>
+				<div class="margin-list">
+					{#each todayMenuStats as menu, i}
+						{@const margin = menu.revenue > 0 ? Math.round(((menu.revenue - menu.hpp) / menu.revenue) * 100) : 0}
+						<div class="margin-item">
+							<span class="margin-rank">{i + 1}</span>
+							<div class="margin-detail">
+								<strong>{menu.name}</strong>
+								<small>{menu.qty} terjual · {formatIDR(menu.revenue)}</small>
+							</div>
+							<span class="margin-pct {margin >= 35 ? 'margin-ok' : 'margin-alert'}">{margin}%</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+			<a class="full-link" href="/app/laporan">Lihat laporan lengkap <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg></a>
 		</article>
 	</section>
 </div>

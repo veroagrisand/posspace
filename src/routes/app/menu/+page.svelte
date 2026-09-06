@@ -36,6 +36,7 @@
 	let ingUnit = $state<'gram' | 'ml' | 'pcs'>('gram');
 	let ingStock = $state(0);
 	let ingMin = $state(0);
+	let ingCost = $state(0);
 
 	function withSaving(action: () => Promise<void>) {
 		if (saving) return;
@@ -157,10 +158,10 @@
 		saving = true;
 		try {
 			if (ingEditId) {
-				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin });
+				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku diperbarui');
 			} else {
-				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin });
+				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku ditambahkan');
 			}
 			ingOpen = false;
@@ -178,6 +179,7 @@
 		ingUnit = ing?.unit ?? 'gram';
 		ingStock = ing?.stock ?? 0;
 		ingMin = ing?.minStock ?? 0;
+		ingCost = ing?.costPerUnit ?? 0;
 		ingOpen = true;
 	}
 
@@ -240,9 +242,21 @@
 							<td>{product.name}</td>
 							<td>{product.category}</td>
 							<td>{product.variants.map((v) => v.name).join(' · ')}</td>
-							<td style="font-family:var(--font-display)">{formatIDR(product.variants[0]?.price ?? 0)}</td>
-							<td style="font-family:var(--font-display)">{formatIDR(product.variants[0] ? hppOf(product.variants[0]) : 0)}</td>
-							<td style="color:var(--green);font-weight:700">{product.variants[0]?.price ? Math.round(((product.variants[0].price - hppOf(product.variants[0])) / product.variants[0].price) * 100) : 0}%</td>
+							<td style="font-family:var(--font-display)">
+								{#each product.variants as variant}
+									<div class="hpp-line">{formatIDR(variant.price)}</div>
+								{/each}
+							</td>
+							<td style="font-family:var(--font-display)">
+								{#each product.variants as variant}
+									<div class="hpp-line">{formatIDR(hppOf(variant))}</div>
+								{/each}
+							</td>
+							<td style="color:var(--green);font-weight:700">
+								{#each product.variants as variant}
+									<div class="hpp-line">{variant.price ? Math.round(((variant.price - hppOf(variant)) / variant.price) * 100) : 0}%</div>
+								{/each}
+							</td>
 							<td>
 								<label class="switch">
 									<input
@@ -443,6 +457,11 @@
 				<div class="form-input"><input id="ingStock" type="number" min="0" bind:value={ingStock} disabled={saving} /></div>
 			</div>
 		{/if}
+		<div class="form-row">
+			<label for="ingCost">Harga modal per {ingUnit} (Rp)</label>
+			<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 120000 untuk 1 kg biji kopi" disabled={saving} /></div>
+			<p class="cost-hint">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual — pembelian tidak mengubahnya otomatis.</p>
+		</div>
 	</div>
 	<div class="modal-actions">
 		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
@@ -496,5 +515,17 @@
 
 	.button-danger:hover {
 		background: #b84a3e;
+	}
+
+	.hpp-line {
+		line-height: 1.7;
+		white-space: nowrap;
+	}
+
+	.cost-hint {
+		color: #7f8b82;
+		font-size: 10px;
+		line-height: 1.5;
+		margin-top: 5px;
 	}
 </style>
