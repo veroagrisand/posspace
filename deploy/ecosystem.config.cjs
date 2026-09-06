@@ -15,9 +15,19 @@
  *  - instances web: naikkan jika RAM cukup (≈350-450MB per worker).
  */
 const path = require('path');
+const os = require('os');
+
+// RAM-aware sizing: VPS kecil mudah OOM (proses dibunuh kernel → 502).
+// Ukuran worker web (±350-450MB/worker) & api (±300-400MB) disesuaikan
+// dengan total memori mesin secara otomatis; env WEB_INSTANCES tetap bisa
+// meng-override jumlah worker web.
+const totalMemMB = Math.floor(os.totalmem() / 1024 / 1024);
+const small = totalMemMB < 2048;
+const webInstances = Number(process.env.WEB_INSTANCES || 0) || (small ? 1 : 2);
+const webMem = small ? '384M' : '512M';
+const apiMem = small ? '300M' : '400M';
 
 const root = path.resolve(__dirname, '..');
-const webInstances = Number(process.env.WEB_INSTANCES || 2);
 
 module.exports = {
 	apps: [
@@ -26,9 +36,9 @@ module.exports = {
 			cwd: root,
 			script: 'build/index.js',
 			env: { NODE_ENV: 'production', PORT: 3000, API_UPSTREAM: 'http://127.0.0.1:3001' },
-			instances: webInstances, // cluster — default 2 (naikkan jika RAM VPS besar)
+			instances: webInstances, // cluster — disesuaikan RAM (WEB_INSTANCES override)
 			exec_mode: 'cluster',
-			max_memory_restart: '512M',
+			max_memory_restart: webMem,
 			kill_timeout: 15_000, // biarkan in-flight SSR selesai sebelum stop
 			listen_timeout: 5_000, // waktu worker baru untuk mulai listen saat reload
 			restart_delay: 3_000,
@@ -46,7 +56,7 @@ module.exports = {
 			script: 'dist/index.js',
 			env: { NODE_ENV: 'production', PORT: 3001, HOST: '127.0.0.1' },
 			instances: 1,
-			max_memory_restart: '400M',
+			max_memory_restart: apiMem,
 			kill_timeout: 10_000,
 			restart_delay: 3_000,
 			min_uptime: '10s',

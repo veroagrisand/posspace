@@ -67,6 +67,12 @@ else
 fi
 PREV_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 
+# Backup artefak build saat ini — dipakai auto-rollback bila health check gagal.
+echo "==> 1b/6 Backup build saat ini (rollback cadangan)"
+rm -rf build.prev apps/api/dist.prev
+[ -d build ] && cp -r build build.prev
+[ -d apps/api/dist ] && cp -r apps/api/dist apps/api/dist.prev
+
 echo "==> 2/6 Install dependencies (workspaces)"
 # Vite/Rolldown membutuhkan native binding platform yang dipasang sebagai
 # optional dependency. --include=optional juga mengesampingkan omit global npm.
@@ -93,10 +99,10 @@ set +a
 pm2 startOrReload deploy/ecosystem.config.cjs --update-env
 
 echo "==> 6/6 Health check"
-# Beri waktu worker PM2 selesai boot (maksimal ~15 detik) sebelum menilai gagal.
+# Beri waktu worker PM2 selesai boot (maksimal ~30 detik) sebelum menilai gagal.
 API_OK=0
 WEB_OK=0
-for attempt in $(seq 1 15); do
+for attempt in $(seq 1 30); do
 	if [ "$API_OK" -eq 0 ] && curl -fsS -m 5 http://127.0.0.1:3001/ready >/dev/null; then
 		API_OK=1
 	fi
@@ -108,15 +114,52 @@ for attempt in $(seq 1 15); do
 	fi
 	sleep 1
 done
+
+# Auto-rollback: kembalikan build lama bila rilis baru tidak sehat.
+rollback_release() {
+	echo "==> ! Auto-rollback ke build sebelumnya"
+	rm -rf build apps/api/dist
+	[ -d build.prev ] && mv build.prev build
+	[ -d apps/api/dist.prev ] && mv apps/api/dist.prev apps/api/dist
+	pm2 startOrReload deploy/ecosystem.config.cjs --update-env >/dev/null 2>&1 || true
+	sleep 3
+}
+
 if [ "$API_OK" -ne 1 ]; then
 	echo "ERROR: API tidak sehat setelah deploy."
-	pm2 logs posspace-api --lines 40 --nostream || true
-	exit 1
+	rollback_release
+	API_OK=0
+	for attempt in $(seq 1 15); do
+		if curl -fsS -m 5 http://127.0.0.1:3001/ready >/dev/null; then API_OK=1; break; fi
+		sleep 1
+	done
+	if [ "$API_OK" -ne 1 ]; then
+		pm2 logs posspace-api --lines 40 --nostream || true
+		exit 1
+	fi
+	echo "==> Rilis baru tidak sehat — berjalan dengan versi sebelumnya."
 fi
+
 if [ "$WEB_OK" -ne 1 ]; then
 	echo "ERROR: web tidak merespons setelah deploy."
-	pm2 logs posspace-web --lines 40 --nostream || true
-	exit 1
+	rollback_release
+	WEB_OK=0
+	for attempt in $(seq 1 15); do
+		if curl -fsS -m 5 -o /dev/null http://127.0.0.1:3000/health; then WEB_OK=1; break; fi
+		sleep 1
+	done
+	if [ "$WEB_OK" -ne 1 ]; then
+		pm2 logs posspace-web --lines 40 --nostream || true
+		exit 1
+	fi
+	echo "==> Rilis baru tidak sehat — berjalan dengan versi sebelumnya."
+fi
+
+# Baru setelah semua sehat: simpan state PM2 & terapkan Nginx/logrotate.
+pm2 save
+echo "==> 6b/6 Apply Nginx & logrotate (idempotent, nginx -t guard)"
+if [ -f deploy/apply-nginx.sh ]; then
+	bash deploy/apply-nginx.sh || echo "(apply-nginx dilewati — konfigurasi lama tetap aktif)"
 fi
 
 

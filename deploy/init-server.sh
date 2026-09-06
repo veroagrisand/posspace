@@ -107,6 +107,14 @@ if ! id -u "$APP_USER" >/dev/null 2>&1; then
 	sudo usermod -aG sudo "$APP_USER"
 fi
 
+log "4b/12 Sudo terbatas (least privilege) untuk auto-deploy"
+# Auto-deploy (GitHub Actions SSH) menerapkan Nginx & logrotate secara
+# otomatis. Beri NOPASSWD hanya untuk perintah spesifik — bukan sudo penuh.
+sudo tee "/etc/sudoers.d/posspace-deploy" >/dev/null <<'EOF'
+%deploy ALL=(root) NOPASSWD: /usr/bin/install, /usr/sbin/nginx -t, /usr/bin/systemctl reload nginx, /usr/sbin/logrotate
+EOF
+sudo chmod 440 /etc/sudoers.d/posspace-deploy
+
 log "5/12 Direktori aplikasi & log"
 sudo mkdir -p "$APP_DIR" /var/log/posspace
 sudo chown -R "$APP_USER":"$APP_USER" "$APP_DIR" /var/log/posspace
@@ -174,6 +182,11 @@ fi
 log "12/12 PM2 startup (auto-restart saat reboot)"
 sudo -u "$APP_USER" env PATH="$PATH:/usr/bin" pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER" >/dev/null 2>&1 || true
 sudo -u "$APP_USER" pm2 save >/dev/null 2>&1 || true
+
+log "12b/12 Nginx & logrotate mutakhir (idempotent)"
+if [ -f "$APP_DIR/deploy/apply-nginx.sh" ]; then
+	sudo -u "$APP_USER" env DOMAIN="$DOMAIN" bash "$APP_DIR/deploy/apply-nginx.sh" || true
+fi
 
 echo ""
 echo "======================================================"

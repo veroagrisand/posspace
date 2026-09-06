@@ -1,0 +1,25 @@
+# ============================================================
+# Uptime monitoring — posspace
+# Menjalankan scripts/healthcheck.sh ke situs produksi secara
+# terjadwal. Gagal = run merah di tab Actions (visible alert).
+# Tidak butuh secret apa pun (endpoint publik).
+# ============================================================
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: uptime-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Health check produksi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cek /health dan /login
+        run: bash scripts/healthcheck.sh https://posspace.id
