@@ -3428,3 +3428,744 @@
 		transform: scale(0.96);
 	}
 }
+
+/* =====================================================================
+   SvelteForge-inspired dashboard skin
+   Visual-only layer: routes, stores, APIs, permissions, and POS logic
+   remain unchanged. The skin follows the reference's neutral shadcn
+   language: quiet canvas, thin borders, compact cards, and clear focus.
+   ===================================================================== */
+.sf-shell {
+	--paper: #f8fafc;
+	--surface: #ffffff;
+	--line: #e2e8f0;
+	--line-strong: #cbd5e1;
+	--ink: #0f172a;
+	--ink-soft: #475569;
+	--muted: #94a3b8;
+	--forest-950: #0f172a;
+	--forest-900: #0f172a;
+	--forest-800: #1e293b;
+	--forest-700: #334155;
+	--forest-100: #f1f5f9;
+	--orange: #2563eb;
+	--orange-dark: #1d4ed8;
+	--orange-soft: #eff6ff;
+	--green: #059669;
+	--green-soft: #ecfdf5;
+	--amber: #d97706;
+	--amber-soft: #fffbeb;
+	--red: #dc2626;
+	--red-soft: #fef2f2;
+	--shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.035);
+	--shadow-float: 0 20px 50px rgba(15, 23, 42, 0.16);
+	--radius: 12px;
+	background: var(--paper);
+}
+
+.sf-shell .sidebar {
+	padding: 22px 14px 16px;
+	color: #475569;
+	border-right: 1px solid #e2e8f0;
+	background: #ffffff;
+	box-shadow: 4px 0 18px rgba(15, 23, 42, 0.025);
+}
+
+.sf-shell .brand {
+	margin: 0 10px 22px;
+}
+
+.sf-shell .brand-mark {
+	width: 34px;
+	height: 34px;
+	color: #fff;
+	background: #0f172a;
+	box-shadow: 0 5px 12px rgba(15, 23, 42, 0.2);
+}
+
+.sf-shell .brand-copy strong {
+	color: #0f172a;
+}
+
+.sf-shell .brand-copy small {
+	color: #64748b;
+}
+
+.workspace-switcher {
+	display: grid;
+	grid-template-columns: 30px minmax(0, 1fr) 16px;
+	align-items: center;
+	gap: 9px;
+	min-height: 54px;
+	margin: 0 3px 22px;
+	padding: 8px 10px;
+	border: 1px solid #e2e8f0;
+	border-radius: 10px;
+	background: #f8fafc;
+}
+
+.workspace-avatar {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 8px;
+	color: #1d4ed8;
+	background: #dbeafe;
+	font-size: 10px;
+	font-weight: 800;
+}
+
+.workspace-copy {
+	display: grid;
+	min-width: 0;
+	gap: 3px;
+}
+
+.workspace-copy small {
+	color: #94a3b8;
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+}
+
+.workspace-copy strong {
+	overflow: hidden;
+	color: #1e293b;
+	font-size: 11px;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.workspace-switcher > svg {
+	width: 14px;
+	height: 14px;
+	color: #94a3b8;
+}
+
+.sf-shell .sidebar-label {
+	margin: 0 12px 9px;
+	color: #94a3b8;
+	font-size: 9px;
+	letter-spacing: 0.11em;
+}
+
+.sf-shell .sidebar-nav {
+	gap: 3px;
+}
+
+.sf-shell .nav-item {
+	min-height: 40px;
+	padding: 0 11px;
+	color: #64748b;
+	border-radius: 8px;
+}
+
+.sf-shell .nav-item svg {
+	width: 17px;
+	height: 17px;
+}
+
+.sf-shell .nav-item span:not(.nav-badge) {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.sf-shell .nav-item:hover {
+	color: #1e293b;
+	background: #f1f5f9;
+}
+
+.sf-shell .nav-item.active {
+	color: #1d4ed8;
+	background: #eff6ff;
+	box-shadow: inset 2px 0 0 #2563eb;
+}
+
+.sf-shell .nav-item.active::after {
+	display: none;
+}
+
+.sf-shell .sidebar-bottom {
+	gap: 14px;
+}
+
+.sf-shell .offline-card {
+	margin: 0 3px;
+	padding: 10px;
+	border-color: #e2e8f0;
+	background: #f8fafc;
+}
+
+.sf-shell .offline-card strong {
+	color: #334155;
+}
+
+.sf-shell .offline-card span:not(.online-dot) {
+	color: #94a3b8;
+}
+
+.sf-shell .profile-card {
+	padding: 12px 8px 0;
+	border-top-color: #e2e8f0;
+}
+
+.sf-shell .profile-copy strong {
+	color: #1e293b;
+}
+
+.sf-shell .profile-copy small,
+.sf-shell .profile-more {
+	color: #64748b;
+}
+
+.sf-shell .main-content {
+	background: #f8fafc;
+}
+
+.sf-shell .topbar {
+	min-height: 68px;
+	padding: 0 clamp(20px, 3vw, 42px);
+	border-bottom-color: #e2e8f0;
+	background: rgba(248, 250, 252, 0.88);
+	box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.sf-shell .breadcrumbs {
+	color: #94a3b8;
+	font-size: 11px;
+}
+
+.sf-shell .breadcrumbs strong {
+	color: #334155;
+}
+
+.sf-shell .sync-status {
+	color: #475569;
+	font-size: 10px;
+}
+
+.sf-shell .sync-status small {
+	color: #94a3b8;
+}
+
+.sf-shell .page-content {
+	max-width: 1540px;
+	padding-top: 32px;
+}
+
+.sf-shell .page-heading {
+	margin-bottom: 26px;
+}
+
+.sf-shell .eyebrow {
+	color: #64748b;
+	font-size: 9px;
+	letter-spacing: 0.12em;
+}
+
+.sf-shell .eyebrow-line {
+	width: 14px;
+	background: #2563eb;
+}
+
+.sf-shell .page-heading h1 {
+	color: #0f172a;
+	font-size: clamp(26px, 2.4vw, 34px);
+	letter-spacing: -0.06em;
+}
+
+.sf-shell .page-heading p {
+	color: #64748b;
+}
+
+.sf-shell .panel,
+.sf-shell .metric-card {
+	border-color: #e2e8f0;
+	border-radius: 12px;
+	box-shadow: var(--shadow);
+}
+
+.sf-shell .panel-heading h2,
+.sf-shell .order-heading h2 {
+	color: #0f172a;
+	font-size: 18px;
+}
+
+.sf-shell .section-kicker {
+	color: #94a3b8;
+	font-size: 8px;
+	letter-spacing: 0.13em;
+}
+
+.sf-shell .metric-card {
+	min-height: 132px;
+	padding: 17px 18px 15px;
+}
+
+.sf-shell .metric-card::after {
+	background: rgba(219, 234, 254, 0.4);
+}
+
+.sf-shell .metric-revenue::before {
+	background: #2563eb;
+}
+
+.sf-shell .metric-orders::before {
+	background: #64748b;
+}
+
+.sf-shell .metric-profit::before {
+	background: #059669;
+}
+
+.sf-shell .metric-stock::before {
+	background: #d97706;
+}
+
+.sf-shell .metric-label,
+.sf-shell .metric-meta {
+	color: #64748b;
+}
+
+.sf-shell .metric-value {
+	color: #0f172a;
+	font-size: 24px;
+}
+
+.sf-shell .button-primary {
+	color: #fff;
+	background: #2563eb;
+	box-shadow: 0 5px 12px rgba(37, 99, 235, 0.18);
+}
+
+.sf-shell .button-primary:hover {
+	background: #1d4ed8;
+	box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
+
+.sf-shell .button-secondary {
+	color: #334155;
+	border-color: #cbd5e1;
+	background: #fff;
+}
+
+.sf-shell .button-secondary:hover {
+	background: #f8fafc;
+}
+
+.sf-shell .form-input,
+.sf-shell .search-box,
+.sf-shell .period-picker,
+.sf-shell .month-picker {
+	border-color: #cbd5e1;
+	background: #fff;
+}
+
+.sf-shell .form-input:focus-within,
+.sf-shell .search-box:focus-within {
+	border-color: #60a5fa;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.sf-shell .data-table th {
+	color: #64748b;
+	background: #f8fafc;
+}
+
+.sf-shell .data-table td {
+	border-top-color: #eef2f7;
+}
+
+.sf-shell .modal-overlay {
+	background: rgba(15, 23, 42, 0.44);
+}
+
+.sf-shell .modal-card {
+	border: 1px solid #e2e8f0;
+	border-radius: 14px;
+	box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+}
+
+@media (max-width: 1120px) {
+	.sf-shell .workspace-switcher {
+		display: none;
+	}
+
+	.sf-shell .sidebar {
+		background: #fff;
+	}
+}
+
+@media (max-width: 720px) {
+	.sf-shell .sidebar {
+		border-top-color: #e2e8f0;
+		box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+	}
+
+	.sf-shell .nav-item,
+	.sf-shell .nav-item.active {
+		color: #64748b;
+		background: transparent;
+	}
+
+	.sf-shell .nav-item.active {
+		color: #2563eb;
+		background: #eff6ff;
+	}
+
+	.sf-shell .topbar {
+		background: rgba(248, 250, 252, 0.94);
+	}
+
+	.sf-shell .page-content {
+		padding-top: 24px;
+	}
+}
+
+/* ===== Toggle tema (gelap/terang) ===== */
+.theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	min-height: 36px;
+	padding: 0 11px;
+	color: #64748b;
+	border-radius: 9px;
+	background: transparent;
+	font-size: 11px;
+	font-weight: 600;
+	transition: color 160ms ease, background 160ms ease;
+}
+
+.theme-toggle svg {
+	width: 16px;
+	height: 16px;
+}
+
+.theme-toggle:hover {
+	color: #1e293b;
+	background: #f1f5f9;
+}
+
+.theme-label {
+	font-size: 10px;
+	font-weight: 600;
+}
+
+.only-desktop {
+	display: inline-flex;
+}
+
+.only-mobile {
+	display: none;
+}
+
+.sidebar-bottom .theme-toggle {
+	margin: 0 3px;
+}
+
+/* ===== Dark mode — app POS (skin SvelteForge) ===== */
+html[data-theme='dark'] .sf-shell {
+	--paper: #0f172a;
+	--surface: #1e293b;
+	--line: #27364a;
+	--line-strong: #3b4a61;
+	--ink: #f1f5f9;
+	--ink-soft: #cbd5e1;
+	--muted: #94a3b8;
+	--forest-950: #0b1220;
+	--forest-900: #111827;
+	--forest-800: #1e293b;
+	--forest-700: #334155;
+	--forest-100: #1e293b;
+	--orange: #3b82f6;
+	--orange-dark: #60a5fa;
+	--orange-soft: rgba(37, 99, 235, 0.16);
+	--green: #34d399;
+	--green-soft: rgba(16, 185, 129, 0.14);
+	--amber: #fbbf24;
+	--amber-soft: rgba(217, 119, 6, 0.16);
+	--red: #f87171;
+	--red-soft: rgba(220, 38, 38, 0.16);
+	--shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.18);
+	--shadow-float: 0 24px 60px rgba(0, 0, 0, 0.5);
+	background: var(--paper);
+}
+
+html[data-theme='dark'] .sf-shell .sidebar {
+	color: #94a3b8;
+	border-right-color: #1e293b;
+	background: #111827;
+	box-shadow: 4px 0 18px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .sf-shell .brand-copy strong {
+	color: #f1f5f9;
+}
+
+html[data-theme='dark'] .sf-shell .brand-copy small {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-switcher {
+	border-color: #27364a;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-copy strong {
+	color: #e2e8f0;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-copy small,
+html[data-theme='dark'] .sf-shell .workspace-switcher > svg {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-avatar {
+	color: #93c5fd;
+	background: rgba(37, 99, 235, 0.2);
+}
+
+html[data-theme='dark'] .sf-shell .sidebar-label {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item:hover {
+	color: #e2e8f0;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item.active {
+	color: #93c5fd;
+	background: rgba(37, 99, 235, 0.16);
+	box-shadow: inset 2px 0 0 #3b82f6;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card {
+	border-color: #27364a;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card strong {
+	color: #e2e8f0;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card span:not(.online-dot) {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .profile-card {
+	border-top-color: #27364a;
+}
+
+html[data-theme='dark'] .sf-shell .profile-copy strong {
+	color: #e2e8f0;
+}
+
+html[data-theme='dark'] .sf-shell .profile-copy small,
+html[data-theme='dark'] .sf-shell .profile-more {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .theme-toggle {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .theme-toggle:hover {
+	color: #e2e8f0;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .main-content,
+html[data-theme='dark'] .sf-shell .topbar {
+	background: #0f172a;
+}
+
+html[data-theme='dark'] .sf-shell .topbar {
+	border-bottom-color: #1e293b;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .sf-shell .breadcrumbs {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .breadcrumbs strong {
+	color: #cbd5e1;
+}
+
+html[data-theme='dark'] .sf-shell .sync-status {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .page-heading h1 {
+	color: #f1f5f9;
+}
+
+html[data-theme='dark'] .sf-shell .page-heading p,
+html[data-theme='dark'] .sf-shell .eyebrow {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .panel-heading h2,
+html[data-theme='dark'] .sf-shell .order-heading h2 {
+	color: #f1f5f9;
+}
+
+html[data-theme='dark'] .sf-shell .section-kicker {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .metric-value {
+	color: #f1f5f9;
+}
+
+html[data-theme='dark'] .sf-shell .metric-label,
+html[data-theme='dark'] .sf-shell .metric-meta {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .metric-card::after {
+	background: rgba(59, 130, 246, 0.08);
+}
+
+html[data-theme='dark'] .sf-shell .metric-icon {
+	background: #27364a;
+}
+
+html[data-theme='dark'] .sf-shell .button-secondary {
+	color: #cbd5e1;
+	border-color: #3b4a61;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .button-secondary:hover {
+	background: #27364a;
+}
+
+html[data-theme='dark'] .sf-shell .form-input,
+html[data-theme='dark'] .sf-shell .search-box,
+html[data-theme='dark'] .sf-shell .period-picker,
+html[data-theme='dark'] .sf-shell .month-picker {
+	border-color: #3b4a61;
+	background: #111827;
+}
+
+html[data-theme='dark'] .sf-shell .form-input input,
+html[data-theme='dark'] .sf-shell .form-input select,
+html[data-theme='dark'] .sf-shell .search-box input {
+	color: #e2e8f0;
+}
+
+html[data-theme='dark'] .sf-shell .form-input input::placeholder,
+html[data-theme='dark'] .sf-shell .search-box input::placeholder {
+	color: #64748b;
+}
+
+html[data-theme='dark'] .sf-shell .data-table th {
+	color: #94a3b8;
+	background: #111827;
+}
+
+html[data-theme='dark'] .sf-shell .data-table td {
+	border-top-color: #27364a;
+	color: #cbd5e1;
+}
+
+html[data-theme='dark'] .sf-shell .modal-overlay {
+	background: rgba(2, 6, 23, 0.66);
+}
+
+html[data-theme='dark'] .sf-shell .modal-card {
+	border-color: #27364a;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .modal-head,
+html[data-theme='dark'] .sf-shell .modal-head h3 {
+	color: #f1f5f9;
+}
+
+html[data-theme='dark'] .sf-shell .form-row label,
+html[data-theme='dark'] .sf-shell .au-field label {
+	color: #94a3b8;
+}
+
+html[data-theme='dark'] .sf-shell .shift-pill {
+	color: #e2e8f0;
+	border-color: #27364a;
+	background: #1e293b;
+}
+
+html[data-theme='dark'] .sf-shell .cash-input-wrap {
+	border-color: #3b4a61;
+	background: #111827;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning {
+	border-color: rgba(248, 113, 113, 0.3);
+	background: rgba(220, 38, 38, 0.12);
+	color: #fca5a5;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning strong {
+	color: #fca5a5;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning-icon {
+	color: #f87171;
+	background: rgba(220, 38, 38, 0.2);
+}
+
+html[data-theme='dark'] .sf-shell .margin-summary > div {
+	background: #111827;
+}
+
+html[data-theme='dark'] .sf-shell .admin-pill,
+html[data-theme='dark'] .sf-shell .stock-status {
+	color: #cbd5e1;
+	background: #27364a;
+}
+
+@media (max-width: 720px) {
+	.only-desktop {
+		display: none;
+	}
+
+	.only-mobile {
+		display: flex;
+	}
+
+	html[data-theme='dark'] .sf-shell .sidebar {
+		border-top-color: #1e293b;
+	}
+
+	.sf-shell .only-mobile {
+		flex-direction: column;
+		justify-content: center;
+		gap: 3px;
+		min-height: 44px;
+		padding: 4px 2px;
+		border-radius: 8px;
+	}
+
+	.sf-shell .only-mobile svg {
+		width: 17px;
+		height: 17px;
+	}
+
+	.sf-shell .only-mobile .theme-label {
+		font-size: 8px;
+	}
+
+	html[data-theme='dark'] .sf-shell .topbar {
+		background: rgba(15, 23, 42, 0.94);
+	}
+}

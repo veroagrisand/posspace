@@ -20,6 +20,17 @@
 		<meta name="twitter:description" content="Kasir cepat, stok dipotong otomatis sesuai resep, dan laporan HPP dalam satu aplikasi untuk coffee shop UMKM." />
 		<meta name="twitter:image" content="https://posspace.id/og-image.svg" />
 		<title>posspace — POS kasir kopi dengan stok real-time</title>
+		<script>
+			// Terapkan tema gelap lebih awal agar tidak ada kilatan (FOUC).
+			// Nilai tersimpan di localStorage; fallback mengikuti preferensi sistem.
+			(function () {
+				try {
+					var t = localStorage.getItem('posspace-theme');
+					if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+					if (t === 'dark') document.documentElement.dataset.theme = 'dark';
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link

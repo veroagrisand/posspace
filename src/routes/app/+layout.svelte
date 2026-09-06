@@ -6,6 +6,7 @@
 	import { backend, printer } from '$lib/store.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import PrinterSetup from '$lib/components/PrinterSetup.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: any } = $props();
 
@@ -84,7 +85,7 @@
 </script>
 
 {#if !data || data.demo || (data.user && data.shop)}
-	<div class="app-shell">
+	<div class="app-shell sf-shell">
 		<aside class="sidebar" aria-label="Navigasi utama">
 			<a class="brand" href="/app" aria-label="posspace">
 				<span class="brand-mark" aria-hidden="true">ps</span>
@@ -93,7 +94,16 @@
 				</span>
 			</a>
 
-			<div class="sidebar-label">Menu utama</div>
+			<div class="workspace-switcher">
+				<span class="workspace-avatar">{initials(user?.shopName ?? 'PS')}</span>
+				<span class="workspace-copy">
+					<small>WORKSPACE</small>
+					<strong>{user?.shopName ?? 'Toko Anda'}</strong>
+				</span>
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+			</div>
+
+			<div class="sidebar-label">POS OPERASIONAL</div>
 			<nav class="sidebar-nav">
 				{#each visibleNavItems as item}
 					<a class="nav-item" class:active={pathname === item.href} href={item.href}>
@@ -117,6 +127,8 @@
 				{/each}
 			</nav>
 
+			<ThemeToggle class="only-mobile" />
+
 			<div class="sidebar-bottom">
 				<div class="offline-card">
 					<div class="offline-icon" aria-hidden="true">
@@ -128,6 +140,7 @@
 					</div>
 					<span class="online-dot" aria-label="Online"></span>
 				</div>
+				<ThemeToggle class="only-desktop" />
 				<div class="profile-card">
 					{#if user}
 						<span class="avatar">{initials(user.name)}</span>

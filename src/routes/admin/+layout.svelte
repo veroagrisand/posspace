@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { getBrowserClient } from '$lib/supabase';
 	import { clearDemoSession } from '$lib/demo';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	let { children, data }: { children: import('svelte').Snippet; data: any } = $props();
 
@@ -28,7 +29,7 @@
 	}
 </script>
 
-<div class="admin-shell">
+<div class="admin-shell sf-admin-shell">
 	<aside class="admin-sidebar" aria-label="Navigasi admin">
 		<a class="brand" href="/admin" aria-label="posspace admin">
 			<span class="brand-mark" aria-hidden="true">ps</span>
@@ -67,6 +68,7 @@
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v12H5zM8 8V6a4 4 0 0 1 8 0v2" /></svg>
 					<span>Buka kasir</span>
 				</a>
+				<ThemeToggle class="admin-theme-toggle" />
 			</div>
 			<div class="profile-card">
 				<span class="avatar" style="background:#d29a3b">{data.admin.user.email.slice(0, 2).toUpperCase()}</span>
