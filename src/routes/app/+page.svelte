@@ -663,6 +663,7 @@
 			{:else}
 				<div class="margin-summary">
 					<div><span>Laba kotor</span><strong>{formatRupiahExact(todayGrossProfit)}</strong></div>
+					<div><span>HPP hari ini</span><strong>{formatRupiahExact(todayHpp)}</strong></div>
 					<div><span>Rasio HPP</span><strong class="{hppPct <= 35 ? 'margin-ok' : 'margin-alert'}">{hppPct}%</strong></div>
 				</div>
 				<div class="margin-list">
@@ -672,9 +673,9 @@
 							<span class="margin-rank">{i + 1}</span>
 							<div class="margin-detail">
 								<strong>{menu.name}</strong>
-								<small>{menu.qty} terjual · {formatIDR(menu.revenue)}</small>
+								<small>{menu.qty} terjual · HPP {formatRupiahExact(menu.hpp)} · Laba {formatRupiahExact(menu.revenue - menu.hpp)}</small>
 							</div>
-							<span class="margin-pct {margin >= 35 ? 'margin-ok' : 'margin-alert'}">{margin}%</span>
+							<span class="margin-pct {margin >= 35 ? 'margin-ok' : 'margin-alert'}" title="Marjin {margin}%">{margin}%</span>
 						</div>
 					{/each}
 				</div>
