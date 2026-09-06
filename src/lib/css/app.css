@@ -3224,3 +3224,36 @@
 		width: 100%;
 	}
 }
+
+.mobile-logout {
+	display: none;
+}
+
+@media (max-width: 720px) {
+	.mobile-logout {
+		display: grid;
+		position: fixed;
+		z-index: 12;
+		right: 12px;
+		bottom: 84px;
+		width: 40px;
+		height: 40px;
+		place-items: center;
+		border: 1px solid var(--line-strong);
+		border-radius: 12px;
+		background: #fff;
+		color: var(--ink-soft);
+		box-shadow: 0 6px 18px rgba(23, 40, 31, 0.14);
+		cursor: pointer;
+	}
+	.mobile-logout svg {
+		width: 18px;
+		height: 18px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.7;
+	}
+	.mobile-logout:active {
+		transform: scale(0.96);
+	}
+}

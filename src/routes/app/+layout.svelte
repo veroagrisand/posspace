@@ -146,6 +146,10 @@
 		<main class="main-content">{@render children()}</main>
 	</div>
 
+	<button class="mobile-logout" type="button" onclick={handleSignOut} aria-label="Keluar dari aplikasi" title="Keluar">
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9M16 17l5-5-5-5M21 12H9" /></svg>
+	</button>
+
 	<Toast message={toastState.message} />
 	<PrinterSetup bind:open={printerSetupOpen} />
 {/if}
