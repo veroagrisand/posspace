@@ -157,6 +157,7 @@ Prinsip yang wajib dijaga saat menambah fitur:
 |---|---|
 | `API_UNAVAILABLE` | Gateway `:3001` mati saat reload — cek `pm2 status`, `curl 127.0.0.1:3001/health` |
 | 502 sesaat saat deploy | Jendela reload PM2 — sudah diredam `proxy_next_upstream` di Nginx |
+| Situs makin lama makin lambat lalu 502 (membaik setelah hapus data manual) | `access_logs` membesar tanpa batas (2 baris/request, tanpa retensi). Terapkan migration `0021` (index + fungsi cron) lalu deploy — API purge otomatis tiap 6 jam. Pemulihan cepat: jalankan `select public.purge_access_logs(7);` di Supabase SQL Editor (atau tombol purge di Admin → Monitor) |
 | `Cannot find native binding` (Rolldown) | `npm ci` melewatkan optional dep Linux — `deploy.sh` memasangnya otomatis |
 | `permission denied for function ...` | Grant RPC belum sesuai migration `0013` — samakan `GRANT/REVOKE` |
 | Login/daftar gagal OTP | Cek `SMTP_*`; dev: `ALLOW_OTP_DEBUG=true` mengembalikan kode di respons |

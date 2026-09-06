@@ -411,7 +411,8 @@ posDataService.get('/opnames', async (c) => {
 	const { data, error: selectError } = await c.get('db')!
 		.from('stock_opnames')
 		.select('*, ingredients(shop_id)')
-		.order('created_at', { ascending: false });
+		.order('created_at', { ascending: false })
+		.limit(200);
 
 	if (selectError) httpError(500, 'FETCH_FAILED');
 	return json({ opnames: data ?? [] });

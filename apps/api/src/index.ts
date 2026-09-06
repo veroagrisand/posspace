@@ -1,7 +1,8 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { compress } from 'hono/compress';
-import { env } from './env.js';
+import { env, isSupabaseConfigured } from './env.js';
+import { service } from './db.js';
 import { auth, accessLog, onError, notFound } from './middleware.js';
 import { authService } from './services/auth.js';
 import { posDataService, transactionsService, reportsService } from './services/pos.js';
@@ -47,3 +48,33 @@ const HOST = env.HOST ?? '0.0.0.0';
 serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
 	console.log(`[posspace-api] gateway berjalan di http://${HOST}:${info.port}`);
 });
+
+// ===== Retensi otomatis access_logs =====
+// access_logs ditulis 2x per request (web hooks + middleware API) dan tanpa
+// retensi otomatis tabel membesar tanpa batas → insert/query DB melambat →
+// seluruh situs melambat & kena 502. Scheduler ini memakai fungsi khusus
+// service_role (public.purge_access_logs_cron) supaya jalur purge admin
+// (is_platform_admin) tidak dilemahkan.
+const ACCESS_LOG_RETENTION_DAYS = Number(env.ACCESS_LOG_RETENTION_DAYS ?? 7);
+const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+async function purgeAccessLogs(): Promise<void> {
+	if (!isSupabaseConfigured) return;
+	try {
+		const { data, error } = await service().rpc('purge_access_logs_cron', {
+			p_days: ACCESS_LOG_RETENTION_DAYS
+		});
+		if (error) throw error;
+		console.log(`[retensi] access_logs dibersihkan (retensi ${ACCESS_LOG_RETENTION_DAYS} hari): ${data ?? 0} baris`);
+	} catch (e) {
+		console.warn('[retensi] purge access_logs gagal:', e);
+	}
+}
+
+// Jalan pertama ~30 detik setelah boot, lalu tiap 6 jam.
+setTimeout(() => {
+	void purgeAccessLogs();
+}, 30_000);
+setInterval(() => {
+	void purgeAccessLogs();
+}, PURGE_INTERVAL_MS);
