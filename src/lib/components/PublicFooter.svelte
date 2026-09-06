@@ -45,7 +45,7 @@
 				</span>
 			</div>
 			<nav class="footer-col" aria-label="Tautan produk">
-				<h4>Produk</h4>
+				<h3>Produk</h3>
 				<ul>
 					<li><a href="/#fitur">Fitur<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/#harga">Harga<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
@@ -54,7 +54,7 @@
 				</ul>
 			</nav>
 			<nav class="footer-col" aria-label="Tautan perusahaan">
-				<h4>Perusahaan</h4>
+				<h3>Perusahaan</h3>
 				<ul>
 					<li><a href="/#testimoni">Testimoni<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/#cara-kerja">Cara kerja<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
@@ -63,7 +63,7 @@
 				</ul>
 			</nav>
 			<nav class="footer-col" aria-label="Tautan verifikasi">
-				<h4>Verifikasi Aplikasi</h4>
+				<h3>Verifikasi Aplikasi</h3>
 				<ul>
 					<li><a href="/faq">FAQ<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/refund-policy">Refund Policy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
