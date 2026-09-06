@@ -4175,7 +4175,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 /* =====================================================================
    Brand palette — Stripe-style (posspace dashboard)
    Light : ungu #635BFF · navy #0A2540 · abu #F6F8FA/#E6E8EB
-   Dark  : ungu #7A73FF · navy #0F1B2D/#16233A · teks #F6F8FA
+   Dark  : ungu #7A73FF · navy #101012/#1A1A1C · teks #F6F8FA
    Lapisan override di akhir file agar menang atas skin bawaan.
    ===================================================================== */
 
@@ -4187,7 +4187,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 	--line-strong: #D9DDE3;
 	--ink: #0A2540;
 	--ink-soft: #425466;
-	--muted: #6B7C93;
+	--muted: #7C7C84;
 	--forest-100: #F0F2F5;
 	--forest-700: #425466;
 	--forest-800: #1A1F36;
@@ -4224,7 +4224,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 .sf-shell .workspace-copy small,
 .sf-shell .workspace-switcher > svg,
 .sf-shell .sidebar-label {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 .sf-shell .nav-item {
@@ -4252,7 +4252,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 }
 
 .sf-shell .offline-card span:not(.online-dot) {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 .sf-shell .profile-card {
@@ -4284,7 +4284,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 }
 
 .sf-shell .breadcrumbs {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 .sf-shell .breadcrumbs strong {
@@ -4296,7 +4296,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 }
 
 .sf-shell .sync-status small {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 .sf-shell .page-heading h1 {
@@ -4318,7 +4318,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 }
 
 .sf-shell .section-kicker {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 .sf-shell .metric-value {
@@ -4389,7 +4389,7 @@ html[data-theme='dark'] .sf-shell .stock-status {
 }
 
 .sf-shell .data-table th {
-	color: #6B7C93;
+	color: #7C7C84;
 	background: #F6F8FA;
 }
 
@@ -4421,18 +4421,18 @@ html[data-theme='dark'] .sf-shell .stock-status {
 
 /* ---------- DARK ---------- */
 html[data-theme='dark'] .sf-shell {
-	--paper: #0F1B2D;
-	--surface: #16233A;
-	--line: #2C3A4B;
-	--line-strong: #3D4C61;
+	--paper: #101012;
+	--surface: #1A1A1C;
+	--line: #26262A;
+	--line-strong: #333338;
 	--ink: #F6F8FA;
-	--ink-soft: #C4CED9;
-	--muted: #8FA0B3;
-	--forest-100: #16233A;
+	--ink-soft: #C8C8CE;
+	--muted: #92929A;
+	--forest-100: #1A1A1C;
 	--forest-700: #425466;
-	--forest-800: #16233A;
-	--forest-900: #0A1626;
-	--forest-950: #081220;
+	--forest-800: #1A1A1C;
+	--forest-900: #151517;
+	--forest-950: #0C0C0E;
 	--orange: #7A73FF;
 	--orange-dark: #9A94FF;
 	--orange-soft: rgba(122, 115, 255, 0.16);
@@ -4446,8 +4446,8 @@ html[data-theme='dark'] .sf-shell {
 }
 
 html[data-theme='dark'] .sf-shell .sidebar {
-	border-right-color: #2C3A4B;
-	background: #0A1626;
+	border-right-color: #26262A;
+	background: #151517;
 }
 
 html[data-theme='dark'] .sf-shell .brand-copy strong {
@@ -4455,12 +4455,12 @@ html[data-theme='dark'] .sf-shell .brand-copy strong {
 }
 
 html[data-theme='dark'] .sf-shell .brand-copy small {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .workspace-switcher {
-	border-color: #2C3A4B;
-	background: #16233A;
+	border-color: #26262A;
+	background: #1A1A1C;
 }
 
 html[data-theme='dark'] .sf-shell .workspace-avatar {
@@ -4475,16 +4475,16 @@ html[data-theme='dark'] .sf-shell .workspace-copy strong {
 html[data-theme='dark'] .sf-shell .workspace-copy small,
 html[data-theme='dark'] .sf-shell .workspace-switcher > svg,
 html[data-theme='dark'] .sf-shell .sidebar-label {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .nav-item {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .nav-item:hover {
 	color: #F6F8FA;
-	background: #1A2433;
+	background: #202024;
 }
 
 html[data-theme='dark'] .sf-shell .nav-item.active {
@@ -4494,8 +4494,8 @@ html[data-theme='dark'] .sf-shell .nav-item.active {
 }
 
 html[data-theme='dark'] .sf-shell .offline-card {
-	border-color: #2C3A4B;
-	background: #16233A;
+	border-color: #26262A;
+	background: #1A1A1C;
 }
 
 html[data-theme='dark'] .sf-shell .offline-card strong {
@@ -4503,11 +4503,11 @@ html[data-theme='dark'] .sf-shell .offline-card strong {
 }
 
 html[data-theme='dark'] .sf-shell .offline-card span:not(.online-dot) {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .profile-card {
-	border-top-color: #2C3A4B;
+	border-top-color: #26262A;
 }
 
 html[data-theme='dark'] .sf-shell .profile-copy strong {
@@ -4517,25 +4517,25 @@ html[data-theme='dark'] .sf-shell .profile-copy strong {
 html[data-theme='dark'] .sf-shell .profile-copy small,
 html[data-theme='dark'] .sf-shell .profile-more,
 html[data-theme='dark'] .sf-shell .theme-toggle {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .theme-toggle:hover {
 	color: #F6F8FA;
-	background: #1A2433;
+	background: #202024;
 }
 
 html[data-theme='dark'] .sf-shell .main-content,
 html[data-theme='dark'] .sf-shell .topbar {
-	background: #0F1B2D;
+	background: #101012;
 }
 
 html[data-theme='dark'] .sf-shell .topbar {
-	border-bottom-color: #2C3A4B;
+	border-bottom-color: #26262A;
 }
 
 html[data-theme='dark'] .sf-shell .breadcrumbs {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .breadcrumbs strong {
@@ -4543,7 +4543,7 @@ html[data-theme='dark'] .sf-shell .breadcrumbs strong {
 }
 
 html[data-theme='dark'] .sf-shell .sync-status {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .page-heading h1 {
@@ -4552,7 +4552,7 @@ html[data-theme='dark'] .sf-shell .page-heading h1 {
 
 html[data-theme='dark'] .sf-shell .page-heading p,
 html[data-theme='dark'] .sf-shell .eyebrow {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .panel-heading h2,
@@ -4561,7 +4561,7 @@ html[data-theme='dark'] .sf-shell .order-heading h2 {
 }
 
 html[data-theme='dark'] .sf-shell .section-kicker {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .metric-value {
@@ -4570,11 +4570,11 @@ html[data-theme='dark'] .sf-shell .metric-value {
 
 html[data-theme='dark'] .sf-shell .metric-label,
 html[data-theme='dark'] .sf-shell .metric-meta {
-	color: #8FA0B3;
+	color: #92929A;
 }
 
 html[data-theme='dark'] .sf-shell .metric-icon {
-	background: #1A2433;
+	background: #202024;
 }
 
 html[data-theme='dark'] .sf-shell .metric-card::after {
@@ -4582,21 +4582,21 @@ html[data-theme='dark'] .sf-shell .metric-card::after {
 }
 
 html[data-theme='dark'] .sf-shell .button-secondary {
-	color: #C4CED9;
-	border-color: #3D4C61;
-	background: #16233A;
+	color: #C8C8CE;
+	border-color: #333338;
+	background: #1A1A1C;
 }
 
 html[data-theme='dark'] .sf-shell .button-secondary:hover {
-	background: #1A2433;
+	background: #202024;
 }
 
 html[data-theme='dark'] .sf-shell .form-input,
 html[data-theme='dark'] .sf-shell .search-box,
 html[data-theme='dark'] .sf-shell .period-picker,
 html[data-theme='dark'] .sf-shell .month-picker {
-	border-color: #3D4C61;
-	background: #0A1626;
+	border-color: #333338;
+	background: #151517;
 }
 
 html[data-theme='dark'] .sf-shell .form-input input,
@@ -4607,17 +4607,17 @@ html[data-theme='dark'] .sf-shell .search-box input {
 
 html[data-theme='dark'] .sf-shell .form-input input::placeholder,
 html[data-theme='dark'] .sf-shell .search-box input::placeholder {
-	color: #6B7C93;
+	color: #7C7C84;
 }
 
 html[data-theme='dark'] .sf-shell .data-table th {
-	color: #8FA0B3;
-	background: #0A1626;
+	color: #92929A;
+	background: #151517;
 }
 
 html[data-theme='dark'] .sf-shell .data-table td {
-	border-top-color: #2C3A4B;
-	color: #C4CED9;
+	border-top-color: #26262A;
+	color: #C8C8CE;
 }
 
 html[data-theme='dark'] .sf-shell .modal-overlay {
@@ -4625,8 +4625,8 @@ html[data-theme='dark'] .sf-shell .modal-overlay {
 }
 
 html[data-theme='dark'] .sf-shell .modal-card {
-	border-color: #2C3A4B;
-	background: #16233A;
+	border-color: #26262A;
+	background: #1A1A1C;
 }
 
 html[data-theme='dark'] .sf-shell .modal-head h3,
@@ -4637,13 +4637,13 @@ html[data-theme='dark'] .sf-shell .au-field label {
 
 html[data-theme='dark'] .sf-shell .shift-pill {
 	color: #F6F8FA;
-	border-color: #2C3A4B;
-	background: #16233A;
+	border-color: #26262A;
+	background: #1A1A1C;
 }
 
 html[data-theme='dark'] .sf-shell .cash-input-wrap {
-	border-color: #3D4C61;
-	background: #0A1626;
+	border-color: #333338;
+	background: #151517;
 }
 
 html[data-theme='dark'] .sf-shell .stock-warning {
@@ -4662,28 +4662,28 @@ html[data-theme='dark'] .sf-shell .stock-warning-icon {
 }
 
 html[data-theme='dark'] .sf-shell .margin-summary > div {
-	background: #0A1626;
+	background: #151517;
 }
 
 html[data-theme='dark'] .sf-shell .admin-pill,
 html[data-theme='dark'] .sf-shell .stock-status {
-	color: #C4CED9;
-	background: #1A2433;
+	color: #C8C8CE;
+	background: #202024;
 }
 
 @media (max-width: 720px) {
 	html[data-theme='dark'] .sf-shell .sidebar {
-		border-top-color: #2C3A4B;
+		border-top-color: #26262A;
 	}
 	html[data-theme='dark'] .sf-shell .nav-item,
 	html[data-theme='dark'] .sf-shell .nav-item.active {
-		color: #8FA0B3;
+		color: #92929A;
 	}
 	html[data-theme='dark'] .sf-shell .nav-item.active {
 		color: #9A94FF;
 		background: rgba(122, 115, 255, 0.14);
 	}
 	html[data-theme='dark'] .sf-shell .topbar {
-		background: rgba(15, 27, 45, 0.95);
+		background: rgba(16, 16, 18, 0.95);
 	}
 }

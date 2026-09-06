@@ -8,6 +8,23 @@ const serviceDb = isSupabaseConfigured ? createServiceClient() : null;
 const MAX_ACCESS_LOG_IN_FLIGHT = 8;
 let accessLogInFlight = 0;
 
+/** Resolve dalam batas waktu; timeout/null jika lebih lambat (anti-hang SSR). */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => resolve(null), ms);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			() => {
+				clearTimeout(timer);
+				resolve(null);
+			}
+		);
+	});
+}
+
 /** CSP pragmatis: tetap mengizinkan gaya inline (SvelteKit) + koneksi Supabase/Realtime/Midtrans. */
 function buildCsp(): string {
 	const supabaseUrl = (publicEnv.PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
@@ -107,13 +124,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// melempar "Cannot use cookies.set(...) after the response has been generated"
 	// (race token refresh saat SSR, supabase/ssr#131). Dengan await getSession()
 	// di sini, refresh (jika ada) selalu selesai sebelum respons di-generate.
+	//
+	// Anti-hang: jika GoTrue/Supabase lambat, getSession tidak boleh membuat
+	// SELURUH SSR menggantung sampai nginx timeout (120s) → 502 untuk semua
+	// pengunjung. Batas 2,5 dtk: tanpa sesi, halaman publik tetap tampil.
 	if (event.locals.supabase) {
-		const { data } = await event.locals.supabase.auth.getSession();
+		const session =
+			(await withTimeout(event.locals.supabase.auth.getSession(), 2500).catch(() => null)) ?? { data: null };
 		// Catatan: user dari getSession() berasal dari cookie dan TIDAK dipakai
 		// untuk otorisasi di sisi web (guard selalu memakai getUser()/auth.uid()).
 		// Di sini hanya untuk atribusi access log halaman.
-		event.locals.accessToken = data.session?.access_token ?? null;
-		userId = data.session?.user?.id ?? null;
+		event.locals.accessToken = session.data?.session?.access_token ?? null;
+		userId = session.data?.session?.user?.id ?? null;
 	}
 
 	let response: Response;

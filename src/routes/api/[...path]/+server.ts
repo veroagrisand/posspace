@@ -41,11 +41,15 @@ async function proxy(event: RequestEvent) {
 
 	let upstream: Response;
 	try {
+		// Anti-hang: jangan biarkan request menggantung hingga nginx timeout
+		// (120s → 502). 20 dtk cukup untuk gateway; kegagalan menjadi 503
+		// API_UNAVAILABLE yang jelas, bukan 502 membingungkan.
 		upstream = await fetch(target, {
 			method: event.request.method,
 			headers,
 			body,
-			redirect: 'manual'
+			redirect: 'manual',
+			signal: AbortSignal.timeout(20_000)
 		});
 	} catch {
 		return json({ message: 'API_UNAVAILABLE' }, { status: 503 });
