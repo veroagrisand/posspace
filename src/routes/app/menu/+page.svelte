@@ -79,15 +79,13 @@
 
 	async function submitAdd() {
 		if (saving || !addName.trim()) return;
-		addOpen = false; // tutup popup seketika, toast muncul saat selesai
 		withSaving(async () => {
 			await addProduct({ name: addName.trim(), category: addCategory, price: addPrice, variantName: addVariantName.trim() || 'Reguler' });
 			addName = '';
 			addVariantName = 'Reguler';
 			addPrice = 18000;
+			addOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Menu baru ditambahkan');
-		}, () => {
-			addOpen = true; // gagal → popup terbuka kembali, input tidak hilang
 		});
 	}
 
@@ -132,32 +130,27 @@
 			price: v.price,
 			recipe: v.recipe.filter((r) => r.ingredientId && r.qty > 0).map((r) => ({ ...r }))
 		}));
-		manageOpen = false; // tutup popup seketika
 		withSaving(async () => {
 			if (backend.enabled) {
 				await saveProductFull(p.id);
 			}
+			manageOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Perubahan menu disimpan');
-		}, () => {
-			manageOpen = true;
 		});
 	}
 
 	async function confirmDeleteProduct() {
 		if (saving) return;
 		if (!window.confirm(`Hapus menu "${draftName}" beserta semua varian & resepnya? Tindakan ini tidak bisa dibatalkan.`)) return;
-		manageOpen = false; // tutup popup seketika
 		withSaving(async () => {
 			await deleteProduct(manageProductId);
+			manageOpen = false; // tutup popup + toast hanya setelah BERHASIL
 			showToast('Menu dihapus');
-		}, () => {
-			manageOpen = true;
 		});
 	}
 
 	async function submitIngredient() {
 		if (saving || !ingName.trim()) return;
-		ingOpen = false; // tutup popup seketika
 		withSaving(async () => {
 			if (ingEditId) {
 				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
@@ -166,8 +159,7 @@
 				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku ditambahkan');
 			}
-		}, () => {
-			ingOpen = true;
+			ingOpen = false; // tutup popup + toast hanya setelah BERHASIL
 		});
 	}
 
