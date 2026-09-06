@@ -153,6 +153,11 @@
 		}
 		const product = store.products.find((p) => p.id === productId);
 		showToast(`${product!.name} (${variantName}) ditambahkan`);
+		// Peringatan segera jika pesanan ini membuat stok bahan kurang.
+		const shortage = stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty })));
+		if (shortage.length) {
+			showToast(`Perhatian — stok bahan kurang: ${stockShortageText(shortage)}. Tambah stok di Inventaris atau kurangi jumlah.`);
+		}
 	}
 
 	function selectVariant(productId: string, variantId: string) {
@@ -177,10 +182,19 @@
 	function changeQuantity(productId: string, variantId: string, delta: number) {
 		const item = cart.find((i) => i.productId === productId && i.variantId === variantId);
 		if (!item) return;
-		item.qty += delta;
-		if (item.qty <= 0) {
+		const newQty = item.qty + delta;
+		if (newQty <= 0) {
 			cart = cart.filter((i) => !(i.productId === productId && i.variantId === variantId));
+			return;
 		}
+		// Cegah menambah jumlah melebihi stok bahan yang tersedia (berdasarkan resep).
+		const trial = cart.map((i) => (i === item ? { ...i, qty: newQty } : i));
+		const shortage = stockShortage(trial.map((i) => ({ variantId: i.variantId, qty: i.qty })));
+		if (shortage.length) {
+			showToast(`Maksimal ${item.qty} porsi — stok bahan kurang: ${stockShortageText(shortage)}`);
+			return;
+		}
+		item.qty = newQty;
 	}
 
 	function clearCart() {
@@ -530,14 +544,6 @@
 				<div class="total-row"><span>Total pembayaran</span><strong>{formatIDR(total)}</strong></div>
 			</div>
 
-			{#if stockBlockers.length}
-				<div class="stock-warning" role="alert">
-					<strong>Bahan tidak cukup untuk pesanan ini</strong>
-					<p>{stockBlockerText}</p>
-					<small>Tambahkan stok di Inventaris, atau kurangi jumlah/menu di keranjang.</small>
-				</div>
-			{/if}
-
 			<div class="payment-section">
 				<div class="payment-label"><span>Metode pembayaran</span></div>
 				<div class="payment-methods" role="group" aria-label="Metode pembayaran">
@@ -585,7 +591,26 @@
 					</div>
 				{/if}
 
-				<button class="button button-primary pay-button" type="button" disabled={paymentSubmitting || stockBlockers.length > 0} onclick={handlePay}>
+				{#if stockBlockers.length}
+					<div class="stock-warning" role="alert">
+						<span class="stock-warning-icon">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="M12 9v4M12 16.5h.01" /></svg>
+						</span>
+						<div>
+							<strong>Stok bahan tidak cukup — pembayaran dikunci</strong>
+							<p>{stockBlockerText}</p>
+							<small>Tambahkan stok di Inventaris, atau kurangi jumlah/menu di keranjang.</small>
+						</div>
+					</div>
+				{/if}
+
+				<button
+					class="button button-primary pay-button"
+					class:pay-button-blocked={stockBlockers.length > 0}
+					type="button"
+					disabled={paymentSubmitting || stockBlockers.length > 0}
+					onclick={handlePay}
+				>
 					<span>
 						{#if paymentSubmitting}
 							<span class="btn-spinner"></span>Memproses...

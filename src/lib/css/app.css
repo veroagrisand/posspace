@@ -2082,14 +2082,45 @@
 
 @media (max-width: 1360px) {
 .stock-warning {
-	margin-top: 12px;
+	margin: 12px 0;
 	padding: 10px 12px;
 	border: 1px solid rgba(209, 94, 80, 0.35);
 	border-radius: 12px;
 	background: var(--red-soft);
 	color: #a33b2f;
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+}
+
+.stock-warning-icon {
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: rgba(209, 94, 80, 0.14);
+	color: var(--red);
+}
+
+.stock-warning-icon svg {
+	width: 14px;
+	height: 14px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.7;
+}
+
+.stock-warning > div {
 	display: grid;
 	gap: 3px;
+}
+
+.pay-button-blocked {
+	background: var(--red) !important;
+	box-shadow: 0 8px 18px rgba(209, 94, 80, 0.25) !important;
+	opacity: 0.75;
 }
 
 .btn-spinner {
