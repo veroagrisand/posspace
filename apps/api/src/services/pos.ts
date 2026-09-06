@@ -566,6 +566,16 @@ const EXPENSE_LABEL: Record<string, string> = {
 	gaji: 'Gaji & upah',
 	lainnya: 'Lainnya'
 };
+const EXPENSE_TYPES = ['bulanan', 'sekali', 'jasa'] as const;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Validasi & normalisasi input tanggal (string YYYY-MM-DD) → null bila kosong. */
+function parseOptionalDate(v: unknown): string | null {
+	const s = String(v ?? '').trim();
+	if (!s) return null;
+	if (!DATE_RE.test(s)) return null;
+	return s;
+}
 
 /** GET /api/data/expenses?from=...&to=... — beban operasional toko (bisa filter tanggal). */
 posDataService.get('/expenses', async (c) => {
@@ -596,15 +606,24 @@ posDataService.post('/expenses', async (c) => {
 		amount?: number;
 		note?: string;
 		expenseDate?: string;
+		expenseType?: string;
+		periodStart?: string;
+		periodEnd?: string;
 	};
 
 	const category = String(body.category ?? '').trim();
 	const amount = Number(body.amount ?? 0);
-	const expenseDate = String(body.expenseDate ?? new Date().toISOString().slice(0, 10));
+	const expenseType = EXPENSE_TYPES.includes(body.expenseType as (typeof EXPENSE_TYPES)[number])
+		? (body.expenseType as (typeof EXPENSE_TYPES)[number])
+		: 'sekali';
+	const periodStart = parseOptionalDate(body.periodStart);
+	const periodEnd = parseOptionalDate(body.periodEnd);
+	const expenseDate = String(body.expenseDate ?? periodEnd ?? new Date().toISOString().slice(0, 10));
 
 	if (!EXPENSE_CATEGORIES.includes(category as (typeof EXPENSE_CATEGORIES)[number])) httpError(400, 'INVALID_CATEGORY');
 	if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) httpError(400, 'INVALID_AMOUNT');
-	if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) httpError(400, 'INVALID_DATE');
+	if (!DATE_RE.test(expenseDate)) httpError(400, 'INVALID_DATE');
+	if (periodStart && periodEnd && periodStart > periodEnd) httpError(400, 'INVALID_PERIOD');
 
 	const { data, error: insertError } = await ctx.db
 		.from('operational_expenses')
@@ -614,6 +633,9 @@ posDataService.post('/expenses', async (c) => {
 			amount,
 			note: String(body.note ?? '').trim().slice(0, 500),
 			expense_date: expenseDate,
+			expense_type: expenseType,
+			period_start: periodStart,
+			period_end: periodEnd,
 			recorded_by: ctx.user.id
 		})
 		.select('*')
@@ -634,6 +656,9 @@ posDataService.patch('/expenses/:id', async (c) => {
 		amount?: number;
 		note?: string;
 		expenseDate?: string;
+		expenseType?: string;
+		periodStart?: string | null;
+		periodEnd?: string | null;
 	};
 
 	const patch: Record<string, unknown> = {};
@@ -649,8 +674,22 @@ posDataService.patch('/expenses/:id', async (c) => {
 	}
 	if (body.note !== undefined) patch.note = String(body.note).trim().slice(0, 500);
 	if (body.expenseDate !== undefined) {
-		if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.expenseDate))) httpError(400, 'INVALID_DATE');
+		if (!DATE_RE.test(String(body.expenseDate))) httpError(400, 'INVALID_DATE');
 		patch.expense_date = body.expenseDate;
+	}
+	if (body.expenseType !== undefined) {
+		if (!EXPENSE_TYPES.includes(body.expenseType as (typeof EXPENSE_TYPES)[number])) httpError(400, 'INVALID_EXPENSE_TYPE');
+		patch.expense_type = body.expenseType;
+	}
+	if (body.periodStart !== undefined) {
+		const v = parseOptionalDate(body.periodStart);
+		if (body.periodStart !== null && body.periodStart !== '' && v === null) httpError(400, 'INVALID_DATE');
+		patch.period_start = v;
+	}
+	if (body.periodEnd !== undefined) {
+		const v = parseOptionalDate(body.periodEnd);
+		if (body.periodEnd !== null && body.periodEnd !== '' && v === null) httpError(400, 'INVALID_DATE');
+		patch.period_end = v;
 	}
 	if (Object.keys(patch).length === 0) httpError(400, 'NO_CHANGES');
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, EXPENSE_CATEGORIES, expenseLabel, addExpense, updateExpense, deleteExpense } from '$lib/store.svelte';
+	import { store, EXPENSE_CATEGORIES, EXPENSE_TYPES, expenseLabel, expenseTypeLabel, expensePeriodText, addExpense, updateExpense, deleteExpense } from '$lib/store.svelte';
+	import type { ExpenseType } from '$lib/store.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
@@ -20,14 +21,29 @@
 	let addCategory = $state<(typeof EXPENSE_CATEGORIES)[number]['id']>('listrik');
 	let addAmount = $state(0);
 	let addNote = $state('');
+	let addType = $state<ExpenseType>('bulanan');
 	let addDate = $state(new Date().toISOString().slice(0, 10));
+	let addStart = $state(new Date().toISOString().slice(0, 10));
+	let addEnd = $state(new Date().toISOString().slice(0, 10));
 
-	let editing = $state<{ id: string; category: string; amount: number; note: string; expenseDate: string } | null>(null);
+	let editing = $state<{
+		id: string;
+		category: string;
+		amount: number;
+		note: string;
+		expenseDate: string;
+		expenseType: ExpenseType;
+		periodStart: string | null;
+		periodEnd: string | null;
+	} | null>(null);
 	let editOpen = $state(false);
 	let editCategory = $state<(typeof EXPENSE_CATEGORIES)[number]['id']>('listrik');
 	let editAmount = $state(0);
 	let editNote = $state('');
+	let editType = $state<ExpenseType>('bulanan');
 	let editDate = $state('');
+	let editStart = $state('');
+	let editEnd = $state('');
 
 	function currentMonthRange() {
 		const [ym, d] = month.split('-').map(Number);
@@ -58,8 +74,17 @@
 		addCategory = 'listrik';
 		addAmount = 0;
 		addNote = '';
+		addType = 'bulanan';
+		const { from, to } = currentMonthRange();
 		addDate = new Date().toISOString().slice(0, 10);
+		addStart = from;
+		addEnd = to;
 		addOpen = true;
+	}
+
+	/** Tanggal penentu bulan laporan: untuk sekali beli = tanggalnya; untuk berrentang = tanggal selesai periode. */
+	function billingDate(type: ExpenseType, single: string, start: string, end: string): string {
+		return type === 'sekali' ? single : end >= start ? end : single;
 	}
 
 	async function submitAdd() {
@@ -67,18 +92,46 @@
 			showToast('Isi kategori & jumlah beban');
 			return;
 		}
-		await addExpense({ category: addCategory, amount: addAmount, note: addNote.trim(), expenseDate: addDate });
+		if (addType !== 'sekali' && (!addStart || !addEnd)) {
+			showToast('Isi rentang tanggal beban');
+			return;
+		}
+		if (addType !== 'sekali' && addEnd < addStart) {
+			showToast('Tanggal selesai tidak boleh sebelum tanggal mulai');
+			return;
+		}
+		await addExpense({
+			category: addCategory,
+			amount: addAmount,
+			note: addNote.trim(),
+			expenseDate: billingDate(addType, addDate, addStart, addEnd),
+			expenseType: addType,
+			periodStart: addType === 'sekali' ? null : addStart,
+			periodEnd: addType === 'sekali' ? null : addEnd
+		});
 		addOpen = false;
 		showToast('Beban operasional dicatat');
 	}
 
-	function openEdit(e: { id: string; category: string; amount: number; note: string; expenseDate: string }) {
+	function openEdit(e: {
+		id: string;
+		category: string;
+		amount: number;
+		note: string;
+		expenseDate: string;
+		expenseType: ExpenseType;
+		periodStart: string | null;
+		periodEnd: string | null;
+	}) {
 		editing = e;
 		editOpen = true;
 		editCategory = (EXPENSE_CATEGORIES.some((c) => c.id === e.category) ? e.category : 'lainnya') as typeof editCategory;
 		editAmount = e.amount;
 		editNote = e.note;
+		editType = e.expenseType;
 		editDate = e.expenseDate;
+		editStart = e.periodStart ?? e.expenseDate;
+		editEnd = e.periodEnd ?? e.expenseDate;
 	}
 
 	async function submitEdit() {
@@ -86,7 +139,19 @@
 			showToast('Isi jumlah beban yang valid');
 			return;
 		}
-		await updateExpense(editing.id, { category: editCategory, amount: editAmount, note: editNote.trim(), expenseDate: editDate });
+		if (editType !== 'sekali' && editEnd < editStart) {
+			showToast('Tanggal selesai tidak boleh sebelum tanggal mulai');
+			return;
+		}
+		await updateExpense(editing.id, {
+			category: editCategory,
+			amount: editAmount,
+			note: editNote.trim(),
+			expenseDate: billingDate(editType, editDate, editStart, editEnd),
+			expenseType: editType,
+			periodStart: editType === 'sekali' ? null : editStart,
+			periodEnd: editType === 'sekali' ? null : editEnd
+		});
 		editing = null;
 		editOpen = false;
 		showToast('Beban operasional diperbarui');
@@ -195,7 +260,7 @@
 			<table class="data-table">
 				<thead>
 					<tr>
-						<th>Tanggal</th>
+						<th>Tanggal / Periode</th>
 						<th>Kategori</th>
 						<th>Keterangan</th>
 						<th class="num">Jumlah</th>
@@ -205,7 +270,10 @@
 				<tbody>
 					{#each monthExpenses as expense}
 						<tr>
-							<td style="white-space:nowrap">{new Date(expense.expenseDate + 'T00:00:00').toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+							<td style="white-space:nowrap">
+								<div style="font-size:11px">{expensePeriodText(expense)}</div>
+								<small style="color:#9aa39c;font-size:9px">{expenseTypeLabel(expense.expenseType)}</small>
+							</td>
 							<td><span class="admin-pill">{expenseLabel(expense.category)}</span></td>
 							<td style="max-width:240px;font-size:11px">{expense.note || '—'}</td>
 							<td class="num" style="font-family:var(--font-display);font-weight:700">{formatIDR(expense.amount)}</td>
@@ -230,6 +298,17 @@
 <Modal bind:open={addOpen} title="Catat beban operasional">
 	<div class="form-grid">
 		<div class="form-row">
+			<label for="addType">Jenis beban</label>
+			<div class="form-input">
+				<select id="addType" bind:value={addType}>
+					{#each EXPENSE_TYPES as t}
+						<option value={t.id}>{t.label}</option>
+					{/each}
+				</select>
+			</div>
+			<p class="expense-hint">{EXPENSE_TYPES.find((t) => t.id === addType)?.hint}</p>
+		</div>
+		<div class="form-row">
 			<label for="addCategory">Kategori</label>
 			<div class="form-input">
 				<select id="addCategory" bind:value={addCategory}>
@@ -244,11 +323,29 @@
 				<label for="addAmount">Jumlah (Rp)</label>
 				<div class="form-input"><input id="addAmount" type="number" min="0" step="any" bind:value={addAmount} placeholder="cth. 350000" /></div>
 			</div>
-			<div class="form-row">
-				<label for="addDate">Tanggal</label>
-				<div class="form-input"><input id="addDate" type="date" bind:value={addDate} /></div>
-			</div>
+			{#if addType === 'sekali'}
+				<div class="form-row">
+					<label for="addDate">Tanggal</label>
+					<div class="form-input"><input id="addDate" type="date" bind:value={addDate} /></div>
+				</div>
+			{:else}
+				<div class="form-row">
+					<label for="addStart">Tanggal mulai</label>
+					<div class="form-input"><input id="addStart" type="date" bind:value={addStart} /></div>
+				</div>
+			{/if}
 		</div>
+		{#if addType !== 'sekali'}
+			<div class="form-grid two">
+				<div class="form-row">
+					<label for="addEnd">Tanggal selesai</label>
+					<div class="form-input"><input id="addEnd" type="date" bind:value={addEnd} /></div>
+				</div>
+				<div class="form-row">
+					<p class="expense-hint" style="padding-top:20px">Beban muncul di laporan pada bulan tanggal selesai.</p>
+				</div>
+			</div>
+		{/if}
 		<div class="form-row">
 			<label for="addNote">Keterangan (opsional)</label>
 			<div class="form-input"><input id="addNote" type="text" bind:value={addNote} placeholder="cth. Tagihan listrik bulan ini" /></div>
@@ -264,6 +361,17 @@
 	{#if editing}
 		<div class="form-grid">
 			<div class="form-row">
+				<label for="editType">Jenis beban</label>
+				<div class="form-input">
+					<select id="editType" bind:value={editType}>
+						{#each EXPENSE_TYPES as t}
+							<option value={t.id}>{t.label}</option>
+						{/each}
+					</select>
+				</div>
+				<p class="expense-hint">{EXPENSE_TYPES.find((t) => t.id === editType)?.hint}</p>
+			</div>
+			<div class="form-row">
 				<label for="editCategory">Kategori</label>
 				<div class="form-input">
 					<select id="editCategory" bind:value={editCategory}>
@@ -278,11 +386,24 @@
 					<label for="editAmount">Jumlah (Rp)</label>
 					<div class="form-input"><input id="editAmount" type="number" min="0" step="any" bind:value={editAmount} /></div>
 				</div>
-				<div class="form-row">
-					<label for="editDate">Tanggal</label>
-					<div class="form-input"><input id="editDate" type="date" bind:value={editDate} /></div>
-				</div>
+				{#if editType === 'sekali'}
+					<div class="form-row">
+						<label for="editDate">Tanggal</label>
+						<div class="form-input"><input id="editDate" type="date" bind:value={editDate} /></div>
+					</div>
+				{:else}
+					<div class="form-row">
+						<label for="editStart">Tanggal mulai</label>
+						<div class="form-input"><input id="editStart" type="date" bind:value={editStart} /></div>
+					</div>
+				{/if}
 			</div>
+			{#if editType !== 'sekali'}
+				<div class="form-row">
+					<label for="editEnd">Tanggal selesai</label>
+					<div class="form-input"><input id="editEnd" type="date" bind:value={editEnd} /></div>
+				</div>
+			{/if}
 			<div class="form-row">
 				<label for="editNote">Keterangan (opsional)</label>
 				<div class="form-input"><input id="editNote" type="text" bind:value={editNote} /></div>
@@ -321,5 +442,12 @@
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--forest-800);
+	}
+
+	.expense-hint {
+		color: #7f8b82;
+		font-size: 10px;
+		line-height: 1.5;
+		margin-top: 5px;
 	}
 </style>

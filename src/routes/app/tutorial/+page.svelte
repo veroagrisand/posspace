@@ -74,8 +74,8 @@
 			title: '6. Operasional (beban)',
 			subtitle: 'Pengeluaran non-bahan untuk menghitung laba bersih.',
 			steps: [
-				['Catat beban', 'Operasional → "+ Catat beban": kategori (Listrik, Air, Internet, Sewa, Gas, Kebersihan, Gaji & upah, Lainnya), jumlah, tanggal, keterangan. Anggota bisa mencatat — hanya pemilik yang bisa menghapus.'],
-				['Pantau laba bersih', 'Kartu "Laba bersih" = omzet − HPP − beban pada bulan terpilih. Klik kategori untuk melihat rincian per jenis beban dan bandingkan antar bulan.']
+				['Catat beban', 'Operasional → "+ Catat beban": pilih JENIS beban (Bulanan untuk tagihan listrik/internet/sewa/gaji, Sekali beli untuk pembelian peralatan, Penggunaan jasa untuk jasa dengan rentang), kategori, jumlah, tanggal. Untuk beban bulanan/jasa isi "Tanggal mulai" & "Tanggal selesai" (rentang yang ditagih/dipakai) — beban muncul di laporan pada bulan tanggal selesai. Anggota bisa mencatat — hanya pemilik yang bisa menghapus.'],
+				['Pantau laba bersih', 'Kartu "Laba bersih" = omzet − HPP − beban pada bulan terpilih. Klik kategori untuk melihat rincian per jenis beban dan bandingkan antar bulan. Kolom Tanggal/Periode menampilkan rentang tagihan beserta jenisnya (Bulanan/Sekali beli/Jasa).']
 			]
 		},
 		{

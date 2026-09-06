@@ -96,12 +96,17 @@ export type Opname = {
 
 export type ExpenseCategory = 'listrik' | 'air' | 'internet' | 'sewa' | 'gas' | 'kebersihan' | 'gaji' | 'lainnya';
 
+export type ExpenseType = 'bulanan' | 'sekali' | 'jasa';
+
 export type Expense = {
 	id: string;
 	category: ExpenseCategory;
 	amount: number;
 	note: string;
 	expenseDate: string;
+	expenseType: ExpenseType;
+	periodStart: string | null;
+	periodEnd: string | null;
 	createdAt: string;
 };
 
@@ -118,6 +123,26 @@ export const EXPENSE_CATEGORIES: { id: ExpenseCategory; label: string }[] = [
 
 export function expenseLabel(category: string): string {
 	return EXPENSE_CATEGORIES.find((c) => c.id === category)?.label ?? category;
+}
+
+/** Jenis beban: tagihan bulanan, pembelian sekali, atau penggunaan jasa. */
+export const EXPENSE_TYPES: { id: ExpenseType; label: string; hint: string }[] = [
+	{ id: 'bulanan', label: 'Bulanan', hint: 'Tagihan/langganan per bulan (listrik, internet, sewa, gaji)' },
+	{ id: 'sekali', label: 'Sekali beli', hint: 'Pembelian sekali (peralatan, perlengkapan, dll)' },
+	{ id: 'jasa', label: 'Penggunaan jasa', hint: 'Jasa dengan rentang tanggal (cleaning, teknisi, dll)' }
+];
+
+export function expenseTypeLabel(type: string): string {
+	return EXPENSE_TYPES.find((t) => t.id === type)?.label ?? 'Sekali beli';
+}
+
+export function expensePeriodText(e: Expense): string {
+	if (e.expenseType === 'sekali' || (!e.periodStart && !e.periodEnd)) {
+		return e.expenseDate;
+	}
+	const fmt = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+	if (e.periodStart && e.periodEnd) return `${fmt(e.periodStart)} – ${fmt(e.periodEnd)}`;
+	return fmt(e.periodStart ?? e.periodEnd ?? e.expenseDate);
 }
 
 // ===== Format mata uang (pembukuan) =====
@@ -417,6 +442,9 @@ export async function hydrateStore() {
 		amount: Number(e.amount),
 		note: e.note,
 		expenseDate: e.expense_date,
+		expenseType: e.expense_type === 'bulanan' || e.expense_type === 'jasa' ? e.expense_type : 'sekali',
+		periodStart: e.period_start ?? null,
+		periodEnd: e.period_end ?? null,
 		createdAt: e.created_at
 	}));
 }
@@ -794,11 +822,27 @@ export async function approveOpname(opnameId: string, reason: string): Promise<v
 }
 
 // ===== Beban operasional (listrik, sewa, gaji, dll) =====
-export async function addExpense(data: { category: ExpenseCategory; amount: number; note: string; expenseDate: string }): Promise<void> {
+export async function addExpense(data: {
+	category: ExpenseCategory;
+	amount: number;
+	note: string;
+	expenseDate: string;
+	expenseType?: ExpenseType;
+	periodStart?: string | null;
+	periodEnd?: string | null;
+}): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/expenses', {
 			method: 'POST',
-			body: JSON.stringify(data)
+			body: JSON.stringify({
+				category: data.category,
+				amount: data.amount,
+				note: data.note,
+				expenseDate: data.expenseDate,
+				expenseType: data.expenseType ?? 'sekali',
+				periodStart: data.periodStart ?? null,
+				periodEnd: data.periodEnd ?? null
+			})
 		});
 		await hydrateStore();
 		return;
@@ -809,12 +853,26 @@ export async function addExpense(data: { category: ExpenseCategory; amount: numb
 		amount: data.amount,
 		note: data.note,
 		expenseDate: data.expenseDate,
+		expenseType: data.expenseType ?? 'sekali',
+		periodStart: data.periodStart ?? null,
+		periodEnd: data.periodEnd ?? null,
 		createdAt: now()
 	};
 	store.expenses.unshift(expense);
 }
 
-export async function updateExpense(id: string, data: Partial<{ category: ExpenseCategory; amount: number; note: string; expenseDate: string }>): Promise<void> {
+export async function updateExpense(
+	id: string,
+	data: Partial<{
+		category: ExpenseCategory;
+		amount: number;
+		note: string;
+		expenseDate: string;
+		expenseType: ExpenseType;
+		periodStart: string | null;
+		periodEnd: string | null;
+	}>
+): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch(`/api/data/expenses/${id}`, {
 			method: 'PATCH',
@@ -828,7 +886,10 @@ export async function updateExpense(id: string, data: Partial<{ category: Expens
 	if (data.category) expense.category = data.category;
 	if (data.amount !== undefined) expense.amount = data.amount;
 	if (data.note !== undefined) expense.note = data.note;
-	if (data.expenseDate) expense.expenseDate = data.expenseDate;
+	if (data.expenseDate !== undefined) expense.expenseDate = data.expenseDate;
+	if (data.expenseType !== undefined) expense.expenseType = data.expenseType;
+	if (data.periodStart !== undefined) expense.periodStart = data.periodStart;
+	if (data.periodEnd !== undefined) expense.periodEnd = data.periodEnd;
 }
 
 export async function deleteExpense(id: string): Promise<void> {
