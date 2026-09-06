@@ -3,7 +3,7 @@ import { json, httpError } from '../http.js';
 import { requireApiAuth, requireAuth } from '../guards.js';
 import { service } from '../db.js';
 import { isSupabaseConfigured } from '../env.js';
-import { checkMayarStatus, isMayarConfigured, isMayarPaid, parseMayarWebhook } from '../mayar.js';
+import { checkMayarStatus, isMayarConfigured, isMayarPaid, mayarWebhookToken, parseMayarWebhook } from '../mayar.js';
 import { ALLOW_MOCK_PAYMENT } from '../mock.js';
 
 /**
@@ -63,6 +63,16 @@ paymentService.post('/mayar/webhook', async (c) => {
 	const raw = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
 	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
 		return new Response('FAILED: invalid json', { status: 400 });
+	}
+
+	// Verifikasi webhook token (jika dikonfigurasi) — Authorization Bearer atau X-Api-Key.
+	if (mayarWebhookToken) {
+		const auth = c.req.header('authorization') ?? '';
+		const apiKey = c.req.header('x-api-key') ?? '';
+		const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : apiKey.trim();
+		if (!token || token !== mayarWebhookToken) {
+			return new Response('FAILED: unauthorized', { status: 401 });
+		}
 	}
 
 	const parsed = parseMayarWebhook(raw);
