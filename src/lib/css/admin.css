@@ -1176,3 +1176,204 @@ html[data-theme='dark'] .sf-admin-shell .modal-card {
 	border-color: #27364a;
 	background: #1e293b;
 }
+
+/* =====================================================================
+
+/* =====================================================================
+   Brand palette — Stripe-style untuk admin SaaS
+   ===================================================================== */
+
+/* ---------- LIGHT ---------- */
+.sf-admin-shell {
+	--paper: #F6F8FA;
+	--surface: #FFFFFF;
+	--line: #E6E8EB;
+	--line-strong: #D9DDE3;
+	--ink: #0A2540;
+	--ink-soft: #425466;
+	--muted: #6B7C93;
+	--forest-950: #0A2540;
+	--forest-900: #0A2540;
+	--forest-800: #1A1F36;
+	--forest-700: #425466;
+	--amber: #635BFF;
+	background: var(--paper);
+}
+
+.sf-admin-shell .admin-sidebar {
+	border-right-color: #E6E8EB;
+	background: #ffffff;
+}
+
+.sf-admin-shell .admin-sidebar .brand-copy strong {
+	color: #0A2540;
+}
+
+.sf-admin-shell .admin-sidebar .brand-copy small,
+.sf-admin-shell .admin-kicker {
+	color: #6B7C93;
+}
+
+.sf-admin-shell .admin-nav .nav-item {
+	color: #425466;
+}
+
+.sf-admin-shell .admin-nav .nav-item:hover {
+	color: #0A2540;
+	background: #F0F2F5;
+}
+
+.sf-admin-shell .admin-nav .nav-item.active {
+	color: #635BFF;
+	background: rgba(99, 91, 255, 0.08);
+	box-shadow: inset 2px 0 0 #635BFF;
+}
+
+.sf-admin-shell .admin-utils a,
+.sf-admin-shell .theme-toggle {
+	color: #425466;
+}
+
+.sf-admin-shell .admin-utils a:hover,
+.sf-admin-shell .theme-toggle:hover {
+	color: #0A2540;
+	background: #F0F2F5;
+}
+
+.sf-admin-shell .admin-main {
+	background: #F6F8FA;
+}
+
+.sf-admin-shell .admin-topbar h1,
+.sf-admin-shell h1,
+.sf-admin-shell h2,
+.sf-admin-shell h3 {
+	color: #0A2540;
+}
+
+.sf-admin-shell .button-primary,
+.sf-admin-shell .admin-button-primary {
+	background: #635BFF;
+	box-shadow: 0 5px 12px rgba(99, 91, 255, 0.24);
+}
+
+.sf-admin-shell .button-primary:hover,
+.sf-admin-shell .admin-button-primary:hover {
+	background: #5851EA;
+}
+
+/* ---------- DARK ---------- */
+html[data-theme='dark'] .sf-admin-shell {
+	--paper: #0F1B2D;
+	--surface: #16233A;
+	--line: #2C3A4B;
+	--line-strong: #3D4C61;
+	--ink: #F6F8FA;
+	--ink-soft: #C4CED9;
+	--muted: #8FA0B3;
+	--forest-950: #081220;
+	--forest-900: #0A1626;
+	--forest-800: #16233A;
+	--forest-700: #425466;
+	--amber: #7A73FF;
+	background: var(--paper);
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-sidebar {
+	color: #8FA0B3;
+	border-right-color: #2C3A4B;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-sidebar .brand-copy strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-sidebar .brand-copy small,
+html[data-theme='dark'] .sf-admin-shell .admin-kicker {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-nav .nav-item {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-nav .nav-item:hover {
+	color: #F6F8FA;
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-nav .nav-item.active {
+	color: #9A94FF;
+	background: rgba(122, 115, 255, 0.14);
+	box-shadow: inset 2px 0 0 #7A73FF;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-utils a,
+html[data-theme='dark'] .sf-admin-shell .theme-toggle {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-utils a:hover,
+html[data-theme='dark'] .sf-admin-shell .theme-toggle:hover {
+	color: #F6F8FA;
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-main {
+	background: #0F1B2D;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-panel,
+html[data-theme='dark'] .sf-admin-shell .admin-card {
+	border-color: #2C3A4B;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-topbar h1,
+html[data-theme='dark'] .sf-admin-shell h1,
+html[data-theme='dark'] .sf-admin-shell h2,
+html[data-theme='dark'] .sf-admin-shell h3,
+html[data-theme='dark'] .sf-admin-shell .admin-card-value {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-subtitle,
+html[data-theme='dark'] .sf-admin-shell .admin-breadcrumb,
+html[data-theme='dark'] .sf-admin-shell .admin-card-label {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-table th {
+	color: #8FA0B3;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-table td {
+	border-top-color: #2C3A4B;
+	color: #C4CED9;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-chip {
+	color: #C4CED9;
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-admin-shell .button-secondary {
+	color: #C4CED9;
+	border-color: #3D4C61;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-admin-shell .button-secondary:hover {
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-admin-shell .modal-overlay {
+	background: rgba(6, 13, 24, 0.7);
+}
+
+html[data-theme='dark'] .sf-admin-shell .modal-card {
+	border-color: #2C3A4B;
+	background: #16233A;
+}

@@ -4169,3 +4169,521 @@ html[data-theme='dark'] .sf-shell .stock-status {
 		background: rgba(15, 23, 42, 0.94);
 	}
 }
+
+/* =====================================================================
+
+/* =====================================================================
+   Brand palette — Stripe-style (posspace dashboard)
+   Light : ungu #635BFF · navy #0A2540 · abu #F6F8FA/#E6E8EB
+   Dark  : ungu #7A73FF · navy #0F1B2D/#16233A · teks #F6F8FA
+   Lapisan override di akhir file agar menang atas skin bawaan.
+   ===================================================================== */
+
+/* ---------- LIGHT ---------- */
+.sf-shell {
+	--paper: #F6F8FA;
+	--surface: #FFFFFF;
+	--line: #E6E8EB;
+	--line-strong: #D9DDE3;
+	--ink: #0A2540;
+	--ink-soft: #425466;
+	--muted: #6B7C93;
+	--forest-100: #F0F2F5;
+	--forest-700: #425466;
+	--forest-800: #1A1F36;
+	--forest-900: #0A2540;
+	--forest-950: #0A2540;
+	--orange: #635BFF;
+	--orange-dark: #5851EA;
+	--orange-soft: rgba(99, 91, 255, 0.1);
+	--green: #10B981;
+	--green-soft: rgba(16, 185, 129, 0.12);
+	--amber: #F6A609;
+	--amber-soft: rgba(246, 166, 9, 0.14);
+	background: var(--paper);
+}
+
+.sf-shell .sidebar {
+	border-right-color: #E6E8EB;
+}
+
+.sf-shell .workspace-switcher {
+	border-color: #E6E8EB;
+	background: #F0F2F5;
+}
+
+.sf-shell .workspace-avatar {
+	color: #635BFF;
+	background: #F3F0FF;
+}
+
+.sf-shell .workspace-copy strong {
+	color: #0A2540;
+}
+
+.sf-shell .workspace-copy small,
+.sf-shell .workspace-switcher > svg,
+.sf-shell .sidebar-label {
+	color: #6B7C93;
+}
+
+.sf-shell .nav-item {
+	color: #425466;
+}
+
+.sf-shell .nav-item:hover {
+	color: #0A2540;
+	background: #F0F2F5;
+}
+
+.sf-shell .nav-item.active {
+	color: #635BFF;
+	background: rgba(99, 91, 255, 0.08);
+	box-shadow: inset 2px 0 0 #635BFF;
+}
+
+.sf-shell .offline-card {
+	border-color: #E6E8EB;
+	background: #F6F8FA;
+}
+
+.sf-shell .offline-card strong {
+	color: #1A1F36;
+}
+
+.sf-shell .offline-card span:not(.online-dot) {
+	color: #6B7C93;
+}
+
+.sf-shell .profile-card {
+	border-top-color: #E6E8EB;
+}
+
+.sf-shell .profile-copy strong {
+	color: #0A2540;
+}
+
+.sf-shell .profile-copy small,
+.sf-shell .profile-more,
+.sf-shell .theme-toggle {
+	color: #425466;
+}
+
+.sf-shell .theme-toggle:hover {
+	color: #0A2540;
+	background: #F0F2F5;
+}
+
+.sf-shell .main-content {
+	background: #F6F8FA;
+}
+
+.sf-shell .topbar {
+	border-bottom-color: #E6E8EB;
+	background: rgba(246, 248, 250, 0.92);
+}
+
+.sf-shell .breadcrumbs {
+	color: #6B7C93;
+}
+
+.sf-shell .breadcrumbs strong {
+	color: #425466;
+}
+
+.sf-shell .sync-status {
+	color: #425466;
+}
+
+.sf-shell .sync-status small {
+	color: #6B7C93;
+}
+
+.sf-shell .page-heading h1 {
+	color: #0A2540;
+}
+
+.sf-shell .page-heading p,
+.sf-shell .eyebrow {
+	color: #425466;
+}
+
+.sf-shell .eyebrow-line {
+	background: #635BFF;
+}
+
+.sf-shell .panel-heading h2,
+.sf-shell .order-heading h2 {
+	color: #0A2540;
+}
+
+.sf-shell .section-kicker {
+	color: #6B7C93;
+}
+
+.sf-shell .metric-value {
+	color: #0A2540;
+}
+
+.sf-shell .metric-label,
+.sf-shell .metric-meta {
+	color: #425466;
+}
+
+.sf-shell .metric-icon {
+	background: #F0F2F5;
+}
+
+.sf-shell .metric-card::after {
+	background: rgba(99, 91, 255, 0.06);
+}
+
+.sf-shell .metric-revenue::before {
+	background: #635BFF;
+}
+
+.sf-shell .metric-orders::before {
+	background: #425466;
+}
+
+.sf-shell .metric-profit::before {
+	background: #10B981;
+}
+
+.sf-shell .metric-stock::before {
+	background: #F6A609;
+}
+
+.sf-shell .button-primary {
+	background: #635BFF;
+	box-shadow: 0 5px 12px rgba(99, 91, 255, 0.24);
+}
+
+.sf-shell .button-primary:hover {
+	background: #5851EA;
+	box-shadow: 0 8px 18px rgba(99, 91, 255, 0.3);
+}
+
+.sf-shell .button-secondary {
+	color: #425466;
+	border-color: #D9DDE3;
+	background: #ffffff;
+}
+
+.sf-shell .button-secondary:hover {
+	background: #F6F8FA;
+}
+
+.sf-shell .form-input,
+.sf-shell .search-box,
+.sf-shell .period-picker,
+.sf-shell .month-picker {
+	border-color: #D9DDE3;
+	background: #ffffff;
+}
+
+.sf-shell .form-input:focus-within,
+.sf-shell .search-box:focus-within {
+	border-color: #635BFF;
+	box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.14);
+}
+
+.sf-shell .data-table th {
+	color: #6B7C93;
+	background: #F6F8FA;
+}
+
+.sf-shell .data-table td {
+	border-top-color: #EEF1F4;
+}
+
+.sf-shell .modal-overlay {
+	background: rgba(10, 37, 64, 0.5);
+}
+
+.sf-shell .modal-card {
+	border-color: #E6E8EB;
+}
+
+@media (max-width: 720px) {
+	.sf-shell .nav-item,
+	.sf-shell .nav-item.active {
+		color: #425466;
+	}
+	.sf-shell .nav-item.active {
+		color: #635BFF;
+		background: rgba(99, 91, 255, 0.08);
+	}
+	.sf-shell .topbar {
+		background: rgba(246, 248, 250, 0.95);
+	}
+}
+
+/* ---------- DARK ---------- */
+html[data-theme='dark'] .sf-shell {
+	--paper: #0F1B2D;
+	--surface: #16233A;
+	--line: #2C3A4B;
+	--line-strong: #3D4C61;
+	--ink: #F6F8FA;
+	--ink-soft: #C4CED9;
+	--muted: #8FA0B3;
+	--forest-100: #16233A;
+	--forest-700: #425466;
+	--forest-800: #16233A;
+	--forest-900: #0A1626;
+	--forest-950: #081220;
+	--orange: #7A73FF;
+	--orange-dark: #9A94FF;
+	--orange-soft: rgba(122, 115, 255, 0.16);
+	--green: #00C48C;
+	--green-soft: rgba(0, 196, 140, 0.16);
+	--amber: #F6A609;
+	--amber-soft: rgba(246, 166, 9, 0.14);
+	--red: #FF6B6B;
+	--red-soft: rgba(255, 107, 107, 0.14);
+	background: var(--paper);
+}
+
+html[data-theme='dark'] .sf-shell .sidebar {
+	border-right-color: #2C3A4B;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-shell .brand-copy strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .brand-copy small {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-switcher {
+	border-color: #2C3A4B;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-avatar {
+	color: #9A94FF;
+	background: rgba(122, 115, 255, 0.2);
+}
+
+html[data-theme='dark'] .sf-shell .workspace-copy strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .workspace-copy small,
+html[data-theme='dark'] .sf-shell .workspace-switcher > svg,
+html[data-theme='dark'] .sf-shell .sidebar-label {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item:hover {
+	color: #F6F8FA;
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-shell .nav-item.active {
+	color: #9A94FF;
+	background: rgba(122, 115, 255, 0.14);
+	box-shadow: inset 2px 0 0 #7A73FF;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card {
+	border-color: #2C3A4B;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .offline-card span:not(.online-dot) {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .profile-card {
+	border-top-color: #2C3A4B;
+}
+
+html[data-theme='dark'] .sf-shell .profile-copy strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .profile-copy small,
+html[data-theme='dark'] .sf-shell .profile-more,
+html[data-theme='dark'] .sf-shell .theme-toggle {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .theme-toggle:hover {
+	color: #F6F8FA;
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-shell .main-content,
+html[data-theme='dark'] .sf-shell .topbar {
+	background: #0F1B2D;
+}
+
+html[data-theme='dark'] .sf-shell .topbar {
+	border-bottom-color: #2C3A4B;
+}
+
+html[data-theme='dark'] .sf-shell .breadcrumbs {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .breadcrumbs strong {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .sync-status {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .page-heading h1 {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .page-heading p,
+html[data-theme='dark'] .sf-shell .eyebrow {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .panel-heading h2,
+html[data-theme='dark'] .sf-shell .order-heading h2 {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .section-kicker {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .metric-value {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .metric-label,
+html[data-theme='dark'] .sf-shell .metric-meta {
+	color: #8FA0B3;
+}
+
+html[data-theme='dark'] .sf-shell .metric-icon {
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-shell .metric-card::after {
+	background: rgba(122, 115, 255, 0.08);
+}
+
+html[data-theme='dark'] .sf-shell .button-secondary {
+	color: #C4CED9;
+	border-color: #3D4C61;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-shell .button-secondary:hover {
+	background: #1A2433;
+}
+
+html[data-theme='dark'] .sf-shell .form-input,
+html[data-theme='dark'] .sf-shell .search-box,
+html[data-theme='dark'] .sf-shell .period-picker,
+html[data-theme='dark'] .sf-shell .month-picker {
+	border-color: #3D4C61;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-shell .form-input input,
+html[data-theme='dark'] .sf-shell .form-input select,
+html[data-theme='dark'] .sf-shell .search-box input {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .form-input input::placeholder,
+html[data-theme='dark'] .sf-shell .search-box input::placeholder {
+	color: #6B7C93;
+}
+
+html[data-theme='dark'] .sf-shell .data-table th {
+	color: #8FA0B3;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-shell .data-table td {
+	border-top-color: #2C3A4B;
+	color: #C4CED9;
+}
+
+html[data-theme='dark'] .sf-shell .modal-overlay {
+	background: rgba(6, 13, 24, 0.7);
+}
+
+html[data-theme='dark'] .sf-shell .modal-card {
+	border-color: #2C3A4B;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-shell .modal-head h3,
+html[data-theme='dark'] .sf-shell .form-row label,
+html[data-theme='dark'] .sf-shell .au-field label {
+	color: #F6F8FA;
+}
+
+html[data-theme='dark'] .sf-shell .shift-pill {
+	color: #F6F8FA;
+	border-color: #2C3A4B;
+	background: #16233A;
+}
+
+html[data-theme='dark'] .sf-shell .cash-input-wrap {
+	border-color: #3D4C61;
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning {
+	border-color: rgba(255, 107, 107, 0.3);
+	background: rgba(255, 107, 107, 0.1);
+	color: #FFB4B4;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning strong {
+	color: #FFB4B4;
+}
+
+html[data-theme='dark'] .sf-shell .stock-warning-icon {
+	color: #FF6B6B;
+	background: rgba(255, 107, 107, 0.16);
+}
+
+html[data-theme='dark'] .sf-shell .margin-summary > div {
+	background: #0A1626;
+}
+
+html[data-theme='dark'] .sf-shell .admin-pill,
+html[data-theme='dark'] .sf-shell .stock-status {
+	color: #C4CED9;
+	background: #1A2433;
+}
+
+@media (max-width: 720px) {
+	html[data-theme='dark'] .sf-shell .sidebar {
+		border-top-color: #2C3A4B;
+	}
+	html[data-theme='dark'] .sf-shell .nav-item,
+	html[data-theme='dark'] .sf-shell .nav-item.active {
+		color: #8FA0B3;
+	}
+	html[data-theme='dark'] .sf-shell .nav-item.active {
+		color: #9A94FF;
+		background: rgba(122, 115, 255, 0.14);
+	}
+	html[data-theme='dark'] .sf-shell .topbar {
+		background: rgba(15, 27, 45, 0.95);
+	}
+}
