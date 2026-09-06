@@ -2092,6 +2092,24 @@
 	gap: 3px;
 }
 
+.btn-spinner {
+	display: inline-block;
+	width: 13px;
+	height: 13px;
+	border: 2px solid rgba(255, 255, 255, 0.4);
+	border-top-color: #fff;
+	border-radius: 50%;
+	vertical-align: -2px;
+	margin-right: 6px;
+	animation: btn-spin 700ms linear infinite;
+}
+
+@keyframes btn-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .stock-warning strong {
 	font-size: 11px;
 	color: #a33b2f;

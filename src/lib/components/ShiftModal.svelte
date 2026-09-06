@@ -9,6 +9,7 @@
 	let actualCash = $state(0);
 	let result: { expectedCash: number; difference: number } | null = $state(null);
 	let justClosed = $state(false);
+	let saving = $state(false);
 
 	function reset() {
 		mode = 'open';
@@ -24,13 +25,19 @@
 	});
 
 	async function handleSubmit() {
-		if (mode === 'open') {
-			await openShift(openingCash);
-			showToast('Shift dibuka dengan saldo awal');
-			open = false;
-		} else {
-			result = await closeShift(actualCash);
-			justClosed = true;
+		if (saving) return; // throttle: hanya klik pertama yang diproses
+		saving = true;
+		try {
+			if (mode === 'open') {
+				await openShift(openingCash);
+				showToast('Shift dibuka dengan saldo awal');
+				open = false;
+			} else {
+				result = await closeShift(actualCash);
+				justClosed = true;
+			}
+		} finally {
+			saving = false;
 		}
 	}
 
@@ -86,10 +93,14 @@
 
 				<div style="display:flex;gap:9px;margin-top:20px">
 					{#if mode === 'open'}
-						<button class="button button-primary" type="button" style="flex:1" onclick={handleSubmit}>Buka shift</button>
+						<button class="button button-primary" type="button" style="flex:1" disabled={saving} onclick={handleSubmit}>
+							{#if saving}<span class="btn-spinner"></span>Membuka...{:else}Buka shift{/if}
+						</button>
 					{:else if !justClosed}
-						<button class="button button-secondary" type="button" onclick={() => (mode = 'open')}>Kembali</button>
-						<button class="button button-primary" type="button" style="flex:1" onclick={handleSubmit}>Tutup &amp; simpan rekap</button>
+						<button class="button button-secondary" type="button" disabled={saving} onclick={() => (mode = 'open')}>Kembali</button>
+						<button class="button button-primary" type="button" style="flex:1" disabled={saving} onclick={handleSubmit}>
+							{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Tutup &amp; simpan rekap{/if}
+						</button>
 					{:else}
 						<button class="button button-primary" type="button" style="flex:1" onclick={() => (open = false)}>Selesai</button>
 					{/if}

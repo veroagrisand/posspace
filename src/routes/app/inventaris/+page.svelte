@@ -33,6 +33,7 @@
 
 	let opnameReason = $state('');
 	let typeFilter = $state('all');
+	let saving = $state(false);
 
 	const movementTypes = [
 		{ id: 'all', label: 'Semua' },
@@ -67,6 +68,7 @@
 	}
 
 	async function submitPurchase() {
+		if (saving) return; // throttle: hanya klik pertama yang diproses
 		if (!purchaseIngredient || baseQuantity <= 0) {
 			showToast('Isi jumlah pembelian yang valid');
 			return;
@@ -75,15 +77,20 @@
 			showToast('Isi total harga pembelian');
 			return;
 		}
-		await recordPurchase({
-			ingredientId: purchaseIngredient,
-			supplier: purchaseSupplier || 'Pemasok',
-			quantity: purchaseQty,
-			unit: purchaseUnit,
-			totalPrice: purchaseTotal
-		});
-		purchaseOpen = false;
-		showToast('Pembelian dicatat, stok bertambah otomatis');
+		saving = true;
+		try {
+			await recordPurchase({
+				ingredientId: purchaseIngredient,
+				supplier: purchaseSupplier || 'Pemasok',
+				quantity: purchaseQty,
+				unit: purchaseUnit,
+				totalPrice: purchaseTotal
+			});
+			purchaseOpen = false;
+			showToast('Pembelian dicatat, stok bertambah otomatis');
+		} finally {
+			saving = false;
+		}
 	}
 
 	function openCost(ing: { id: string; name: string; costPerUnit: number }) {
@@ -95,14 +102,20 @@
 	}
 
 	async function submitCost() {
+		if (saving) return; // throttle
 		if (!costIngredient) return;
 		if (!Number.isFinite(costValue) || costValue < 0) {
 			showToast('Harga modal tidak valid');
 			return;
 		}
-		await setIngredientCost(costIngredient, costValue);
-		costOpen = false;
-		showToast('Harga modal diperbarui — HPP & laporan terhitung ulang');
+		saving = true;
+		try {
+			await setIngredientCost(costIngredient, costValue);
+			costOpen = false;
+			showToast('Harga modal diperbarui — HPP & laporan terhitung ulang');
+		} finally {
+			saving = false;
+		}
 	}
 
 	function openOpname() {
@@ -113,22 +126,34 @@
 	}
 
 	async function submitOpname() {
+		if (saving) return; // throttle
 		if (!opnameIngredient) return;
-		const opnameId = await createOpname(opnameIngredient, opnameActual);
-		pendingOpname = opnameId ?? null;
-		showToast('Hasil hitung fisik dicatat sebagai draft');
+		saving = true;
+		try {
+			const opnameId = await createOpname(opnameIngredient, opnameActual);
+			pendingOpname = opnameId ?? null;
+			showToast('Hasil hitung fisik dicatat sebagai draft');
+		} finally {
+			saving = false;
+		}
 	}
 
 	async function approveCurrent() {
+		if (saving) return; // throttle
 		if (!pendingOpname) return;
 		if (!opnameReason.trim()) {
 			showToast('Alasan selisih wajib diisi');
 			return;
 		}
-		await approveOpname(pendingOpname, opnameReason.trim());
-		opnameOpen = false;
-		opnameReason = '';
-		showToast('Selisih disetujui, stok sistem disesuaikan');
+		saving = true;
+		try {
+			await approveOpname(pendingOpname, opnameReason.trim());
+			opnameOpen = false;
+			opnameReason = '';
+			showToast('Selisih disetujui, stok sistem disesuaikan');
+		} finally {
+			saving = false;
+		}
 	}
 
 	function rejectCurrent() {
@@ -329,8 +354,10 @@
 		</p>
 	</div>
 	<div class="modal-actions">
-		<button class="button button-secondary" type="button" onclick={() => (purchaseOpen = false)}>Batal</button>
-		<button class="button button-primary" type="button" onclick={submitPurchase}>Simpan pembelian</button>
+		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (purchaseOpen = false)}>Batal</button>
+		<button class="button button-primary" type="button" disabled={saving} onclick={submitPurchase}>
+			{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Simpan pembelian{/if}
+		</button>
 	</div>
 </Modal>
 
@@ -373,8 +400,10 @@
 		</p>
 	</div>
 	<div class="modal-actions">
-		<button class="button button-secondary" type="button" onclick={() => (costOpen = false)}>Batal</button>
-		<button class="button button-primary" type="button" onclick={submitCost}>Simpan harga modal</button>
+		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (costOpen = false)}>Batal</button>
+		<button class="button button-primary" type="button" disabled={saving} onclick={submitCost}>
+			{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Simpan harga modal{/if}
+		</button>
 	</div>
 </Modal>
 
@@ -398,8 +427,10 @@
 			<p style="color:#9aa39c;font-size:10px;line-height:1.5">Sistem saat ini mencatat <b style="color:var(--forest-800)">{selectedIng?.stock.toLocaleString('id-ID') ?? 0}</b> {selectedIng?.unit}. Bandingkan dengan hitung fisik di lapangan.</p>
 		</div>
 		<div class="modal-actions">
-			<button class="button button-secondary" type="button" onclick={() => (opnameOpen = false)}>Batal</button>
-			<button class="button button-primary" type="button" onclick={submitOpname}>Buat draft opname</button>
+			<button class="button button-secondary" type="button" disabled={saving} onclick={() => (opnameOpen = false)}>Batal</button>
+			<button class="button button-primary" type="button" disabled={saving} onclick={submitOpname}>
+				{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Buat draft opname{/if}
+			</button>
 		</div>
 	{:else}
 		<div class="opname-diff {activeOpname.difference >= 0 ? 'pos' : 'neg'}">
@@ -412,8 +443,10 @@
 			<div class="form-input"><input id="opnameReason" type="text" bind:value={opnameReason} placeholder="cth. Bahan tumpah saat penyimpanan" /></div>
 		</div>
 		<div class="modal-actions">
-			<button class="button button-secondary" type="button" onclick={rejectCurrent}>Tolak</button>
-			<button class="button button-primary" type="button" onclick={approveCurrent}>Setujui &amp; sesuaikan</button>
+			<button class="button button-secondary" type="button" disabled={saving} onclick={rejectCurrent}>Tolak</button>
+			<button class="button button-primary" type="button" disabled={saving} onclick={approveCurrent}>
+				{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Setujui &amp; sesuaikan{/if}
+			</button>
 		</div>
 	{/if}
 </Modal>

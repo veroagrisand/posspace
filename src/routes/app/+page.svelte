@@ -193,28 +193,28 @@
 	}
 
 	async function handlePay() {
-		if (paymentSubmitting) return;
-		if (!cart.length) {
-			showToast('Pilih menu terlebih dahulu untuk membuat pesanan');
-			return;
-		}
-		if (stockBlockers.length) {
-			showToast(`Bahan tidak cukup — tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
-			return;
-		}
-		if (paymentMethod === 'cash') {
-			if (!Number.isFinite(cashReceived)) {
-				showToast('Masukkan jumlah uang diterima.');
-				return;
-			}
-			if (cashReceived < total) {
-				showToast(`Uang diterima masih kurang ${formatIDR(total - cashReceived)}`);
-				return;
-			}
-		}
-
-		paymentSubmitting = true;
+		if (paymentSubmitting) return; // throttle: hanya klik pertama yang diproses
+		paymentSubmitting = true; // disable tombol seketika saat klik pertama
 		try {
+			if (!cart.length) {
+				showToast('Pilih menu terlebih dahulu untuk membuat pesanan');
+				return;
+			}
+			if (stockBlockers.length) {
+				showToast(`Bahan tidak cukup — tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
+				return;
+			}
+			if (paymentMethod === 'cash') {
+				if (!Number.isFinite(cashReceived)) {
+					showToast('Masukkan jumlah uang diterima.');
+					return;
+				}
+				if (cashReceived < total) {
+					showToast(`Uang diterima masih kurang ${formatIDR(total - cashReceived)}`);
+					return;
+				}
+			}
+
 			if (paymentMethod === 'cash') {
 				await finishPayment('cash', undefined, undefined, undefined);
 			} else {
@@ -586,7 +586,15 @@
 				{/if}
 
 				<button class="button button-primary pay-button" type="button" disabled={paymentSubmitting || stockBlockers.length > 0} onclick={handlePay}>
-					<span>{paymentSubmitting ? 'Memproses...' : stockBlockers.length > 0 ? 'Bahan tidak cukup' : 'Bayar sekarang'}</span>
+					<span>
+						{#if paymentSubmitting}
+							<span class="btn-spinner"></span>Memproses...
+						{:else if stockBlockers.length > 0}
+							Bahan tidak cukup
+						{:else}
+							Bayar sekarang
+						{/if}
+					</span>
 					<strong>{formatIDR(total)}</strong>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
 				</button>

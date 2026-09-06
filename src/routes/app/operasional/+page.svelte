@@ -44,6 +44,7 @@
 	let editDate = $state('');
 	let editStart = $state('');
 	let editEnd = $state('');
+	let saving = $state(false);
 
 	function currentMonthRange() {
 		const [ym, d] = month.split('-').map(Number);
@@ -88,6 +89,7 @@
 	}
 
 	async function submitAdd() {
+		if (saving) return; // throttle: hanya klik pertama yang diproses
 		if (!addCategory || addAmount <= 0) {
 			showToast('Isi kategori & jumlah beban');
 			return;
@@ -100,17 +102,22 @@
 			showToast('Tanggal selesai tidak boleh sebelum tanggal mulai');
 			return;
 		}
-		await addExpense({
-			category: addCategory,
-			amount: addAmount,
-			note: addNote.trim(),
-			expenseDate: billingDate(addType, addDate, addStart, addEnd),
-			expenseType: addType,
-			periodStart: addType === 'sekali' ? null : addStart,
-			periodEnd: addType === 'sekali' ? null : addEnd
-		});
-		addOpen = false;
-		showToast('Beban operasional dicatat');
+		saving = true;
+		try {
+			await addExpense({
+				category: addCategory,
+				amount: addAmount,
+				note: addNote.trim(),
+				expenseDate: billingDate(addType, addDate, addStart, addEnd),
+				expenseType: addType,
+				periodStart: addType === 'sekali' ? null : addStart,
+				periodEnd: addType === 'sekali' ? null : addEnd
+			});
+			addOpen = false;
+			showToast('Beban operasional dicatat');
+		} finally {
+			saving = false;
+		}
 	}
 
 	function openEdit(e: {
@@ -135,7 +142,7 @@
 	}
 
 	async function submitEdit() {
-		if (!editing || editAmount <= 0) {
+		if (saving || !editing || editAmount <= 0) {
 			showToast('Isi jumlah beban yang valid');
 			return;
 		}
@@ -143,18 +150,23 @@
 			showToast('Tanggal selesai tidak boleh sebelum tanggal mulai');
 			return;
 		}
-		await updateExpense(editing.id, {
-			category: editCategory,
-			amount: editAmount,
-			note: editNote.trim(),
-			expenseDate: billingDate(editType, editDate, editStart, editEnd),
-			expenseType: editType,
-			periodStart: editType === 'sekali' ? null : editStart,
-			periodEnd: editType === 'sekali' ? null : editEnd
-		});
-		editing = null;
-		editOpen = false;
-		showToast('Beban operasional diperbarui');
+		saving = true;
+		try {
+			await updateExpense(editing.id, {
+				category: editCategory,
+				amount: editAmount,
+				note: editNote.trim(),
+				expenseDate: billingDate(editType, editDate, editStart, editEnd),
+				expenseType: editType,
+				periodStart: editType === 'sekali' ? null : editStart,
+				periodEnd: editType === 'sekali' ? null : editEnd
+			});
+			editing = null;
+			editOpen = false;
+			showToast('Beban operasional diperbarui');
+		} finally {
+			saving = false;
+		}
 	}
 
 	function closeEdit() {
@@ -352,8 +364,10 @@
 		</div>
 	</div>
 	<div class="modal-actions">
-		<button class="button button-secondary" type="button" onclick={() => (addOpen = false)}>Batal</button>
-		<button class="button button-primary" type="button" onclick={submitAdd}>Simpan beban</button>
+		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (addOpen = false)}>Batal</button>
+		<button class="button button-primary" type="button" disabled={saving} onclick={submitAdd}>
+			{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Simpan beban{/if}
+		</button>
 	</div>
 </Modal>
 
@@ -410,8 +424,10 @@
 			</div>
 		</div>
 		<div class="modal-actions">
-			<button class="button button-secondary" type="button" onclick={closeEdit}>Batal</button>
-			<button class="button button-primary" type="button" onclick={submitEdit}>Simpan perubahan</button>
+			<button class="button button-secondary" type="button" disabled={saving} onclick={closeEdit}>Batal</button>
+			<button class="button button-primary" type="button" disabled={saving} onclick={submitEdit}>
+				{#if saving}<span class="btn-spinner"></span>Menyimpan...{:else}Simpan perubahan{/if}
+			</button>
 		</div>
 	{/if}
 </Modal>
