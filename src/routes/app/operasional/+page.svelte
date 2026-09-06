@@ -103,6 +103,7 @@
 			return;
 		}
 		saving = true;
+		addOpen = false; // tutup popup seketika, toast muncul saat selesai
 		try {
 			await addExpense({
 				category: addCategory,
@@ -113,8 +114,10 @@
 				periodStart: addType === 'sekali' ? null : addStart,
 				periodEnd: addType === 'sekali' ? null : addEnd
 			});
-			addOpen = false;
 			showToast('Beban operasional dicatat');
+		} catch (err) {
+			addOpen = true; // gagal → popup terbuka kembali, input tidak hilang
+			showToast(`Gagal mencatat beban: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
 		}
@@ -151,6 +154,7 @@
 			return;
 		}
 		saving = true;
+		editOpen = false; // tutup popup seketika
 		try {
 			await updateExpense(editing.id, {
 				category: editCategory,
@@ -162,8 +166,10 @@
 				periodEnd: editType === 'sekali' ? null : editEnd
 			});
 			editing = null;
-			editOpen = false;
 			showToast('Beban operasional diperbarui');
+		} catch (err) {
+			editOpen = true;
+			showToast(`Gagal memperbarui beban: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
 		}

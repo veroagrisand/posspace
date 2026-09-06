@@ -29,13 +29,16 @@
 		saving = true;
 		try {
 			if (mode === 'open') {
+				open = false; // tutup popup seketika, toast muncul saat selesai
 				await openShift(openingCash);
 				showToast('Shift dibuka dengan saldo awal');
-				open = false;
 			} else {
 				result = await closeShift(actualCash);
 				justClosed = true;
 			}
+		} catch (err) {
+			if (mode === 'open') open = true; // gagal → popup terbuka kembali
+			showToast(`Gagal: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
 		}

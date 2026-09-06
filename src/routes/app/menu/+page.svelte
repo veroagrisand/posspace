@@ -48,13 +48,14 @@
 		}
 	});
 
-	function withSaving(action: () => Promise<void>) {
+	function withSaving(action: () => Promise<void>, onFail?: () => void) {
 		if (saving) return;
 		saving = true;
 		action()
 			.catch((err) => {
 				const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
 				showToast(`Gagal: ${message}`);
+				onFail?.();
 			})
 			.finally(() => (saving = false));
 	}
@@ -78,19 +79,16 @@
 
 	async function submitAdd() {
 		if (saving || !addName.trim()) return;
-		saving = true;
-		try {
+		addOpen = false; // tutup popup seketika, toast muncul saat selesai
+		withSaving(async () => {
 			await addProduct({ name: addName.trim(), category: addCategory, price: addPrice, variantName: addVariantName.trim() || 'Reguler' });
-			addOpen = false;
 			addName = '';
 			addVariantName = 'Reguler';
 			addPrice = 18000;
 			showToast('Menu baru ditambahkan');
-		} catch (err) {
-			showToast(`Gagal menambah menu: ${err instanceof Error ? err.message : 'error'}`);
-		} finally {
-			saving = false;
-		}
+		}, () => {
+			addOpen = true; // gagal → popup terbuka kembali, input tidak hilang
+		});
 	}
 
 	// ===== Operasi draft pada modal kelola (tanpa API — disimpan sekali) =====
@@ -124,49 +122,43 @@
 
 	async function saveManage() {
 		if (saving || !draftName.trim()) return;
-		saving = true;
-		try {
-			const p = store.products.find((x) => x.id === manageProductId);
-			if (!p) return;
-			p.name = draftName.trim();
-			p.category = draftCategory;
-			p.variants = draftVariants.map((v) => ({
-				id: v.id ?? `__new__${Date.now()}`,
-				name: v.name.trim() || 'Reguler',
-				price: v.price,
-				recipe: v.recipe.filter((r) => r.ingredientId && r.qty > 0).map((r) => ({ ...r }))
-			}));
+		const p = store.products.find((x) => x.id === manageProductId);
+		if (!p) return;
+		p.name = draftName.trim();
+		p.category = draftCategory;
+		p.variants = draftVariants.map((v) => ({
+			id: v.id ?? `__new__${Date.now()}`,
+			name: v.name.trim() || 'Reguler',
+			price: v.price,
+			recipe: v.recipe.filter((r) => r.ingredientId && r.qty > 0).map((r) => ({ ...r }))
+		}));
+		manageOpen = false; // tutup popup seketika
+		withSaving(async () => {
 			if (backend.enabled) {
 				await saveProductFull(p.id);
 			}
-			manageOpen = false;
 			showToast('Perubahan menu disimpan');
-		} catch (err) {
-			showToast(`Gagal menyimpan: ${err instanceof Error ? err.message : 'error'}`);
-		} finally {
-			saving = false;
-		}
+		}, () => {
+			manageOpen = true;
+		});
 	}
 
 	async function confirmDeleteProduct() {
 		if (saving) return;
 		if (!window.confirm(`Hapus menu "${draftName}" beserta semua varian & resepnya? Tindakan ini tidak bisa dibatalkan.`)) return;
-		saving = true;
-		try {
+		manageOpen = false; // tutup popup seketika
+		withSaving(async () => {
 			await deleteProduct(manageProductId);
-			manageOpen = false;
 			showToast('Menu dihapus');
-		} catch (err) {
-			showToast(`Gagal menghapus: ${err instanceof Error ? err.message : 'error'}`);
-		} finally {
-			saving = false;
-		}
+		}, () => {
+			manageOpen = true;
+		});
 	}
 
 	async function submitIngredient() {
 		if (saving || !ingName.trim()) return;
-		saving = true;
-		try {
+		ingOpen = false; // tutup popup seketika
+		withSaving(async () => {
 			if (ingEditId) {
 				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku diperbarui');
@@ -174,12 +166,9 @@
 				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku ditambahkan');
 			}
-			ingOpen = false;
-		} catch (err) {
-			showToast(`Gagal: ${err instanceof Error ? err.message : 'error'}`);
-		} finally {
-			saving = false;
-		}
+		}, () => {
+			ingOpen = true;
+		});
 	}
 
 	function openIngredient(id: string | null) {
