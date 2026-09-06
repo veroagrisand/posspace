@@ -240,7 +240,7 @@ posDataService.post('/ingredients', async (c) => {
 			unit: body.unit ?? 'gram',
 			stock_quantity: stock,
 			min_stock: minStock,
-			cost_per_unit: costPerUnit
+			cost_per_unit: Math.round(costPerUnit * 100) / 100
 		})
 		.select('*')
 		.single();
@@ -275,7 +275,7 @@ posDataService.patch('/ingredients/:id', async (c) => {
 			name: body.name ?? undefined,
 			unit: body.unit ?? undefined,
 			min_stock: body.minStock ?? undefined,
-			cost_per_unit: body.costPerUnit !== undefined ? Number(body.costPerUnit) : undefined
+			cost_per_unit: body.costPerUnit !== undefined ? Math.round(Number(body.costPerUnit) * 100) / 100 : undefined
 		})
 		.eq('id', ingredientId)
 		.eq('shop_id', ctx.shop.shopId)

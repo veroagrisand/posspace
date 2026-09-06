@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost } from '$lib/store.svelte';
+	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost, formatRupiahExact } from '$lib/store.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
@@ -15,6 +15,16 @@
 	let costOpen = $state(false);
 	let costIngredient = $state('');
 	let costValue = $state(0);
+
+	// ===== Hitung harga modal otomatis: harga modal = total harga ÷ jumlah =====
+	let costQtyAuto = $state(0);
+	let costTotalAuto = $state(0);
+	const costCostAuto = $derived(costQtyAuto > 0 ? costTotalAuto / costQtyAuto : 0);
+	$effect(() => {
+		if (costQtyAuto > 0 && costTotalAuto > 0) {
+			costValue = Math.round(costCostAuto * 100) / 100;
+		}
+	});
 
 	let opnameOpen = $state(false);
 	let opnameIngredient = $state('');
@@ -79,6 +89,8 @@
 	function openCost(ing: { id: string; name: string; costPerUnit: number }) {
 		costIngredient = ing.id;
 		costValue = ing.costPerUnit;
+		costQtyAuto = 0;
+		costTotalAuto = 0;
 		costOpen = true;
 	}
 
@@ -179,7 +191,7 @@
 							<td>{ing.minStock.toLocaleString('id-ID')} {ing.unit}</td>
 							<td>
 								<button class="hpp-cell" type="button" onclick={() => openCost(ing)} title="Klik untuk ubah harga modal">
-									<span>{ing.costPerUnit > 0 ? formatIDR(ing.costPerUnit) : '—'}</span>
+									<span>{ing.costPerUnit > 0 ? formatRupiahExact(ing.costPerUnit) : '—'}</span>
 									<small>/{ing.unit} · set</small>
 								</button>
 							</td>
@@ -311,7 +323,7 @@
 		</div>
 		<p class="purchase-preview" style="margin:2px 0 0">
 			{baseQuantity > 0
-				? `≈ ${formatIDR(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
+				? `≈ ${formatRupiahExact(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
 				: 'Masukkan jumlah & total harga untuk melihat harga/satuan.'}
 			<br />Harga modal (HPP) <b>tidak berubah otomatis</b> — sesuaikan manual di kolom "Harga modal" bila harga beli berubah.
 		</p>
@@ -337,6 +349,24 @@
 		<div class="form-row">
 			<label for="costValue">Harga modal per {selectedCostIng?.unit ?? ''} (Rp)</label>
 			<div class="form-input"><input id="costValue" type="number" min="0" step="any" bind:value={costValue} /></div>
+		</div>
+		<div class="form-row auto-cost-row">
+			<span class="auto-cost-label">Hitung otomatis dari jumlah &amp; total harga</span>
+			<div class="form-grid two">
+				<div class="form-row">
+					<label for="costQtyAuto">Jumlah ({selectedCostIng?.unit ?? ''})</label>
+					<div class="form-input"><input id="costQtyAuto" type="number" min="0" step="any" bind:value={costQtyAuto} placeholder="cth. 200" /></div>
+				</div>
+				<div class="form-row">
+					<label for="costTotalAuto">Total harga (Rp)</label>
+					<div class="form-input"><input id="costTotalAuto" type="number" min="0" step="any" bind:value={costTotalAuto} placeholder="cth. 150000" /></div>
+				</div>
+			</div>
+			{#if costQtyAuto > 0 && costTotalAuto > 0}
+				<p class="purchase-preview" style="margin:6px 0 0">= {formatRupiahExact(costCostAuto)} per {selectedCostIng?.unit ?? ''} &nbsp;({new Intl.NumberFormat('id-ID').format(Math.round(costTotalAuto))} ÷ {costQtyAuto.toLocaleString('id-ID')})</p>
+			{:else}
+				<p class="purchase-preview" style="margin:6px 0 0">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
+			{/if}
 		</div>
 		<p class="purchase-preview" style="margin:2px 0 0">
 			HPP menu = Σ (bahan × jumlah resep). Koreksi di sini tidak menambah/mengurangi stok.
@@ -418,5 +448,20 @@
 		color: #7f8b82;
 		font-size: 11px;
 		line-height: 1.5;
+	}
+
+	.auto-cost-row {
+		padding: 12px;
+		border: 1px solid var(--line-strong);
+		border-radius: 12px;
+		background: #fafafa;
+	}
+
+	.auto-cost-label {
+		display: block;
+		color: var(--ink-soft);
+		font-size: 10px;
+		font-weight: 700;
+		margin-bottom: 2px;
 	}
 </style>

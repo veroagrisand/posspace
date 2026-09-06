@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel } from '$lib/store.svelte';
+	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, formatRupiahExact } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 
@@ -348,7 +348,7 @@
 			<div class="metric-topline"><span class="metric-label">HPP hari ini</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">{formatIDR(todayHpp)} <small>modal bahan</small></strong>
+			<strong class="metric-value">{formatRupiahExact(todayHpp)} <small>modal bahan</small></strong>
 			<div class="metric-meta">
 				{#if todayOmzet > 0}
 					<span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct}% dari omzet</span>
@@ -662,7 +662,7 @@
 				</div>
 			{:else}
 				<div class="margin-summary">
-					<div><span>Laba kotor</span><strong>{formatIDR(todayGrossProfit)}</strong></div>
+					<div><span>Laba kotor</span><strong>{formatRupiahExact(todayGrossProfit)}</strong></div>
 					<div><span>Rasio HPP</span><strong class="{hppPct <= 35 ? 'margin-ok' : 'margin-alert'}">{hppPct}%</strong></div>
 				</div>
 				<div class="margin-list">

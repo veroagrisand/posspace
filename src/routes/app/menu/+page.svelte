@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, categories, backend, addProduct, addIngredient, updateIngredient, toggleProductActive, deleteProduct, saveProductFull, hppOf } from '$lib/store.svelte';
+	import { store, categories, backend, addProduct, addIngredient, updateIngredient, toggleProductActive, deleteProduct, saveProductFull, hppOf, formatRupiahExact } from '$lib/store.svelte';
 	import type { Variant } from '$lib/store.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 
@@ -37,6 +37,16 @@
 	let ingStock = $state(0);
 	let ingMin = $state(0);
 	let ingCost = $state(0);
+
+	// ===== Hitung harga modal otomatis: harga modal = total harga ÷ jumlah =====
+	let ingQtyAuto = $state(0);
+	let ingTotalAuto = $state(0);
+	const ingCostAuto = $derived(ingQtyAuto > 0 ? ingTotalAuto / ingQtyAuto : 0);
+	$effect(() => {
+		if (ingQtyAuto > 0 && ingTotalAuto > 0) {
+			ingCost = Math.round(ingCostAuto * 100) / 100;
+		}
+	});
 
 	function withSaving(action: () => Promise<void>) {
 		if (saving) return;
@@ -180,6 +190,8 @@
 		ingStock = ing?.stock ?? 0;
 		ingMin = ing?.minStock ?? 0;
 		ingCost = ing?.costPerUnit ?? 0;
+		ingQtyAuto = 0;
+		ingTotalAuto = 0;
 		ingOpen = true;
 	}
 
@@ -249,7 +261,7 @@
 							</td>
 							<td style="font-family:var(--font-display)">
 								{#each product.variants as variant}
-									<div class="hpp-line">{formatIDR(hppOf(variant))}</div>
+									<div class="hpp-line">{formatRupiahExact(hppOf(variant))}</div>
 								{/each}
 							</td>
 							<td style="color:var(--green);font-weight:700">
@@ -399,7 +411,7 @@
 						</div>
 					{/each}
 					<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-						<span style="color:#98a29a;font-size:10px">HPP: <b style="color:var(--forest-800)">{formatIDR(draftHpp(variant))}</b></span>
+						<span style="color:#98a29a;font-size:10px">HPP: <b style="color:var(--forest-800)">{formatRupiahExact(draftHpp(variant))}</b></span>
 						<button class="text-button" type="button" disabled={saving || store.ingredients.length === 0} onclick={() => draftAddIngredient(variant)}>+ Tambah bahan</button>
 					</div>
 				</div>
@@ -459,9 +471,29 @@
 		{/if}
 		<div class="form-row">
 			<label for="ingCost">Harga modal per {ingUnit} (Rp)</label>
-			<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 120000 untuk 1 kg biji kopi" disabled={saving} /></div>
-			<p class="cost-hint">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual — pembelian tidak mengubahnya otomatis.</p>
+			<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 750 untuk 200 gram seharga 150.000" disabled={saving} /></div>
 		</div>
+		<div class="form-row auto-cost-row">
+			<span class="auto-cost-label">Hitung otomatis dari jumlah &amp; total harga</span>
+			<div class="form-grid two">
+				<div class="form-row">
+					<label for="ingQtyAuto">Jumlah ({ingUnit})</label>
+					<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} placeholder="cth. 200" disabled={saving} /></div>
+				</div>
+				<div class="form-row">
+					<label for="ingTotalAuto">Total harga (Rp)</label>
+					<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} placeholder="cth. 150000" disabled={saving} /></div>
+				</div>
+			</div>
+			{#if ingQtyAuto > 0 && ingTotalAuto > 0}
+				<p class="cost-hint">
+					= {formatRupiahExact(ingCostAuto)} per {ingUnit} &nbsp;({new Intl.NumberFormat('id-ID').format(Math.round(ingTotalAuto))} ÷ {ingQtyAuto.toLocaleString('id-ID')})
+				</p>
+			{:else}
+				<p class="cost-hint">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
+			{/if}
+		</div>
+		<p class="cost-hint" style="margin-top:2px">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual — pembelian tidak mengubahnya otomatis.</p>
 	</div>
 	<div class="modal-actions">
 		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
@@ -527,5 +559,20 @@
 		font-size: 10px;
 		line-height: 1.5;
 		margin-top: 5px;
+	}
+
+	.auto-cost-row {
+		padding: 12px;
+		border: 1px solid var(--line-strong);
+		border-radius: 12px;
+		background: #fafafa;
+	}
+
+	.auto-cost-label {
+		display: block;
+		color: var(--ink-soft);
+		font-size: 10px;
+		font-weight: 700;
+		margin-bottom: 8px;
 	}
 </style>

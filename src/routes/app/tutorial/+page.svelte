@@ -12,7 +12,7 @@
 				],
 				[
 					'Input harga modal (data 1)',
-					'Menu → "+ Kelola bahan" → isi kolom "Harga modal per satuan (Rp)" saat menambah/ubah bahan (cth. 120000 untuk 1 kg biji kopi → otomatis jadi Rp 120/gram). Bisa juga diklik langsung di kolom "Harga modal" pada halaman Inventaris. Diisi manual oleh pemilik atau anggota admin gudang.'
+					'Menu → "+ Kelola bahan" → isi kolom "Harga modal per satuan (Rp)", atau isi "Jumlah" & "Total harga" lalu harga modal terhitung otomatis (rumus: total ÷ jumlah — mis. kopi 200 gram seharga 150.000 → Rp 750/gram; berlaku untuk satuan gram, ml, dan pcs). Bisa juga diklik langsung di kolom "Harga modal" pada halaman Inventaris. Diisi manual oleh pemilik atau anggota admin gudang.'
 				],
 				[
 					'Input resep (data 2)',

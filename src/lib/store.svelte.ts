@@ -120,6 +120,28 @@ export function expenseLabel(category: string): string {
 	return EXPENSE_CATEGORIES.find((c) => c.id === category)?.label ?? category;
 }
 
+// ===== Format mata uang (pembukuan) =====
+// Dua mode:
+//  - formatRupiah: nilai bulat untuk omzet/harga jual/kas (rupiah tanpa sen).
+//  - formatRupiahExact: nilai presisi (harga modal & HPP) — desimal 0–2
+//    ditampilkan apa adanya tanpa dibulatkan ke rupiah penuh.
+function idr(amount: number, min: number, max: number): string {
+	return new Intl.NumberFormat('id-ID', { minimumFractionDigits: min, maximumFractionDigits: max }).format(Math.max(0, Number.isFinite(amount) ? amount : 0));
+}
+
+/** Rupiah bulat — untuk omzet, harga jual, total, kas, kembalian. */
+export function formatRupiah(amount: number): string {
+	return `Rp ${idr(Math.round(amount), 0, 0)}`;
+}
+
+/** Rupiah presisi (maks 2 desimal) — untuk harga modal per satuan & HPP. */
+export function formatRupiahExact(amount: number): string {
+	const v = Math.max(0, Number.isFinite(amount) ? amount : 0);
+	const rounded = Math.round(v * 100) / 100;
+	const whole = Number.isInteger(rounded);
+	return `Rp ${idr(rounded, whole ? 0 : 2, whole ? 0 : 2)}`;
+}
+
 export const categories = ['Kopi', 'Non-kopi', 'Makanan'] as const;
 
 let shiftSeq = 0;

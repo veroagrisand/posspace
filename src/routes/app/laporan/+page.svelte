@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, hppOf, findVariant } from '$lib/store.svelte';
+	import { store, formatRupiahExact } from '$lib/store.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
 
@@ -13,14 +13,11 @@
 	const todaySales = $derived(store.transactions.filter((t) => isToday(t.paidAt)));
 	const omzet = $derived(todaySales.reduce((s, t) => s + t.total, 0));
 	const txCount = $derived(todaySales.length);
+	// HPP = Σ (unit_cost × qty) — unit_cost dibekukan saat penjualan, presisi 2 desimal.
 	const hppTotal = $derived(
 		todaySales.reduce((sum, txn) => {
 			for (const item of txn.items) {
-				const variant = store.products
-					.map((p) => p.variants.find((v) => v.name === item.variant && v.price === item.unitPrice))
-					.find((v) => v);
-				const unitHpp = item.unitCost != null ? item.unitCost : variant ? hppOf(variant) : 0;
-				sum += unitHpp * item.qty;
+				sum += (item.unitCost != null ? item.unitCost : 0) * item.qty;
 			}
 			return sum;
 		}, 0)
@@ -34,11 +31,7 @@
 		for (const txn of todaySales) {
 			for (const item of txn.items) {
 				const key = `${item.productName}|${item.variant}`;
-				const variant = store.products
-					.map((p) => p.variants.find((v) => v.name === item.variant && v.price === item.unitPrice))
-					.find((v) => v);
-				const unitHpp = item.unitCost != null ? item.unitCost : variant ? hppOf(variant) : 0;
-				const hpp = unitHpp * item.qty;
+				const hpp = (item.unitCost != null ? item.unitCost : 0) * item.qty;
 				const current = map.get(key) ?? { name: `${item.productName} (${item.variant})`, qty: 0, revenue: 0, hpp: 0 };
 				current.qty += item.qty;
 				current.revenue += item.lineTotal;
@@ -174,7 +167,7 @@
 			<div class="metric-topline"><span class="metric-label">HPP total</span><span class="metric-icon">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
 			</span></div>
-			<strong class="metric-value">{formatIDR(hppTotal)}</strong>
+			<strong class="metric-value">{formatRupiahExact(hppTotal)}</strong>
 			<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>{hppPct}% dari omzet</span></div>
 		</article>
 		<article class="metric-card">
@@ -214,8 +207,8 @@
 								<td>{item.name}</td>
 								<td>{item.qty} porsi</td>
 								<td style="font-family:var(--font-display)">{formatIDR(item.revenue)}</td>
-								<td style="font-family:var(--font-display)">{formatIDR(item.hpp)}</td>
-								<td style="font-family:var(--font-display);color:var(--green);font-weight:700">{formatIDR(item.revenue - item.hpp)}</td>
+								<td style="font-family:var(--font-display)">{formatRupiahExact(item.hpp)}</td>
+								<td style="font-family:var(--font-display);color:var(--green);font-weight:700">{formatRupiahExact(item.revenue - item.hpp)}</td>
 							</tr>
 						{/each}
 					</tbody>
