@@ -2224,6 +2224,7 @@
 	.sidebar {
 		position: fixed;
 		z-index: 10;
+		top: auto; /* reset top:0 dari mode desktop agar bottom:0 aktif */
 		right: 0;
 		bottom: 0;
 		left: 0;
