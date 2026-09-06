@@ -150,6 +150,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw thrownError;
 	}
 
+	// ===== Diagnostik sementara: cari header respons yang terlalu besar =====
+	try {
+		const headerSize = [...response.headers.entries()].reduce((s, [k, v]) => s + k.length + v.length + 4, 0);
+		if (headerSize > 8000) {
+			const big = [...response.headers.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 5);
+			console.error(`[BIG HEADER] path=${event.url.pathname} size=${headerSize} headers=${JSON.stringify(big)}`);
+		}
+	} catch {
+		/* abaikan */
+	}
+
 	// ===== Security headers (best practice) =====
 	response.headers.set('X-Content-Type-Options', 'nosniff');
 	response.headers.set('X-Frame-Options', 'DENY');
