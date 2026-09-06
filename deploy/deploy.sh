@@ -87,18 +87,20 @@ set -a
 # shellcheck disable=SC1091
 source .env
 set +a
-pm2 reload deploy/ecosystem.config.cjs --update-env || pm2 start deploy/ecosystem.config.cjs --update-env
-pm2 save
+# startOrReload bersifat idempoten: start pertama kali, reload setelahnya,
+# tanpa fallback start yang dapat meninggalkan proses duplikat saat reload
+# gagal di tengah jalan.
+pm2 startOrReload deploy/ecosystem.config.cjs --update-env
 
 echo "==> 6/6 Health check"
 # Beri waktu worker PM2 selesai boot (maksimal ~15 detik) sebelum menilai gagal.
 API_OK=0
 WEB_OK=0
 for attempt in $(seq 1 15); do
-	if [ "$API_OK" -eq 0 ] && curl -fsS -m 5 http://127.0.0.1:3001/health >/dev/null; then
+	if [ "$API_OK" -eq 0 ] && curl -fsS -m 5 http://127.0.0.1:3001/ready >/dev/null; then
 		API_OK=1
 	fi
-	if [ "$WEB_OK" -eq 0 ] && curl -fsS -m 5 -o /dev/null http://127.0.0.1:3000/login; then
+	if [ "$WEB_OK" -eq 0 ] && curl -fsS -m 5 -o /dev/null http://127.0.0.1:3000/health; then
 		WEB_OK=1
 	fi
 	if [ "$API_OK" -eq 1 ] && [ "$WEB_OK" -eq 1 ]; then
@@ -116,6 +118,7 @@ if [ "$WEB_OK" -ne 1 ]; then
 	pm2 logs posspace-web --lines 40 --nostream || true
 	exit 1
 fi
+
 
 echo "$PREV_COMMIT" > .last-release
 

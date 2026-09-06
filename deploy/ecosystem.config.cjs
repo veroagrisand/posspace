@@ -32,6 +32,9 @@ module.exports = {
 			kill_timeout: 15_000, // biarkan in-flight SSR selesai sebelum stop
 			listen_timeout: 5_000, // waktu worker baru untuk mulai listen saat reload
 			restart_delay: 3_000,
+			min_uptime: '10s',
+			max_restarts: 10,
+			exp_backoff_restart_delay: 100,
 			time: true,
 			merge_logs: true,
 			out_file: '/var/log/posspace/web-out.log',
@@ -46,6 +49,9 @@ module.exports = {
 			max_memory_restart: '400M',
 			kill_timeout: 10_000,
 			restart_delay: 3_000,
+			min_uptime: '10s',
+			max_restarts: 10,
+			exp_backoff_restart_delay: 100,
 			time: true,
 			merge_logs: true,
 			out_file: '/var/log/posspace/api-out.log',

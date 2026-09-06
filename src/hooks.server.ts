@@ -5,6 +5,8 @@ import { env as publicEnv } from '$env/dynamic/public';
 
 const isProd = env.NODE_ENV === 'production';
 const serviceDb = isSupabaseConfigured ? createServiceClient() : null;
+const MAX_ACCESS_LOG_IN_FLIGHT = 8;
+let accessLogInFlight = 0;
 
 /** CSP pragmatis: tetap mengizinkan gaya inline (SvelteKit) + koneksi Supabase/Realtime/Midtrans. */
 function buildCsp(): string {
@@ -133,17 +135,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// ===== Access log halaman (API /api/* dicatat oleh gateway — tidak double) =====
 	if (!event.url.pathname.startsWith('/api/') && shouldLogRequest(event.url.pathname)) {
-		void logRequest(serviceDb, {
-			method: event.request.method,
-			path: `${event.url.pathname}${event.url.search}`,
-			status: response.status,
-			durationMs: Math.round(performance.now() - startedAt),
-			userId,
-			ip: getClientIp(event),
-			userAgent: event.request.headers.get('user-agent') ?? '',
-			referer: event.request.headers.get('referer') ?? '',
-			errorMsg: thrownError instanceof Error ? thrownError.message : undefined
-		});
+		// Jangan biarkan RPC logging menumpuk ketika Supabase sedang lambat.
+		if (accessLogInFlight < MAX_ACCESS_LOG_IN_FLIGHT) {
+			accessLogInFlight += 1;
+			void logRequest(serviceDb, {
+				method: event.request.method,
+				path: `${event.url.pathname}${event.url.search}`,
+				status: response.status,
+				durationMs: Math.round(performance.now() - startedAt),
+				userId,
+				ip: getClientIp(event),
+				userAgent: event.request.headers.get('user-agent') ?? '',
+				referer: event.request.headers.get('referer') ?? '',
+				errorMsg: thrownError instanceof Error ? thrownError.message : undefined
+			}).finally(() => {
+				accessLogInFlight -= 1;
+			});
+		}
 	}
 
 	if (thrownError !== null) {

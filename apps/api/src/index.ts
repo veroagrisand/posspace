@@ -26,7 +26,17 @@ const app = new Hono();
 app.use('*', compress({ threshold: 1024 }));
 app.use('*', auth, accessLog);
 
+// Liveness: tidak menyentuh database, aman dipakai PM2/Nginx.
 app.get('/health', (c) => c.json({ ok: true, service: 'posspace-api', ts: Date.now() }));
+
+// Readiness: memastikan gateway masih bisa menjangkau database sebelum
+// menerima traffic penuh setelah reload/deploy.
+app.get('/ready', async (c) => {
+	if (!isSupabaseConfigured) return c.json({ ok: true, service: 'posspace-api', mode: 'demo' });
+	const { error } = await service().from('plans').select('id').limit(1);
+	if (error) return c.json({ ok: false, service: 'posspace-api', reason: 'database_unavailable' }, 503);
+	return c.json({ ok: true, service: 'posspace-api', ts: Date.now() });
+});
 
 // ===== Microservices =====
 app.route('/api/auth', authService);
@@ -47,6 +57,7 @@ const HOST = env.HOST ?? '0.0.0.0';
 
 serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) => {
 	console.log(`[posspace-api] gateway berjalan di http://${HOST}:${info.port}`);
+	if (typeof process.send === 'function') process.send('ready');
 });
 
 // ===== Retensi otomatis access_logs =====
@@ -59,7 +70,8 @@ const ACCESS_LOG_RETENTION_DAYS = Number(env.ACCESS_LOG_RETENTION_DAYS ?? 7);
 const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 async function purgeAccessLogs(): Promise<void> {
-	if (!isSupabaseConfigured) return;
+	if (!isSupabaseConfigured || purgeRunning) return;
+	purgeRunning = true;
 	try {
 		const { data, error } = await service().rpc('purge_access_logs_cron', {
 			p_days: ACCESS_LOG_RETENTION_DAYS
@@ -68,8 +80,12 @@ async function purgeAccessLogs(): Promise<void> {
 		console.log(`[retensi] access_logs dibersihkan (retensi ${ACCESS_LOG_RETENTION_DAYS} hari): ${data ?? 0} baris`);
 	} catch (e) {
 		console.warn('[retensi] purge access_logs gagal:', e);
+	} finally {
+		purgeRunning = false;
 	}
 }
+
+let purgeRunning = false;
 
 // Jalan pertama ~30 detik setelah boot, lalu tiap 6 jam.
 setTimeout(() => {

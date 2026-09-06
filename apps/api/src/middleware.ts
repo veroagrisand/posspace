@@ -8,7 +8,9 @@ import { HttpError } from './http.js';
  * 2) accessLog — catat setiap request API ke access_logs (fire-and-forget).
  */
 
-const SKIP_LOG_PATHS = new Set(['/health', '/favicon.ico']);
+const SKIP_LOG_PATHS = new Set(['/health', '/ready', '/favicon.ico']);
+const MAX_ACCESS_LOG_IN_FLIGHT = 24;
+let accessLogInFlight = 0;
 
 export async function auth(c: Context, next: Next) {
 	const header = c.req.header('authorization') ?? '';
@@ -36,6 +38,11 @@ export async function accessLog(c: Context, next: Next) {
 	if (SKIP_LOG_PATHS.has(path) || /\.(png|jpg|jpeg|gif|svg|webp|ico|css|js|map|woff2?|ttf|txt|json|xml|webmanifest)$/i.test(path)) {
 		return;
 	}
+	// Logging tidak boleh menjadi antrean tak terbatas ketika Supabase lambat.
+	// Lebih baik melewati satu log daripada menghabiskan koneksi/memori dan
+	// membuat request bisnis ikut 502.
+	if (accessLogInFlight >= MAX_ACCESS_LOG_IN_FLIGHT) return;
+	accessLogInFlight += 1;
 
 	const token = c.get('accessToken') as string | undefined;
 	const userId = c.get('userId') as string | undefined;
@@ -56,6 +63,8 @@ export async function accessLog(c: Context, next: Next) {
 			if (error) console.warn('[access-log] gagal menulis log:', error.message);
 		} catch (e) {
 			console.warn('[access-log] gagal menulis log:', e);
+		} finally {
+			accessLogInFlight -= 1;
 		}
 	})();
 }
