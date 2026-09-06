@@ -43,7 +43,7 @@
 		if (!data.pendingInvoice?.merchant_order_id) return;
 		polling = true;
 		try {
-			const res = await fetch(`/api/payments/midtrans/status?merchantOrderId=${data.pendingInvoice.merchant_order_id}`);
+			const res = await fetch(`/api/payments/mayar/status?merchantOrderId=${data.pendingInvoice.merchant_order_id}`);
 			const json = await res.json();
 			if (json.status === 'paid') {
 				notice = 'Pembayaran diterima! Mengarahkan ke aplikasi...';
@@ -118,7 +118,7 @@
 			const json = await res.json().catch(() => ({}));
 			if (!res.ok) {
 				payErr =
-					json.message === 'MIDTRANS_NOT_CONFIGURED'
+					json.message === 'MAYAR_NOT_CONFIGURED'
 						? 'Pembayaran digital belum tersedia. Coba lagi beberapa saat.'
 						: (json.message ?? 'Gagal membuat pembayaran. Coba lagi.');
 				return;
@@ -150,7 +150,7 @@
 				Kembali ke beranda
 			</a>
 			<h1>Berlangganan posspace</h1>
-			<p>Setiap toko wajib berlangganan sebelum aplikasi aktif. Pembayaran diproses aman lewat Midtrans (QRIS/VA/e-wallet).</p>
+			<p>Setiap toko wajib berlangganan sebelum aplikasi aktif. Pembayaran diproses aman lewat Mayar (QRIS/VA/e-wallet).</p>
 
 			{#if data.status}
 				<div class="auth-note auth-note--alert" style="margin-top:18px">
@@ -206,7 +206,7 @@
 
 				{#if qrDataUrl}
 					<div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:20px">
-						<img src={qrDataUrl} alt="Kode QR pembayaran Midtrans (QRIS)" style="width:220px;height:220px;border-radius:16px;border:1px solid var(--brand-line-strong);box-shadow:var(--brand-shadow)" />
+						<img src={qrDataUrl} alt="Kode QR pembayaran Mayar (QRIS)" style="width:220px;height:220px;border-radius:16px;border:1px solid var(--brand-line-strong);box-shadow:var(--brand-shadow)" />
 						<p style="color:var(--brand-muted);font-size:12px;line-height:1.6;text-align:center;max-width:320px">
 							Pindai kode QR dengan aplikasi e-wallet / m-banking untuk menyelesaikan pembayaran
 							<strong>Rp {formatPrice(data.pendingInvoice.amount)}</strong>.
@@ -265,7 +265,7 @@
 					<p class="auth-error" style="margin-top:12px">{form.error}</p>
 				{/if}
 				<p class="auth-terms" style="margin-top:16px">
-					Pembayaran diproses oleh Midtrans (QRIS / VA / e-wallet). Dengan berlangganan Anda menyetujui
+					Pembayaran diproses oleh Mayar (QRIS / VA / e-wallet). Dengan berlangganan Anda menyetujui
 					Syarat &amp; Ketentuan posspace.
 				</p>
 			{/if}

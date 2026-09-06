@@ -2,7 +2,7 @@ import type { Context } from 'hono';
 import { env } from './env.js';
 import { service } from './db.js';
 import { httpError } from './http.js';
-import { createSnapTransaction, isMidtransConfigured } from './midtrans.js';
+import { createMayarPayment, isMayarConfigured } from './mayar.js';
 import { ALLOW_MOCK_PAYMENT } from './mock.js';
 
 /** Bentuk minimal user yang dibutuhkan createShopSubscription. */
@@ -24,7 +24,7 @@ export interface ShopSubscriptionResult {
 	invoiceId: string;
 	merchantOrderId: string;
 	paymentUrl?: string;
-	gateway?: 'midtrans' | 'mock' | 'manual';
+	gateway?: 'mayar' | 'mock' | 'manual';
 	mock?: boolean;
 	manual?: boolean;
 }
@@ -94,9 +94,9 @@ export async function createShopSubscription(input: {
 		.single();
 	if (invoiceError || !invoice) httpError(500, 'INVOICE_CREATE_FAILED');
 
-	if (isMidtransConfigured) {
-		// Midtrans Snap — pelanggan memilih channel (QRIS/VA/e-wallet/kartu) di halaman Midtrans.
-		const snap = await createSnapTransaction({
+	if (isMayarConfigured) {
+		// Mayar — pelanggan memilih channel (QRIS/VA/e-wallet) di halaman Mayar.
+		const mayar = await createMayarPayment({
 			orderId: merchantOrderId,
 			amount: Number(amount),
 			product: `Langganan posspace ${plan.name} (${input.billingPeriod})`,
@@ -108,13 +108,13 @@ export async function createShopSubscription(input: {
 		await db
 			.from('invoices')
 			.update({
-				payment_url: snap.redirectUrl,
-				payment_ref: null,
-				payment_channel: 'midtrans'
+				payment_url: mayar.paymentUrl,
+				payment_ref: mayar.transactionId,
+				payment_channel: 'mayar'
 			})
 			.eq('id', invoice.id);
 
-		return { invoiceId: invoice.id, merchantOrderId, paymentUrl: snap.redirectUrl, gateway: 'midtrans' };
+		return { invoiceId: invoice.id, merchantOrderId, paymentUrl: mayar.paymentUrl, gateway: 'mayar' };
 	}
 
 	if (ALLOW_MOCK_PAYMENT) {
@@ -179,21 +179,22 @@ export async function redeemVoucherToPendingInvoice(input: {
 	if (discount <= 0) throw new Error('VOUCHER_NO_DISCOUNT');
 	const amount = original - discount;
 
-	// Regenerasi instruksi pembayaran Midtrans Snap dengan nominal baru (jika gateway aktif).
+	// Regenerasi instruksi pembayaran Mayar dengan nominal baru (jika gateway aktif).
 	let paymentUrl: string | null = null;
+	let paymentRef: string | null = null;
 	let gateway = 'manual';
 
-	if (isMidtransConfigured) {
-		const snap = await createSnapTransaction({
+	if (isMayarConfigured) {
+		const mayar = await createMayarPayment({
 			orderId: invoice.merchant_order_id,
 			amount,
 			product: 'Langganan posspace (diskon voucher)',
-			buyerName: 'Pelanggan posspace',
 			expiredMinutes: 30
 		}).catch(() => null);
-		if (!snap) throw new Error('PAYMENT_REGENERATE_FAILED');
-		paymentUrl = snap.redirectUrl;
-		gateway = 'midtrans';
+		if (!mayar) throw new Error('PAYMENT_REGENERATE_FAILED');
+		paymentUrl = mayar.paymentUrl;
+		paymentRef = mayar.transactionId;
+		gateway = 'mayar';
 	}
 
 	const { error: updateError } = await db
@@ -203,8 +204,8 @@ export async function redeemVoucherToPendingInvoice(input: {
 			discount_amount: discount,
 			voucher_id: voucher.id,
 			payment_url: paymentUrl,
-			payment_ref: null,
-			payment_channel: gateway === 'midtrans' ? 'midtrans' : null
+			payment_ref: paymentRef,
+			payment_channel: gateway === 'mayar' ? 'mayar' : null
 		})
 		.eq('id', invoice.id);
 
@@ -246,7 +247,7 @@ export interface InvoicePayResult {
 }
 
 /**
- * Buat instruksi pembayaran Midtrans Snap untuk invoice PENDING milik toko.
+ * Buat instruksi pembayaran Mayar untuk invoice PENDING milik toko.
  * Idempoten: jika invoice sudah punya payment_url, dikembalikan apa adanya.
  * Melempar error ber-kode.
  */
@@ -255,7 +256,7 @@ export async function payPendingInvoice(input: { shopId: string; c: Context }): 
 
 	const { data: invoice } = await db
 		.from('invoices')
-		.select('id, merchant_order_id, amount, status, payment_url')
+		.select('id, merchant_order_id, amount, status, payment_url, payment_ref')
 		.eq('shop_id', input.shopId)
 		.eq('status', 'pending')
 		.order('created_at', { ascending: false })
@@ -273,24 +274,23 @@ export async function payPendingInvoice(input: { shopId: string; c: Context }): 
 			merchantOrderId: invoice.merchant_order_id,
 			amount,
 			paymentUrl: invoice.payment_url,
-			gateway: 'midtrans'
+			gateway: 'mayar'
 		};
 	}
 
-	if (!isMidtransConfigured) throw new Error('MIDTRANS_NOT_CONFIGURED');
+	if (!isMayarConfigured) throw new Error('MAYAR_NOT_CONFIGURED');
 
-	const snap = await createSnapTransaction({
+	const mayar = await createMayarPayment({
 		orderId: invoice.merchant_order_id,
 		amount,
 		product: 'Langganan posspace',
-		buyerName: 'Pelanggan posspace',
 		expiredMinutes: 30
 	}).catch(() => null);
-	if (!snap) throw new Error('PAYMENT_CREATE_FAILED');
+	if (!mayar) throw new Error('PAYMENT_CREATE_FAILED');
 
 	const { error: updateError } = await db
 		.from('invoices')
-		.update({ payment_url: snap.redirectUrl, payment_channel: 'midtrans' })
+		.update({ payment_url: mayar.paymentUrl, payment_ref: mayar.transactionId, payment_channel: 'mayar' })
 		.eq('id', invoice.id);
 	if (updateError) throw new Error('INVOICE_UPDATE_FAILED');
 
@@ -298,7 +298,7 @@ export async function payPendingInvoice(input: { shopId: string; c: Context }): 
 		invoiceId: invoice.id,
 		merchantOrderId: invoice.merchant_order_id,
 		amount,
-		paymentUrl: snap.redirectUrl,
-		gateway: 'midtrans'
+		paymentUrl: mayar.paymentUrl,
+		gateway: 'mayar'
 	};
 }

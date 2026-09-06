@@ -167,7 +167,7 @@
 				createDemoUser({ name: name.trim(), shopName: shopName.trim(), email: email.trim(), password }, plan);
 			}
 			success = true;
-			// Langsung tampilkan pembayaran Midtrans (Snap) setelah daftar;
+			// Langsung tampilkan pembayaran Mayar (Snap) setelah daftar;
 			// jika gateway belum tersedia, arahkan ke halaman langganan.
 			const paymentUrl = registerResult.paymentUrl;
 			window.setTimeout(() => {
@@ -309,7 +309,7 @@
 			<p class="auth-switch">Sudah punya akun? <a href="/login">Masuk</a></p>
 			<p class="auth-terms">
 				Dengan mendaftar Anda menyetujui Syarat &amp; Ketentuan, Kebijakan Privasi, dan Kebijakan Cookie posspace.
-				Pembayaran digital menggunakan Midtrans (QRIS/VA/e-wallet).
+				Pembayaran digital menggunakan Mayar (QRIS/VA/e-wallet).
 			</p>
 		</div>
 	</main>

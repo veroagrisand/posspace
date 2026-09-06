@@ -10,17 +10,7 @@ const serviceDb = isSupabaseConfigured ? createServiceClient() : null;
 function buildCsp(): string {
 	const supabaseUrl = (publicEnv.PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
 	const supabaseWs = supabaseUrl.replace(/^https?/, 'wss');
-	const midtrans = (env.MIDTRANS_ENV === 'production' ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com').replace(/\/$/, '');
-	const midtransApi = (env.MIDTRANS_ENV === 'production' ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com').replace(/\/$/, '');
-	const connect = [
-		"'self'",
-		supabaseUrl,
-		supabaseWs,
-		midtrans,
-		midtransApi
-	]
-		.filter(Boolean)
-		.join(' ');
+	const connect = ["'self'", supabaseUrl, supabaseWs].filter(Boolean).join(' ');
 
 	return [
 		"default-src 'self'",
@@ -28,7 +18,6 @@ function buildCsp(): string {
 		"style-src 'self' 'unsafe-inline'",
 		`img-src 'self' data: blob:`,
 		`connect-src ${connect}`,
-		`frame-src ${midtrans}`,
 		"font-src 'self' data:",
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
