@@ -4693,3 +4693,22 @@ html[data-theme='dark'] .sf-shell .stock-status {
 		background: rgba(16, 16, 18, 0.95);
 	}
 }
+
+/* Dark mode: status stok tetap semantic dan kontras. */
+html[data-theme='dark'] .sf-shell .stock-status.critical,
+html[data-theme='dark'] .sf-shell .stock-symbol-red {
+	color: #FF6B6B;
+	background: rgba(255, 107, 107, 0.16);
+}
+
+html[data-theme='dark'] .sf-shell .stock-status.warning,
+html[data-theme='dark'] .sf-shell .stock-symbol-amber {
+	color: #F6A609;
+	background: rgba(246, 166, 9, 0.16);
+}
+
+html[data-theme='dark'] .sf-shell .stock-status.ok,
+html[data-theme='dark'] .sf-shell .stock-symbol-green {
+	color: #00C48C;
+	background: rgba(0, 196, 140, 0.16);
+}
