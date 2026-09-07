@@ -609,6 +609,7 @@
 					class:pay-button-blocked={stockBlockers.length > 0}
 					type="button"
 					disabled={paymentSubmitting || stockBlockers.length > 0}
+					aria-disabled={paymentSubmitting || stockBlockers.length > 0}
 					onclick={handlePay}
 				>
 					<span>

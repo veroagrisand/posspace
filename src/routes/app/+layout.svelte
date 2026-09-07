@@ -125,9 +125,8 @@
 						<span>{item.label}</span>
 					</a>
 				{/each}
+				<ThemeToggle class="only-mobile" />
 			</nav>
-
-			<ThemeToggle class="only-mobile" />
 
 			<div class="sidebar-bottom">
 				<div class="offline-card">
