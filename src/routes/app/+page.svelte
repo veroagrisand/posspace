@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, findVariant, stockStatus, lowStockIngredients, createTransaction, formatClockLabel, formatRupiahExact, stockShortage, stockShortageText } from '$lib/store.svelte';
+	import { store, backend, findVariant, stockStatus, lowStockIngredients, createTransaction, hydrateStore, formatClockLabel, formatRupiahExact, stockShortage, stockShortageText } from '$lib/store.svelte';
 	import ShiftModal from '$lib/components/ShiftModal.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 
@@ -218,6 +218,14 @@
 				showToast(`Bahan tidak cukup — tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
 				return;
 			}
+			// Ambil stok terbaru sebelum pembayaran agar state browser yang lama
+			// tidak pernah mengizinkan transaksi/struk untuk stok yang sudah habis.
+			if (backend.enabled) await hydrateStore();
+			const freshShortage = stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty })));
+			if (freshShortage.length) {
+				showToast(`Bahan tidak cukup — ${stockShortageText(freshShortage)}. Pembayaran dibatalkan.`);
+				return;
+			}
 			if (paymentMethod === 'cash') {
 				if (!Number.isFinite(cashReceived)) {
 					showToast('Masukkan jumlah uang diterima.');
@@ -244,6 +252,10 @@
 	}
 
 	async function finishPayment(method: 'cash' | 'qris' | 'debit', channel?: string, gatewayRef?: string, paymentTxn?: { id: string; receiptNo: string; total: number }) {
+		const finalShortage = stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty })));
+		if (finalShortage.length) {
+			throw new Error(`INSUFFICIENT_STOCK:${stockShortageText(finalShortage)}`);
+		}
 		const items = cart.map((item) => {
 			const v = findVariant(item.productId, item.variantName)!;
 			return {

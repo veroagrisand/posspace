@@ -2123,6 +2123,12 @@
 	opacity: 0.75;
 }
 
+.pay-button:disabled {
+	pointer-events: none;
+	cursor: not-allowed;
+	transform: none;
+}
+
 .btn-spinner {
 	display: inline-block;
 	width: 13px;
