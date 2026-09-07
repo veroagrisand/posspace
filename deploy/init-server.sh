@@ -110,8 +110,8 @@ fi
 log "4b/12 Sudo terbatas (least privilege) untuk auto-deploy"
 # Auto-deploy (GitHub Actions SSH) menerapkan Nginx & logrotate secara
 # otomatis. Beri NOPASSWD hanya untuk perintah spesifik — bukan sudo penuh.
-sudo tee "/etc/sudoers.d/posspace-deploy" >/dev/null <<'EOF'
-%deploy ALL=(root) NOPASSWD: /usr/bin/install, /usr/sbin/nginx -t, /usr/bin/systemctl reload nginx, /usr/sbin/logrotate
+sudo tee "/etc/sudoers.d/posspace-deploy" >/dev/null <<EOF
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/install, /usr/bin/ln, /usr/sbin/nginx -t, /usr/bin/systemctl reload nginx, /usr/sbin/logrotate
 EOF
 sudo chmod 440 /etc/sudoers.d/posspace-deploy
 
