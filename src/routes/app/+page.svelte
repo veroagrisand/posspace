@@ -738,6 +738,7 @@
 			<div class="panel-heading compact-heading"><div><div class="section-kicker">AKTIVITAS TERBARU</div><h2>Pergerakan stok</h2></div><button class="more-dots" type="button" aria-label="Lihat riwayat lengkap" onclick={() => (window.location.href = '/app/inventaris')}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></svg></button></div>
 			<div class="activity-list">
 				{#each activities as movement}
+					{@const movementUnit = store.ingredients.find((ingredient) => ingredient.id === movement.ingredientId)?.unit ?? ''}
 					<div class="activity-item">
 						<span class="activity-icon activity-{movement.change >= 0 ? 'stock' : 'sale'}">
 							{#if movement.type === 'purchase'}
@@ -750,7 +751,7 @@
 								<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 9h8M8 13h5" /></svg>
 							{/if}
 						</span>
-						<div><strong>{movement.note}</strong><small>{movement.change > 0 ? '+' : ''}{movement.change.toLocaleString('id-ID')} {movement.ingredientName}</small></div>
+						<div><strong>{movement.note}</strong><small>{movement.change > 0 ? '+' : ''}{movement.change.toLocaleString('id-ID')} {movementUnit === 'gram' ? 'g' : movementUnit} · {movement.ingredientName}</small></div>
 						<time>{formatClockLabel(movement.at)}</time>
 					</div>
 				{/each}
