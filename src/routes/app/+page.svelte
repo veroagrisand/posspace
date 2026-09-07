@@ -405,6 +405,48 @@
 		</article>
 	</section>
 
+	<section class="panel quick-actions-panel" aria-label="Akses cepat operasional">
+		<div class="panel-heading compact-heading">
+			<div>
+				<div class="section-kicker">AKSES CEPAT</div>
+				<h2>Kelola toko dari kasir</h2>
+				<p class="quick-actions-subtitle">Buka stok, pembelian, menu, laporan, dan operasional tanpa mencari menu di sidebar.</p>
+			</div>
+		</div>
+		<div class="quick-actions-grid">
+			<a class="quick-action-card" href="/app/inventaris#stok">
+				<span class="quick-action-icon quick-action-stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 8-4 8 4-8 4-8-4Z" /><path d="m4 12 8 4 8-4M4 16l8 4 8-4" /></svg></span>
+				<span><strong>Stok &amp; bahan</strong><small>{store.ingredients.length} bahan · {lowStockIngredients().length} perlu cek</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+			<a class="quick-action-card" href="/app/inventaris?action=purchase">
+				<span class="quick-action-icon quick-action-purchase"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 12l6-7 6 7" /></svg></span>
+				<span><strong>Catat pembelian</strong><small>Tambah stok masuk</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+			<a class="quick-action-card" href="/app/menu">
+				<span class="quick-action-icon quick-action-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" /><path d="M8 8h8M8 12h8M8 16h4" /></svg></span>
+				<span><strong>Menu &amp; HPP</strong><small>{store.products.length} menu terdaftar</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+			<a class="quick-action-card" href="/app/laporan">
+				<span class="quick-action-icon quick-action-report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg></span>
+				<span><strong>Laporan &amp; laba</strong><small>Lihat HPP dan margin</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+			<a class="quick-action-card" href="/app/operasional">
+				<span class="quick-action-icon quick-action-ops"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3 5 13h6l-1 8 8-10h-6l1-8Z" /></svg></span>
+				<span><strong>Operasional</strong><small>Tagihan dan beban</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+			<a class="quick-action-card" href="/app/pengaturan">
+				<span class="quick-action-icon quick-action-settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.25a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5Z" /><path d="M19.4 15v.03a1.7 1.7 0 0 1-.62 3.1l-.62.1a1.7 1.7 0 0 1-1.58-.7l-.35-.5a7.6 7.6 0 0 1-1.7 1l-.07.6a1.7 1.7 0 0 1-3.15.65l-.3-.54a7.8 7.8 0 0 1-1.96-.02l-.31.54a1.7 1.7 0 0 1-3.14-.66l-.07-.61a7.7 7.7 0 0 1-1.68-.99l-.52.31a1.7 1.7 0 0 1-2.53-1.91l.2-.6a7.8 7.8 0 0 1-.98-1.7l-.6-.07a1.7 1.7 0 0 1-.66-3.14l.54-.31a7.7 7.7 0 0 1 .02-1.96l-.54-.31a1.7 1.7 0 0 1 .66-3.14l.6-.07a7.8 7.8 0 0 1 .99-1.68l-.31-.52a7.8 7.8 0 0 1 1.91-2.53l.6.2a7.8 7.8 0 0 1 1.7-.98l.07-.6a1.7 1.7 0 0 1 3.14-.66l.31.54a7.7 7.7 0 0 1 1.96.02l.31-.54a1.7 1.7 0 0 1 3.14.66l.07.6a7.7 7.7 0 0 1 1.68.99l.52-.31a1.7 1.7 0 0 1 2.53 1.91l-.2.6a7.8 7.8 0 0 1 .98 1.7l.6.07a1.7 1.7 0 0 1 .66 3.14l-.54.31a7.7 7.7 0 0 1-.02 1.96l.54.31" /></svg></span>
+				<span><strong>Pengaturan</strong><small>Tim dan printer</small></span>
+				<svg class="quick-action-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+			</a>
+		</div>
+	</section>
+
 	<section class="workspace-grid" aria-label="Kasir dan pesanan">
 		<article class="panel menu-panel">
 			<div class="panel-heading menu-heading">
@@ -673,7 +715,7 @@
 			<div class="stock-list">
 				{#each lowStockIngredients().slice(0, 3) as ing}
 					{@const status = stockStatus(ing)}
-					<div class="stock-item">
+					<a class="stock-item" href="/app/inventaris#stok" aria-label="Buka stok {ing.name} di Inventaris">
 						<span class="stock-symbol {status === 'critical' ? 'stock-symbol-red' : 'stock-symbol-amber'}">{ing.name.slice(0, 2).toUpperCase()}</span>
 						<div class="stock-detail">
 							<div><strong>{ing.name}</strong><span class="stock-status {status === 'critical' ? 'critical' : 'warning'}">{status === 'critical' ? 'Kritis' : 'Menipis'}</span></div>
@@ -681,7 +723,7 @@
 							<div class="stock-progress"><span style="--stock-width: {Math.min(100, (ing.stock / ing.minStock) * 50)}%; --stock-color: {status === 'critical' ? '#d15e50' : '#d4973b'}"></span></div>
 						</div>
 						<strong class="stock-amount">{ing.stock.toLocaleString('id-ID')} {ing.unit}</strong>
-					</div>
+					</a>
 				{:else}
 					<div class="cart-empty" style="padding-top:18px">
 						<strong style="font-size:12px">Semua stok aman</strong>

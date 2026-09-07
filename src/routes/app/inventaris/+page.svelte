@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
 	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost, formatRupiahExact } from '$lib/store.svelte';
+	import { page } from '$app/state';
 	import Modal from '$lib/components/Modal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
@@ -34,6 +35,7 @@
 	let opnameReason = $state('');
 	let typeFilter = $state('all');
 	let saving = $state(false);
+	let purchaseActionHandled = $state(false);
 
 	const movementTypes = [
 		{ id: 'all', label: 'Semua' },
@@ -59,6 +61,13 @@
 		purchaseTotal = 0;
 		purchaseOpen = true;
 	}
+
+	$effect(() => {
+		if (!purchaseActionHandled && page.url.searchParams.get('action') === 'purchase' && store.ingredients.length > 0) {
+			purchaseActionHandled = true;
+			openPurchase();
+		}
+	});
 
 	function changePurchaseIngredient() {
 		const ing = store.ingredients.find((i) => i.id === purchaseIngredient);
@@ -197,7 +206,7 @@
 		</div>
 	</section>
 
-	<section class="panel" style="padding: 24px">
+	<section id="stok" class="panel" style="padding: 24px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
 			<div><div class="section-kicker">KETERSEDIAAN BAHAN</div><h2>Stok saat ini</h2></div>
 			<span class="live-label"><i></i> Live</span>

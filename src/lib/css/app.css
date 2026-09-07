@@ -4712,3 +4712,149 @@ html[data-theme='dark'] .sf-shell .stock-symbol-green {
 	color: #00C48C;
 	background: rgba(0, 196, 140, 0.16);
 }
+
+/* ===== Akses cepat dari dashboard Kasir ===== */
+.quick-actions-panel {
+	margin-bottom: 19px;
+	padding: 20px 22px;
+}
+
+.quick-actions-subtitle {
+	margin-top: 5px;
+	color: var(--muted);
+	font-size: 11px;
+	line-height: 1.45;
+}
+
+.quick-actions-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 9px;
+	margin-top: 17px;
+}
+
+.quick-action-card {
+	display: grid;
+	grid-template-columns: 34px minmax(0, 1fr) 14px;
+	align-items: center;
+	gap: 10px;
+	min-height: 64px;
+	padding: 10px 11px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--surface);
+	transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.quick-action-card:hover {
+	border-color: var(--orange);
+	background: var(--orange-soft);
+	box-shadow: 0 5px 14px rgba(99, 91, 255, 0.1);
+	transform: translateY(-1px);
+}
+
+.quick-action-card > span:nth-child(2) {
+	display: grid;
+	min-width: 0;
+	gap: 3px;
+}
+
+.quick-action-card strong {
+	overflow: hidden;
+	color: var(--ink);
+	font-size: 11px;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.quick-action-card small {
+	overflow: hidden;
+	color: var(--muted);
+	font-size: 9px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.quick-action-icon {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 9px;
+}
+
+.quick-action-icon svg {
+	width: 17px;
+	height: 17px;
+}
+
+.quick-action-stock,
+.quick-action-menu {
+	color: var(--orange);
+	background: var(--orange-soft);
+}
+
+.quick-action-purchase,
+.quick-action-ops {
+	color: var(--green);
+	background: var(--green-soft);
+}
+
+.quick-action-report,
+.quick-action-settings {
+	color: var(--amber);
+	background: var(--amber-soft);
+}
+
+.quick-action-arrow {
+	width: 14px;
+	height: 14px;
+	color: var(--muted);
+	stroke-width: 2;
+}
+
+.stock-item {
+	text-decoration: none;
+}
+
+.stock-item:hover {
+	border-radius: 10px;
+	background: var(--orange-soft);
+}
+
+html[data-theme='dark'] .quick-action-card {
+	border-color: #26262A;
+	background: #1A1A1C;
+}
+
+html[data-theme='dark'] .quick-action-card:hover {
+	border-color: #7A73FF;
+	background: rgba(122, 115, 255, 0.14);
+}
+
+html[data-theme='dark'] .quick-action-card strong {
+	color: #F4F4F5;
+}
+
+html[data-theme='dark'] .quick-action-card small,
+html[data-theme='dark'] .quick-action-arrow,
+html[data-theme='dark'] .quick-actions-subtitle {
+	color: #92929A;
+}
+
+@media (max-width: 900px) {
+	.quick-actions-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 560px) {
+	.quick-actions-panel {
+		padding: 17px 15px;
+	}
+
+	.quick-actions-grid {
+		grid-template-columns: 1fr;
+	}
+}
