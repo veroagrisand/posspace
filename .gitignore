@@ -11,3 +11,12 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .DS_Store
+
+# Dokumen lokal (hanya di workspace, tidak dilacak di repo GitHub)
+/posspace-PRD.md
+/DESIGN.md
+/PANDUAN-MIDTRANS-AUTO-DEPLOY.md
+/TUTORIAL-MIDTRANS-HOSTINGER.md
+/TUTORIAL-NUSAPAY-HOSTINGER.md
+/deploy/README.md
+/anti-slop/
