@@ -99,7 +99,7 @@
 	}
 </script>
 
-<svelte:head><title>Masuk — posspace</title></svelte:head>
+<svelte:head><title>Masuk - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -121,31 +121,34 @@
 						: 'Masuk untuk membuka shift, melayani pesanan, dan memantau stok real-time di semua perangkat.'}
 				</p>
 			{:else}
-				<h1>Aktifkan akun — ganti kata sandi</h1>
+				<h1>Aktifkan akun: ganti kata sandi</h1>
 				<p>Anda masuk dengan kata sandi sementara dari pemilik toko. Buat kata sandi baru untuk melanjutkan.</p>
 			{/if}
 
 			{#if isDemoMode() && step === 'login'}
 				<div class="auth-note" style="margin-top:18px">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="M12 9v4M12 16h.01" /></svg>
-					<span>Akun demo belum ada? <a href="/register" style="color:var(--brand-orange);font-weight:700">Daftar dulu di sini</a> — butuh waktu kurang dari 30 detik.</span>
+					<span>Akun demo belum ada? <a href="/register" style="color:var(--brand-orange);font-weight:700">Daftar dulu di sini</a>, butuh waktu kurang dari 30 detik.</span>
 				</div>
 			{/if}
 
 			{#if step === 'login'}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+					{#if error}
+						<p class="auth-error" id="login-error" role="alert">{error}</p>
+					{/if}
 					<div class="field">
 						<label for="email">Email</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z" /><path d="m4 7 8 6 8-6" /></svg>
-							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required />
+							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'login-error' : undefined} />
 						</div>
 					</div>
 					<div class="field">
-						<label for="password">Kata sandi <button type="button" class="auth-password-toggle" style="display:inline;width:auto;height:auto;color:var(--brand-orange);font-size:12px;font-weight:600;vertical-align:baseline;margin-left:8px" onclick={() => (error = 'Fitur lupa kata sandi akan tersedia setelah autentikasi diaktifkan.')}>Lupa?</button></label>
+						<label for="password">Kata sandi <a href="/lupa-password" style="display:inline;color:var(--brand-orange);font-size:12px;font-weight:600;vertical-align:baseline;margin-left:8px">Lupa kata sandi?</a></label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-							<input id="password" type={showPassword ? 'text' : 'password'} bind:value={password} placeholder="••••••••" autocomplete="current-password" required />
+							<input id="password" type={showPassword ? 'text' : 'password'} bind:value={password} placeholder="••••••••" autocomplete="current-password" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'login-error' : undefined} />
 							<button
 								class="auth-password-toggle"
 								type="button"
@@ -163,28 +166,27 @@
 						</div>
 					</div>
 
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
-
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Memproses...' : 'Masuk'}
 					</button>
 				</form>
 			{:else}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
+					{#if error}
+						<p class="auth-error" id="pw-error" role="alert">{error}</p>
+					{/if}
 					<div class="field">
 						<label for="newPassword">Kata sandi baru (min. 8 karakter)</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-							<input id="newPassword" type={showNewPassword ? 'text' : 'password'} bind:value={newPassword} placeholder="••••••••" autocomplete="new-password" required />
+							<input id="newPassword" type={showNewPassword ? 'text' : 'password'} bind:value={newPassword} placeholder="••••••••" autocomplete="new-password" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'pw-error' : undefined} />
 						</div>
 					</div>
 					<div class="field">
 						<label for="confirmPassword">Ulangi kata sandi baru</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /><path d="m9 15 2 2 4-4" /></svg>
-							<input id="confirmPassword" type={showNewPassword ? 'text' : 'password'} bind:value={confirmPassword} placeholder="••••••••" autocomplete="new-password" required />
+							<input id="confirmPassword" type={showNewPassword ? 'text' : 'password'} bind:value={confirmPassword} placeholder="••••••••" autocomplete="new-password" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'pw-error' : undefined} />
 							<button
 								class="auth-password-toggle"
 								type="button"
@@ -201,10 +203,6 @@
 						</div>
 					</div>
 
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
-
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Menyimpan...' : 'Simpan kata sandi baru'}
 					</button>
@@ -212,7 +210,7 @@
 			{/if}
 
 			{#if success}
-				<p class="auth-notice" style="margin-top:14px;text-align:center">Berhasil — mengarahkan ke aplikasi...</p>
+				<p class="auth-notice" style="margin-top:14px;text-align:center">Berhasil, mengarahkan ke aplikasi...</p>
 			{/if}
 
 			{#if step === 'login'}

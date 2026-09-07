@@ -34,8 +34,8 @@
 	</details>
 
 	<details>
-		<summary>Berapa lama masa uji coba?</summary>
-		<p>Paket dan masa uji coba yang tersedia ditampilkan pada halaman harga. Detail harga dapat berubah dan akan ditampilkan sebelum pengguna menyelesaikan pendaftaran atau pembayaran.</p>
+		<summary>Apakah ada masa uji coba gratis?</summary>
+		<p>Belum ada masa uji coba otomatis. Langganan dimulai saat toko Anda dibuat dan invoice dibuat sebelum aplikasi aktif. Hubungi kami melalui halaman <a href="/kontak">Kontak</a> untuk pertanyaan lain seputar langganan.</p>
 	</details>
 
 	<details>

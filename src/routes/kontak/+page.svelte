@@ -50,32 +50,31 @@
 		flex-direction: column;
 		min-height: 126px;
 		padding: 16px;
-		border: 1px solid var(--line);
+		border: 1px solid var(--brand-line);
 		border-radius: 14px;
-		background: #fbfcf9;
+		background: var(--brand-paper);
 	}
 
 	.contact-card:hover {
-		border-color: #a9c4ad;
-		background: var(--green-soft);
+		border-color: var(--brand-green);
+		background: var(--brand-green-soft);
 	}
 
 	.contact-label {
 		margin-bottom: 12px;
-		color: var(--orange-dark);
+		color: var(--brand-orange-hover);
 		font-size: 10px;
 		font-weight: 800;
 		letter-spacing: 0.12em;
 	}
 
 	.contact-card strong {
-		font-family: var(--font-display);
 		font-size: 14px;
 	}
 
 	.contact-card small {
 		margin-top: 6px;
-		color: var(--muted);
+		color: var(--brand-muted);
 		font-size: 11px;
 		line-height: 1.5;
 	}
@@ -84,8 +83,8 @@
 		max-width: 560px;
 		margin: 12px 0;
 		padding: 16px 18px;
-		border-left: 3px solid var(--orange);
-		color: var(--ink-soft);
+		border-left: 3px solid var(--brand-orange);
+		color: var(--brand-ink-soft);
 		font-size: 14px;
 		font-style: normal;
 		line-height: 1.7;

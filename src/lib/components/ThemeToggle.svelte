@@ -36,7 +36,7 @@
 	}
 </script>
 
-<button class="theme-toggle {className}" type="button" onclick={toggle} aria-label={theme === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={theme === 'dark' ? 'Mode gelap — klik untuk terang' : 'Mode terang — klik untuk gelap'}>
+<button class="theme-toggle {className}" type="button" onclick={toggle} aria-label={theme === 'dark' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} title={theme === 'dark' ? 'Mode gelap, klik untuk terang' : 'Mode terang, klik untuk gelap'}>
 	{#if theme === 'dark'}
 		<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4" /></svg>
 		<span class="theme-label">Terang</span>

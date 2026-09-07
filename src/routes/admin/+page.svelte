@@ -42,7 +42,7 @@
 	};
 </script>
 
-<svelte:head><title>Ringkasan SaaS — posspace admin</title></svelte:head>
+<svelte:head><title>Ringkasan SaaS - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
@@ -137,7 +137,7 @@
 			<div class="admin-panel-head">
 				<div>
 					<div class="admin-panel-kicker">OMZET PLATFORM</div>
-					<h2>Omzet gabungan semua toko — 14 hari terakhir</h2>
+					<h2>Omzet gabungan semua toko: 14 hari terakhir</h2>
 				</div>
 				<span class="admin-panel-note">total {formatIDR(data.revenue.reduce((s, d) => s + d.omzet, 0))}</span>
 			</div>
@@ -180,9 +180,9 @@
 										<span><strong>{shop.name}</strong><small>{shop.id.slice(0, 8)}</small></span>
 									</a>
 								</td>
-								<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '—'}</td>
+								<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '-'}</td>
 								<td style="white-space:nowrap">{new Date(shop.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-								<td>{shop.planName ?? '—'}</td>
+								<td>{shop.planName ?? '-'}</td>
 								<td><span class="admin-status admin-status-{shop.subStatus}">{statusLabel[shop.subStatus]}</span></td>
 							</tr>
 						{:else}

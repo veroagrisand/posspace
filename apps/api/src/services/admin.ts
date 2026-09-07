@@ -233,25 +233,37 @@ adminService.get('/shops/:id', async (c) => {
 	await requirePlatformAdmin(c);
 	const db = service();
 	const shopId = c.req.param('id');
+	// Jendela 14 hari untuk agregasi omzet: grafik "14 hari terakhir" dihitung
+	// dari SEMUA transaksi dalam rentang itu, bukan dari 30 transaksi terakhir.
+	const windowStart = new Date(Date.now() - 13 * 864e5).toISOString();
 
-	const [shop, subs, plans, profiles, products, variants, ingredients, recipes, txns, shifts] = await Promise.all([
+	const [shop, subs, plans, profiles, products, ingredients, txns, txnsWindow, shifts] = await Promise.all([
 		db.from('shops').select('id, name, address, phone, currency, created_at').eq('id', shopId).maybeSingle(),
 		db.from('subscriptions').select('shop_id, plan_id, status, period_start, period_end, created_at').eq('shop_id', shopId).order('created_at', { ascending: false }),
 		db.from('plans').select('id, name, monthly_price'),
 		db.from('profiles').select('id, full_name, role, created_at').eq('shop_id', shopId),
 		db.from('products').select('id, name, category, is_active, created_at').eq('shop_id', shopId).order('created_at', { ascending: false }),
-		db.from('product_variants').select('id, product_id, name, price, is_active'),
 		db.from('ingredients').select('id, name, unit, stock_quantity, min_stock, cost_per_unit').eq('shop_id', shopId).order('name', { ascending: true }),
-		db.from('recipes').select('variant_id, ingredient_id, quantity_required'),
 		db.from('transactions').select('id, receipt_no, total_amount, payment_method, payment_channel, payment_gateway_ref, paid_at, transaction_items(product_name, quantity, line_total, variant_id, unit_cost)').eq('shop_id', shopId).order('paid_at', { ascending: false }).limit(30),
+		db.from('transactions').select('id, paid_at, total_amount').eq('shop_id', shopId).gte('paid_at', windowStart),
 		db.from('shifts').select('id, profile_id, opened_at, closed_at, opening_cash, expected_cash, actual_cash, status').eq('shop_id', shopId).order('opened_at', { ascending: false }).limit(10)
 	]);
 
 	if (shop.error || !shop.data) httpError(404, 'SHOP_NOT_FOUND');
 
-	const planPrice = new Map((plans.data ?? []).map((p) => [p.id, Number(p.monthly_price ?? 0)]));
+	// Varian & resep diambil khusus untuk produk toko ini, bukan seluruh platform.
+	const productIds = (products.data ?? []).map((p) => p.id);
+	const productIdFilter = productIds.length ? productIds : ['00000000-0000-0000-0000-000000000000'];
+	const { data: variantsData } = await db.from('product_variants').select('id, product_id, name, price, is_active').in('product_id', productIdFilter);
+	const variants = { data: variantsData ?? [] };
+	const variantIds = (variants.data ?? []).map((v) => v.id);
+	const { data: recipesData } = await db
+		.from('recipes')
+		.select('variant_id, ingredient_id, quantity_required')
+		.in('variant_id', variantIds.length ? variantIds : ['00000000-0000-0000-0000-000000000000']);
+	const recipes = { data: recipesData ?? [] };
+
 	const planName = new Map((plans.data ?? []).map((p) => [p.id, p.name ?? p.id]));
-	void planPrice;
 
 	const now = new Date();
 	const subscription = (subs.data ?? [])
@@ -288,7 +300,7 @@ adminService.get('/shops/:id', async (c) => {
 	let omzet = 0;
 	let txCount = 0;
 	const dailyMap = new Map<string, { date: string; omzet: number; count: number }>();
-	for (const t of transactions) {
+	for (const t of txnsWindow.data ?? []) {
 		omzet += Number(t.total_amount ?? 0);
 		txCount += 1;
 		if (t.paid_at) {
@@ -805,8 +817,12 @@ const CSV_COLS = [
 const MAX_ROWS = 100000;
 
 function csvCell(v: unknown): string {
+	// Awali dengan apostrof jika nilai bisa diinterpretasikan sebagai rumus
+	// spreadsheet (=, +, -, @) agar tidak jadi formula injection saat dibuka
+	// di Excel/Sheets. Kutip ganda di-escape sesuai standar CSV.
 	const s = v === null || v === undefined ? '' : String(v);
-	return `"${s.replace(/"/g, '""')}"`;
+	const guarded = /^[=+\-@]/.test(s) ? `'${s}` : s;
+	return `"${guarded.replace(/"/g, '""')}"`;
 }
 
 /** GET /api/admin/monitor/export — unduh access log CSV untuk analisis. */

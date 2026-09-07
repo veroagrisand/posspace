@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { store, openShift, closeShift, formatClockLabel } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
+	import { trapFocus } from '$lib/focusTrap';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -10,6 +11,8 @@
 	let result: { expectedCash: number; difference: number } | null = $state(null);
 	let justClosed = $state(false);
 	let saving = $state(false);
+	let dialogEl = $state<HTMLElement | null>(null);
+	let lastFocused: HTMLElement | null = null;
 
 	function reset() {
 		mode = 'open';
@@ -24,20 +27,39 @@
 		if (open) reset();
 	});
 
+	$effect(() => {
+		if (!open) return;
+		lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		if (dialogEl) {
+			dialogEl.setAttribute('tabindex', '-1');
+			dialogEl.focus();
+		}
+		return () => {
+			lastFocused?.focus();
+		};
+	});
+
+	function onKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			closeDialog();
+		}
+	}
+
 	async function handleSubmit() {
-		if (saving) return; // throttle: hanya klik pertama yang diproses
+		if (saving) return;
 		saving = true;
 		try {
 			if (mode === 'open') {
 				await openShift(openingCash);
-				open = false; // tutup popup + toast hanya setelah BERHASIL
+				open = false;
 				showToast('Shift dibuka dengan saldo awal');
 			} else {
 				result = await closeShift(actualCash);
 				justClosed = true;
 			}
 		} catch (err) {
-			showToast(`Gagal: ${err instanceof Error ? err.message : 'error'}`); // popup tetap terbuka
+			showToast(`Gagal: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
 		}
@@ -45,6 +67,7 @@
 
 	function closeDialog() {
 		if (justClosed) open = false;
+		else open = false;
 	}
 </script>
 
@@ -52,9 +75,17 @@
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
 		if (e.target === e.currentTarget && !justClosed) open = false;
 	}}>
-		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Shift kasir">
+		<div
+			class="modal-card"
+			role="dialog" tabindex="-1"
+			aria-modal="true"
+			aria-label="Shift kasir"
+			bind:this={dialogEl}
+			onkeydown={onKeydown}
+			use:trapFocus
+		>
 			<div class="modal-head">
-				<h3>{mode === 'open' ? 'Buka shift' : 'Tutup shift — rekap kas'}</h3>
+				<h3>{mode === 'open' ? 'Buka shift' : 'Tutup shift: rekap kas'}</h3>
 				<button class="icon-button" type="button" onclick={closeDialog} aria-label="Tutup dialog">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 				</button>
@@ -73,7 +104,7 @@
 						<label for="openingCash">Saldo awal kas (Rp)</label>
 						<div class="cash-input-wrap"><span>Rp</span><input id="openingCash" type="number" min="0" step="50000" bind:value={openingCash} /></div>
 					</div>
-					<p style="color:#9aa39c;font-size:10px;margin-top:8px;line-height:1.5">Saldo awal digunakan sebagai dasar hitung kas yang diharapkan saat shift ditutup.</p>
+					<p style="color:#5d6861;font-size:10px;margin-top:8px;line-height:1.5">Saldo awal digunakan sebagai dasar hitung kas yang diharapkan saat shift ditutup.</p>
 				{:else if mode === 'close' && !justClosed}
 					<div class="shift-rekap">
 						<div><span>Saldo awal</span><strong>{store.shift.openingCash.toLocaleString('id-ID')}</strong></div>

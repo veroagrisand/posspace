@@ -17,15 +17,16 @@
 	let costIngredient = $state('');
 	let costValue = $state(0);
 
-	// ===== Hitung harga modal otomatis: harga modal = total harga ÷ jumlah =====
+	// Hitung harga modal otomatis: harga modal = total harga ÷ jumlah
 	let costQtyAuto = $state(0);
 	let costTotalAuto = $state(0);
 	const costCostAuto = $derived(costQtyAuto > 0 ? costTotalAuto / costQtyAuto : 0);
-	$effect(() => {
+
+	function syncCostAuto() {
 		if (costQtyAuto > 0 && costTotalAuto > 0) {
 			costValue = Math.round(costCostAuto * 100) / 100;
 		}
-	});
+	}
 
 	let opnameOpen = $state(false);
 	let opnameIngredient = $state('');
@@ -77,7 +78,7 @@
 	}
 
 	async function submitPurchase() {
-		if (saving) return; // throttle: hanya klik pertama yang diproses
+		if (saving) return;
 		if (!purchaseIngredient || baseQuantity <= 0) {
 			showToast('Isi jumlah pembelian yang valid');
 			return;
@@ -95,10 +96,10 @@
 				unit: purchaseUnit,
 				totalPrice: purchaseTotal
 			});
-			purchaseOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			purchaseOpen = false;
 			showToast('Pembelian dicatat, stok bertambah otomatis');
 		} catch (err) {
-			showToast(`Gagal mencatat pembelian: ${err instanceof Error ? err.message : 'error'}`); // popup tetap terbuka
+			showToast(`Gagal mencatat pembelian: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
 			saving = false;
 		}
@@ -113,7 +114,8 @@
 	}
 
 	async function submitCost() {
-		if (saving) return; // throttle
+		if (saving) return;
+
 		if (!costIngredient) return;
 		if (!Number.isFinite(costValue) || costValue < 0) {
 			showToast('Harga modal tidak valid');
@@ -122,8 +124,8 @@
 		saving = true;
 		try {
 			await setIngredientCost(costIngredient, costValue);
-			costOpen = false; // tutup popup + toast hanya setelah BERHASIL
-			showToast('Harga modal diperbarui — HPP & laporan terhitung ulang');
+			costOpen = false;
+			showToast('Harga modal diperbarui, HPP & laporan terhitung ulang');
 		} catch (err) {
 			showToast(`Gagal mengubah harga modal: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
@@ -139,7 +141,8 @@
 	}
 
 	async function submitOpname() {
-		if (saving) return; // throttle
+		if (saving) return;
+
 		if (!opnameIngredient) return;
 		saving = true;
 		try {
@@ -154,7 +157,8 @@
 	}
 
 	async function approveCurrent() {
-		if (saving) return; // throttle
+		if (saving) return;
+
 		if (!pendingOpname) return;
 		if (!opnameReason.trim()) {
 			showToast('Alasan selisih wajib diisi');
@@ -164,7 +168,7 @@
 		try {
 			await approveOpname(pendingOpname, opnameReason.trim());
 			opnameReason = '';
-			opnameOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			opnameOpen = false;
 			showToast('Selisih disetujui, stok sistem disesuaikan');
 		} catch (err) {
 			showToast(`Gagal menyetujui opname: ${err instanceof Error ? err.message : 'error'}`);
@@ -198,7 +202,7 @@
 		<div>
 			<div class="eyebrow"><span class="eyebrow-line"></span> STOK REAL-TIME · FASE 3</div>
 			<h1>Bahan baku selalu terpantau.</h1>
-			<p>Pembelian, opname, dan koreksi selisih — semuanya dengan jejak audit yang jelas.</p>
+			<p>Pembelian, opname, dan koreksi selisih: semuanya dengan jejak audit yang jelas.</p>
 		</div>
 		<div class="heading-actions">
 			<button class="button button-secondary" type="button" onclick={openOpname}>Hitung fisik</button>
@@ -233,7 +237,7 @@
 							<td>{ing.minStock.toLocaleString('id-ID')} {ing.unit}</td>
 							<td>
 								<button class="hpp-cell" type="button" onclick={() => openCost(ing)} title="Klik untuk ubah harga modal">
-									<span>{ing.costPerUnit > 0 ? formatRupiahExact(ing.costPerUnit) : '—'}</span>
+									<span>{ing.costPerUnit > 0 ? formatRupiahExact(ing.costPerUnit) : '-'}</span>
 									<small>/{ing.unit} · set</small>
 								</button>
 							</td>
@@ -243,7 +247,9 @@
 								</span>
 							</td>
 						</tr>
-					{/each}
+					{:else}
+						<tr><td colspan="6" class="empty-cell">Belum ada bahan baku. Tambahkan bahan pertama di halaman ini.</td></tr>
+{/each}
 				</tbody>
 			</table>
 		</div>
@@ -279,7 +285,7 @@
 								<td style="font-family:var(--font-display)">{opname.systemQty.toLocaleString('id-ID')}</td>
 								<td style="font-family:var(--font-display)">{opname.actualQty.toLocaleString('id-ID')}</td>
 								<td style="font-family:var(--font-display);color:{opname.difference >= 0 ? 'var(--green)' : 'var(--red)'}">{opname.difference >= 0 ? '+' : ''}{opname.difference.toLocaleString('id-ID')}</td>
-								<td style="max-width:200px;font-size:11px">{opname.reason || '—'}</td>
+								<td style="max-width:200px;font-size:11px">{opname.reason || '-'}</td>
 								<td><span class="stock-status {opname.status === 'approved' ? 'ok' : 'warning'}">{opname.status === 'approved' ? 'Disetujui' : 'Draft'}</span></td>
 							</tr>
 						{/each}
@@ -294,7 +300,7 @@
 			<div><div class="section-kicker">RIWAYAT PERGERAKAN</div><h2>Aktivitas stok</h2></div>
 			<div class="category-tabs" role="tablist" aria-label="Filter jenis pergerakan">
 				{#each movementTypes as type}
-					<button class="category-tab" class:active={typeFilter === type.id} type="button" onclick={() => (typeFilter = type.id)}>{type.label}</button>
+					<button class="category-tab" class:active={typeFilter === type.id} type="button" role="tab" aria-selected={typeFilter === type.id} onclick={() => (typeFilter = type.id)}>{type.label}</button>
 				{/each}
 			</div>
 		</div>
@@ -318,7 +324,7 @@
 							</td>
 							<td>{movement.note}</td>
 							<td style="font-family:var(--font-display);color:{movement.change >= 0 ? 'var(--green)' : 'var(--red)'}">{movement.change >= 0 ? '+' : ''}{movement.change.toLocaleString('id-ID')} {store.ingredients.find((i) => i.id === movement.ingredientId)?.unit ?? ''}</td>
-							<td style="color:#9aa39c">{formatClockLabel(movement.at)}</td>
+							<td style="color:#5d6861">{formatClockLabel(movement.at)}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -367,7 +373,7 @@
 			{baseQuantity > 0
 				? `≈ ${formatRupiahExact(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
 				: 'Masukkan jumlah & total harga untuk melihat harga/satuan.'}
-			<br />Harga modal (HPP) <b>tidak berubah otomatis</b> — sesuaikan manual di kolom "Harga modal" bila harga beli berubah.
+			<br />Harga modal (HPP) <b>tidak berubah otomatis</b>, sesuaikan manual di kolom "Harga modal" bila harga beli berubah.
 		</p>
 	</div>
 	<div class="modal-actions">
@@ -399,11 +405,11 @@
 			<div class="form-grid two">
 				<div class="form-row">
 					<label for="costQtyAuto">Jumlah ({selectedCostIng?.unit ?? ''})</label>
-					<div class="form-input"><input id="costQtyAuto" type="number" min="0" step="any" bind:value={costQtyAuto} placeholder="cth. 200" /></div>
+					<div class="form-input"><input id="costQtyAuto" type="number" min="0" step="any" bind:value={costQtyAuto} oninput={syncCostAuto} placeholder="cth. 200" /></div>
 				</div>
 				<div class="form-row">
 					<label for="costTotalAuto">Total harga (Rp)</label>
-					<div class="form-input"><input id="costTotalAuto" type="number" min="0" step="any" bind:value={costTotalAuto} placeholder="cth. 150000" /></div>
+					<div class="form-input"><input id="costTotalAuto" type="number" min="0" step="any" bind:value={costTotalAuto} oninput={syncCostAuto} placeholder="cth. 150000" /></div>
 				</div>
 			</div>
 			{#if costQtyAuto > 0 && costTotalAuto > 0}
@@ -441,7 +447,7 @@
 				<label for="opnameActual">Jumlah fisik aktual ({selectedIng?.unit})</label>
 				<div class="form-input"><input id="opnameActual" type="number" min="0" bind:value={opnameActual} /></div>
 			</div>
-			<p style="color:#9aa39c;font-size:10px;line-height:1.5">Sistem saat ini mencatat <b style="color:var(--forest-800)">{selectedIng?.stock.toLocaleString('id-ID') ?? 0}</b> {selectedIng?.unit}. Bandingkan dengan hitung fisik di lapangan.</p>
+			<p style="color:#5d6861;font-size:10px;line-height:1.5">Sistem saat ini mencatat <b style="color:var(--forest-800)">{selectedIng?.stock.toLocaleString('id-ID') ?? 0}</b> {selectedIng?.unit}. Bandingkan dengan hitung fisik di lapangan.</p>
 		</div>
 		<div class="modal-actions">
 			<button class="button button-secondary" type="button" disabled={saving} onclick={() => (opnameOpen = false)}>Batal</button>
@@ -454,7 +460,7 @@
 			<span>Selisih fisik vs sistem</span>
 			<strong>{activeOpname.difference >= 0 ? '+' : ''}{activeOpname.difference.toLocaleString('id-ID')} {selectedIng?.unit}</strong>
 		</div>
-		<p style="color:#7f8b82;font-size:11px;margin-top:12px;line-height:1.5">Setujui selisih dengan alasan agar stok sistem disesuaikan dan tercatat di riwayat audit.</p>
+		<p style="color:#5e6a64;font-size:11px;margin-top:12px;line-height:1.5">Setujui selisih dengan alasan agar stok sistem disesuaikan dan tercatat di riwayat audit.</p>
 		<div class="au-field">
 			<label for="opnameReason">Alasan koreksi selisih</label>
 			<div class="form-input"><input id="opnameReason" type="text" bind:value={opnameReason} placeholder="cth. Bahan tumpah saat penyimpanan" /></div>
@@ -495,7 +501,7 @@
 		text-decoration: underline;
 	}
 	.purchase-preview {
-		color: #7f8b82;
+		color: #5e6a64;
 		font-size: 11px;
 		line-height: 1.5;
 	}
@@ -504,7 +510,7 @@
 		padding: 12px;
 		border: 1px solid var(--line-strong);
 		border-radius: 12px;
-		background: #fafafa;
+		background: var(--surface);
 	}
 
 	.auto-cost-label {

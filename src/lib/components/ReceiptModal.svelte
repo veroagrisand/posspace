@@ -2,6 +2,7 @@
 	import { store, printer, backend } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import { printReceipt } from '$lib/printing';
+	import { trapFocus } from '$lib/focusTrap';
 
 	let {
 		open = $bindable(false),
@@ -32,6 +33,8 @@
 	const methodLabels: Record<string, string> = { cash: 'Tunai', qris: 'QRIS', debit: 'Kartu Debit' };
 
 	let printing = $state(false);
+	let dialogEl = $state<HTMLElement | null>(null);
+	let lastFocused: HTMLElement | null = null;
 
 	async function print() {
 		if (printing) return;
@@ -65,8 +68,25 @@
 		}
 	}
 
-	function send() {
-		showToast('Struk dikirim ke WhatsApp pelanggan (simulasi)');
+	const cashierLabel = $derived(store.profiles.find((p) => p.role === 'kasir')?.name ?? 'Kasir');
+
+	$effect(() => {
+		if (!open) return;
+		lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		if (dialogEl) {
+			dialogEl.setAttribute('tabindex', '-1');
+			dialogEl.focus();
+		}
+		return () => {
+			lastFocused?.focus();
+		};
+	});
+
+	function onKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			open = false;
+		}
 	}
 
 	const dateLabel = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -77,7 +97,15 @@
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
 		if (e.target === e.currentTarget) open = false;
 	}}>
-		<div class="modal-card receipt-modal" role="dialog" aria-modal="true" aria-label="Struk pesanan">
+		<div
+			class="modal-card receipt-modal"
+			role="dialog" tabindex="-1"
+			aria-modal="true"
+			aria-label="Struk pesanan"
+			bind:this={dialogEl}
+			onkeydown={onKeydown}
+			use:trapFocus
+		>
 			<div class="modal-head no-print">
 				<h3>Rincian &amp; struk</h3>
 				<button class="icon-button" type="button" onclick={() => (open = false)} aria-label="Tutup dialog">
@@ -94,7 +122,7 @@
 					<div class="receipt-meta">
 						<span>No. {receiptNo}</span>
 						<span>{dateLabel} · {timeLabel}</span>
-						<span>Kasir: {store.profiles.find((p) => p.role === 'kasir')?.name ?? 'Rina'}</span>
+						<span>Kasir: {cashierLabel}</span>
 					</div>
 					<hr />
 					<div class="receipt-items">
@@ -125,12 +153,8 @@
 					<p class="receipt-footer">Terima kasih! Stok bahan sudah dipotong otomatis sesuai resep.</p>
 				</div>
 				<div class="no-print modal-actions">
-					<button class="button button-secondary" type="button" onclick={send}>
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z" /><path d="m8 16 4-4-4-4M16 8l-4 4 4 4" /></svg>
-						Kirim struk
-					</button>
 					{#if backend.enabled && printer.enabled === false}
-						<span class="print-off-note">Printer struk dinonaktifkan — ubah di menu Pengaturan.</span>
+						<span class="print-off-note">Printer struk dinonaktifkan, ubah di menu Pengaturan.</span>
 					{:else}
 						<button class="button button-primary" type="button" onclick={print} disabled={printing}>
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8V4h10v4M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" /></svg>

@@ -24,7 +24,7 @@
 	let error = $state('');
 	let notice = $state('');
 
-	// ===== Landing content =====
+	// Landing content
 	let content = $state<{
 		hero: { badge: string; title: string; subtitle: string; note: string; ctaPrimary: string; ctaSecondary: string };
 		sections: {
@@ -55,10 +55,10 @@
 		faqs: [{ q: '', a: '' }]
 	});
 
-	// ===== Plans =====
+	// Plans
 	let plans = $state<Plan[]>([]);
 
-	// ===== Vouchers =====
+	// Vouchers
 	let vouchers = $state<Voucher[]>([]);
 	let voucherForm = $state({ code: '', label: '', type: 'percent', value: 20, max_uses: 0, valid_until: '' });
 
@@ -237,7 +237,7 @@
 	}
 </script>
 
-<svelte:head><title>Konten &amp; Voucher — posspace admin</title></svelte:head>
+<svelte:head><title>Konten &amp; Voucher - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
@@ -251,10 +251,10 @@
 	{/if}
 </header>
 
-<div class="admin-cms-tabs" role="tablist">
-	<button type="button" class:active={activeTab === 'landing'} onclick={() => switchTab('landing')}>Landing page</button>
-	<button type="button" class:active={activeTab === 'plans'} onclick={() => switchTab('plans')}>Paket &amp; harga</button>
-	<button type="button" class:active={activeTab === 'vouchers'} onclick={() => switchTab('vouchers')}>Voucher diskon</button>
+<div class="admin-cms-tabs" role="tablist" aria-label="Konten yang dikelola">
+	<button type="button" role="tab" aria-selected={activeTab === 'landing'} class:active={activeTab === 'landing'} onclick={() => switchTab('landing')}>Landing page</button>
+	<button type="button" role="tab" aria-selected={activeTab === 'plans'} class:active={activeTab === 'plans'} onclick={() => switchTab('plans')}>Paket &amp; harga</button>
+	<button type="button" role="tab" aria-selected={activeTab === 'vouchers'} class:active={activeTab === 'vouchers'} onclick={() => switchTab('vouchers')}>Voucher diskon</button>
 </div>
 
 {#if loading}
@@ -274,13 +274,13 @@
 				<label>Badge <input type="text" bind:value={content.hero.badge} placeholder="POS kasir untuk coffee shop UMKM" /></label>
 				<label>Judul utama <input type="text" bind:value={content.hero.title} placeholder="Stok gudang selalu benar..." /></label>
 				<label>Sub judul <textarea rows="2" bind:value={content.hero.subtitle} placeholder="Deskripsi singkat di bawah judul"></textarea></label>
-				<label>Catatan kecil <input type="text" bind:value={content.hero.note} placeholder="Tanpa kartu kredit · Setup < 30 menit" /></label>
+				<label>Catatan kecil <input type="text" bind:value={content.hero.note} placeholder="Stok, HPP, dan laporan dalam satu aplikasi" /></label>
 				<div class="admin-cms-row2">
-					<label>Tombol utama <input type="text" bind:value={content.hero.ctaPrimary} placeholder="Mulai 14 hari gratis" /></label>
-					<label>Tombol sekunder <input type="text" bind:value={content.hero.ctaSecondary} placeholder="Lihat demo kasir" /></label>
+					<label>Tombol utama <input type="text" bind:value={content.hero.ctaPrimary} placeholder="Langganan sekarang" /></label>
+					<label>Tombol sekunder <input type="text" bind:value={content.hero.ctaSecondary} placeholder="Coba demo kasir" /></label>
 				</div>
 				<label>Judul CTA bawah <input type="text" bind:value={content.ctaBand.title} placeholder="Siap membuat stok kopi Anda selalu benar?" /></label>
-				<label>Sub CTA bawah <input type="text" bind:value={content.ctaBand.subtitle} placeholder="Mulai uji coba 14 hari gratis..." /></label>
+				<label>Sub CTA bawah <input type="text" bind:value={content.ctaBand.subtitle} placeholder="Langganan dimulai saat toko Anda dibuka..." /></label>
 				<label>Teks tombol CTA bawah <input type="text" bind:value={content.ctaBand.button} placeholder="Daftar sekarang" /></label>
 			</div>
 		</section>
@@ -554,7 +554,7 @@
 		color: var(--ink);
 		border: 1px solid var(--line-strong);
 		border-radius: 9px;
-		background: #fbfbf9;
+		background: var(--surface);
 		font-size: 12.5px;
 	}
 
@@ -576,7 +576,7 @@
 		padding: 14px;
 		border: 1px dashed var(--line-strong);
 		border-radius: 12px;
-		background: #fcfcf9;
+		background: var(--surface);
 	}
 
 	.admin-cms-remove {

@@ -30,12 +30,15 @@
 	$effect(() => {
 		if (data?.demo) {
 			const session = getDemoSession();
-			if (!session) {
+			if (!session && pathname !== '/demo') {
 				window.location.href = '/login';
 				return;
 			}
-			user = { name: session.name, role: session.role, shopName: session.shopName };
+			const demoUser = session ?? { name: 'Demo', role: 'pemilik', shopName: 'Kopi Senja (demo)' };
+			user = { name: demoUser.name, role: demoUser.role, shopName: demoUser.shopName };
 			backend.enabled = false;
+			backend.role = demoUser.role;
+			backend.shopName = demoUser.shopName;
 		} else if (data?.user && data?.shop) {
 			user = {
 				name: data.user.email ?? 'Pengguna',
@@ -134,10 +137,15 @@
 						<svg viewBox="0 0 24 24"><path d="M5 9.5a10.7 10.7 0 0 1 14 0M8 13a6.2 6.2 0 0 1 8 0M11 16.5a1.7 1.7 0 0 1 2 0M3 6a14.5 14.5 0 0 1 18 0" /></svg>
 					</div>
 					<div>
-						<strong>Data tersinkron</strong>
-						<span>Semua perangkat online</span>
+						{#if backend.enabled}
+							<strong>Data tersinkron</strong>
+							<span>Semua perangkat online</span>
+						{:else}
+							<strong>Mode demo</strong>
+							<span>Data tersimpan di browser ini</span>
+						{/if}
 					</div>
-					<span class="online-dot" aria-label="Online"></span>
+					<span class="online-dot" aria-label={backend.enabled ? 'Online' : 'Mode demo'}></span>
 				</div>
 				<ThemeToggle class="only-desktop" />
 				<div class="profile-card">

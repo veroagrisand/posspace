@@ -1,4 +1,4 @@
-// ===== Store data terpusat — seluruh data diisi dari backend (Supabase) =====
+// Store data terpusat — seluruh data diisi dari backend (Supabase)
 
 import { getBrowserClient } from './supabase';
 
@@ -145,7 +145,7 @@ export function expensePeriodText(e: Expense): string {
 	return fmt(e.periodStart ?? e.periodEnd ?? e.expenseDate);
 }
 
-// ===== Format mata uang (pembukuan) =====
+// Format mata uang (pembukuan)
 // Dua mode:
 //  - formatRupiah: nilai bulat untuk omzet/harga jual/kas (rupiah tanpa sen).
 //  - formatRupiahExact: nilai presisi (harga modal & HPP) — desimal 0–2
@@ -208,7 +208,6 @@ export const store = $state({
 	plan: ''
 });
 
-// ===== Bantuan =====
 export const backend = $state<{
 	enabled: boolean;
 	shopId: string;
@@ -223,7 +222,7 @@ export const backend = $state<{
 	subscription: null
 });
 
-// ===== Pengaturan printer struk (diisi wizard setup pemilik) =====
+// Pengaturan printer struk (diisi wizard setup pemilik)
 export const printer = $state<{
 	printerType: 'webusb' | 'browser' | 'agent';
 	paperWidth: '58' | '80';
@@ -466,7 +465,7 @@ export function findVariant(productId: string, variantName: string): Variant | u
 	return store.products.find((p) => p.id === productId)?.variants.find((v) => v.name === variantName);
 }
 
-// ===== Akses ketersediaan =====
+// Akses ketersediaan
 export function stockStatus(ing: Ingredient): 'critical' | 'warning' | 'ok' {
 	if (ing.stock <= ing.minStock * 0.4) return 'critical';
 	if (ing.stock <= ing.minStock) return 'warning';
@@ -520,7 +519,7 @@ export function stockShortageText(shortage: { name: string; unit: string; need: 
 	return shortage.map((b) => `${b.name} (butuh ${b.need.toLocaleString('id-ID')} ${b.unit}, stok ${b.stock.toLocaleString('id-ID')})`).join('; ');
 }
 
-// ===== Transaksi & potong stok otomatis =====
+// Transaksi & potong stok otomatis
 export type TxInputItem = TxItem & { variantId?: string };
 
 export async function createTransaction(input: {
@@ -608,7 +607,7 @@ function findVariantByItem(item: TxItem): Variant | undefined {
 		.find((v) => v !== undefined);
 }
 
-// ===== Shift =====
+// Shift
 export async function openShift(openingCash: number): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/shifts', {
@@ -649,7 +648,7 @@ export async function closeShift(actualCash: number): Promise<{ expectedCash: nu
 	return { expectedCash, difference: actualCash - expectedCash };
 }
 
-// ===== Bahan baku =====
+// Bahan baku
 export async function addIngredient(data: { name: string; unit: Unit; stock: number; minStock: number; costPerUnit?: number }): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/ingredients', {
@@ -686,7 +685,7 @@ export async function updateIngredient(id: string, data: { name: string; unit: U
 	if (data.costPerUnit !== undefined) ing.costPerUnit = data.costPerUnit;
 }
 
-// ===== Pembelian =====
+// Pembelian
 export type PurchaseUnitOption = { id: string; label: string; factor: number };
 
 /** Opsi satuan beli sesuai satuan dasar bahan — 1 kg kopi = 1000 gram, 1 L air = 1000 ml. */
@@ -767,7 +766,7 @@ export async function setIngredientCost(id: string, costPerUnit: number): Promis
 	if (ing) ing.costPerUnit = costPerUnit;
 }
 
-// ===== Stock opname & koreksi selisih =====
+// Stock opname & koreksi selisih
 export async function createOpname(ingredientId: string, actualQty: number): Promise<string | undefined> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/opnames', {
@@ -821,7 +820,7 @@ export async function approveOpname(opnameId: string, reason: string): Promise<v
 	});
 }
 
-// ===== Beban operasional (listrik, sewa, gaji, dll) =====
+// Beban operasional (listrik, sewa, gaji, dll)
 export async function addExpense(data: {
 	category: ExpenseCategory;
 	amount: number;
@@ -901,7 +900,7 @@ export async function deleteExpense(id: string): Promise<void> {
 	store.expenses = store.expenses.filter((e) => e.id !== id);
 }
 
-// ===== Produk, varian, resep =====
+// Produk, varian, resep
 export async function addProduct(data: { name: string; category: string; price: number; variantName?: string }): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/data/products', {
@@ -1010,7 +1009,7 @@ export function formatClockLabel(iso: string): string {
 	return formatClock(iso);
 }
 
-// ===== Profil toko & hak akses =====
+// Profil toko & hak akses
 export async function saveShop(data: { name: string; address: string; phone: string; currency: string }): Promise<void> {
 	if (backend.enabled) {
 		await apiFetch('/api/shop', { method: 'PATCH', body: JSON.stringify(data) });

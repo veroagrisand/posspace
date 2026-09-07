@@ -13,14 +13,11 @@
 	let cashReceived = $state(50000);
 	let searchQuery = $state('');
 	let activeCategory = $state('all');
-	let syncSeconds = $state(2);
 	let selectedVariants = $state<Record<string, string>>({});
 	let paymentSubmitting = $state(false);
 
 	let shiftOpen = $state(false);
 	let qrRef = $state('');
-	let orderType = $state<'takeaway' | 'dinein'>('takeaway');
-	let chartPeriod = $state<'7' | '30'>('7');
 	let receipt: {
 		receiptNo: string;
 		items: { productName: string; variant: string; qty: number; unitPrice: number; lineTotal: number }[];
@@ -104,12 +101,12 @@
 		}
 		return [...map.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 3);
 	});
-	const yesterdayOmzet = $derived(() => {
+	const yesterdayOmzet = $derived.by(() => {
 		const d = new Date();
 		d.setDate(d.getDate() - 1);
 		return omzetOn(d);
 	});
-	const todayTrend = $derived(trendPct(todayOmzet, yesterdayOmzet()));
+	const todayTrend = $derived(trendPct(todayOmzet, yesterdayOmzet));
 
 	const chartBars = $derived.by(() => {
 		const days: { label: string; date: string; omzet: number; current: boolean }[] = [];
@@ -126,7 +123,21 @@
 		}));
 	});
 	const weekTotal = $derived(chartBars.reduce((s, b) => s + b.omzet, 0));
-	const prevWeekTotal = $derived(() => {
+
+	function compactIDR(value: number): string {
+		return new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+	}
+
+	// Sumbu-Y diturunkan dari data aktual (bukan label tetap): 4 tick + nol,
+	// dibulatkan ke kelipatan yang "rapi" agar skala grafik selalu jujur.
+	const chartTicks = $derived.by(() => {
+		const maxOmzet = Math.max(0, ...chartBars.map((b) => b.omzet));
+		if (maxOmzet <= 0) return ['0', '0', '0', '0'];
+		const step = Math.max(1, Math.ceil(maxOmzet / 4 / 5000) * 5000);
+		return [step * 4, step * 3, step * 2, step].map((v) => compactIDR(v));
+	});
+
+	const prevWeekTotal = $derived.by(() => {
 		let sum = 0;
 		for (let i = 13; i >= 7; i--) {
 			const d = new Date();
@@ -135,12 +146,12 @@
 		}
 		return sum;
 	});
-	const weekTrend = $derived(trendPct(weekTotal, prevWeekTotal()));
+	const weekTrend = $derived(trendPct(weekTotal, prevWeekTotal));
 	const hppPct = $derived(todayOmzet > 0 ? Math.round((todayHpp / todayOmzet) * 1000) / 10 : 0);
 
 	const activities = $derived(store.movements.slice(0, 4));
 
-	// ===== Cek stok bahan untuk isi keranjang (sebelum bayar) =====
+	// Cek stok bahan untuk isi keranjang (sebelum bayar)
 	const stockBlockers = $derived(stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty }))));
 	const stockBlockerText = $derived(stockShortageText(stockBlockers));
 
@@ -156,7 +167,7 @@
 		// Peringatan segera jika pesanan ini membuat stok bahan kurang.
 		const shortage = stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty })));
 		if (shortage.length) {
-			showToast(`Perhatian — stok bahan kurang: ${stockShortageText(shortage)}. Tambah stok di Inventaris atau kurangi jumlah.`);
+			showToast(`Perhatian: stok bahan kurang: ${stockShortageText(shortage)}. Tambah stok di Inventaris atau kurangi jumlah.`);
 		}
 	}
 
@@ -168,7 +179,7 @@
 		const code = err instanceof Error ? err.message : '';
 		if (code.startsWith('INSUFFICIENT_STOCK:')) {
 			const detail = code.split(':').slice(1).join(':').trim();
-			return `Transaksi gagal — bahan tidak cukup: ${detail}. Tambah stok di Inventaris atau kurangi pesanan.`;
+			return `Transaksi gagal: bahan tidak cukup: ${detail}. Tambah stok di Inventaris atau kurangi pesanan.`;
 		}
 		const messages: Record<string, string> = {
 			INSUFFICIENT_CASH: 'Uang diterima belum cukup.',
@@ -191,7 +202,7 @@
 		const trial = cart.map((i) => (i === item ? { ...i, qty: newQty } : i));
 		const shortage = stockShortage(trial.map((i) => ({ variantId: i.variantId, qty: i.qty })));
 		if (shortage.length) {
-			showToast(`Maksimal ${item.qty} porsi — stok bahan kurang: ${stockShortageText(shortage)}`);
+			showToast(`Maksimal ${item.qty} porsi, stok bahan kurang: ${stockShortageText(shortage)}`);
 			return;
 		}
 		item.qty = newQty;
@@ -207,15 +218,15 @@
 	}
 
 	async function handlePay() {
-		if (paymentSubmitting) return; // throttle: hanya klik pertama yang diproses
-		paymentSubmitting = true; // disable tombol seketika saat klik pertama
+		if (paymentSubmitting) return;
+		paymentSubmitting = true;
 		try {
 			if (!cart.length) {
 				showToast('Pilih menu terlebih dahulu untuk membuat pesanan');
 				return;
 			}
 			if (stockBlockers.length) {
-				showToast(`Bahan tidak cukup — tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
+				showToast(`Bahan tidak cukup, tambah stok di Inventaris atau kurangi pesanan: ${stockBlockerText}`);
 				return;
 			}
 			// Ambil stok terbaru sebelum pembayaran agar state browser yang lama
@@ -223,7 +234,7 @@
 			if (backend.enabled) await hydrateStore();
 			const freshShortage = stockShortage(cart.map((i) => ({ variantId: i.variantId, qty: i.qty })));
 			if (freshShortage.length) {
-				showToast(`Bahan tidak cukup — ${stockShortageText(freshShortage)}. Pembayaran dibatalkan.`);
+				showToast(`Bahan tidak cukup: ${stockShortageText(freshShortage)}. Pembayaran dibatalkan.`);
 				return;
 			}
 			if (paymentMethod === 'cash') {
@@ -307,12 +318,6 @@
 	function openShiftDialog() {
 		shiftOpen = true;
 	}
-
-	if (typeof window !== 'undefined') {
-		window.setInterval(() => {
-			syncSeconds += 1;
-		}, 10000);
-	}
 </script>
 
 <header class="topbar">
@@ -324,8 +329,8 @@
 	<div class="topbar-actions">
 		<div class="sync-status">
 			<span class="sync-pulse"></span>
-			<span>Live sync</span>
-			<small>{syncSeconds < 60 ? `${syncSeconds} detik lalu` : '1 menit lalu'}</small>
+			<span>{backend.enabled ? 'Tersinkron' : 'Mode demo'}</span>
+			<small>{backend.enabled ? 'Data tersimpan di server' : 'Data tersimpan di browser ini'}</small>
 		</div>
 		<button
 			class="icon-button notification-button"
@@ -354,12 +359,12 @@
 		<div class="heading-actions">
 			{#if store.shift.status === 'open'}
 				<div class="shift-pill"><span></span><strong>Shift aktif</strong><small>Rp {store.shift.openingCash.toLocaleString('id-ID')} awal</small></div>
-				<button class="button button-secondary" type="button" onclick={openShiftDialog}>
+				<button class="button button-secondary" type="button" onclick={openShiftDialog} aria-haspopup="dialog" aria-expanded={shiftOpen}>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8V5.5A1.5 1.5 0 0 1 9.5 4h9A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 8 17.5V15M4 12h9M9.5 8.5 13 12l-3.5 3.5" /></svg>
 					Tutup shift
 				</button>
 			{:else}
-				<button class="button button-primary" type="button" onclick={openShiftDialog}>
+				<button class="button button-primary" type="button" onclick={openShiftDialog} aria-haspopup="dialog" aria-expanded={shiftOpen}>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v12H5zM8 8V6a4 4 0 0 1 8 0v2M9 12h6" /></svg>
 					Buka shift
 				</button>
@@ -487,9 +492,6 @@
 					{@const selectedVariant = product.variants.find((v) => v.id === selectedVariantId) ?? product.variants[0]}
 					<article class="product-card">
 						<div class="product-art {product.art}">
-							{#if product.badge}
-								<span class="art-badge" class:art-badge-light={product.badge === 'BARU'}>{product.badge}</span>
-							{/if}
 							{#if product.category !== 'Makanan'}
 								<span class="art-cup"></span><span class="art-steam"></span>
 							{:else}
@@ -545,21 +547,6 @@
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M7 7l.7 12.2a1 1 0 0 0 1 .8h6.6a1 1 0 0 0 1-.8L17 7M9 7l.6-2h4.8l.6 2" /></svg>
 				</button>
 			</div>
-			<div class="order-context">
-				<span class="context-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v12H5zM8 8V6a4 4 0 0 1 8 0v2M9 12h6" /></svg></span>
-				<span><small>Order type</small><strong>{orderType === 'takeaway' ? 'Take away' : 'Dine-in'}</strong></span>
-				<button
-					type="button"
-					class="context-change"
-					onclick={() => {
-						orderType = orderType === 'takeaway' ? 'dinein' : 'takeaway';
-						showToast(`Order type diganti menjadi ${orderType === 'takeaway' ? 'Take away' : 'Dine-in'}`);
-					}}
-				>
-					Ubah
-				</button>
-			</div>
-
 			<div class="cart-items">
 				{#each cart as item (item.productId + item.variantId)}
 					{@const v = findVariant(item.productId, item.variantName)}
@@ -588,10 +575,6 @@
 				{/each}
 			</div>
 
-			<div class="order-note">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5v10.8a1.7 1.7 0 0 1-1.7 1.7H10l-4 3v-15.5Z" /><path d="M9 9h6M9 13h4" /></svg>
-				<input type="text" placeholder="Tambahkan catatan pesanan..." aria-label="Catatan pesanan" />
-			</div>
 			<div class="order-summary">
 				<div><span>Subtotal</span><strong>{formatIDR(subtotal)}</strong></div>
 				<div><span>Pajak &amp; layanan <small>10%</small></span><strong>{formatIDR(tax)}</strong></div>
@@ -636,12 +619,12 @@
 						<span class="digital-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2M18 14h2M14 18h2M18 18h2" /></svg></span>
 						<span>
 							<strong>{paymentMethod === 'qris' ? 'QRIS statis toko' : 'Kartu debit / transfer'}</strong>
-							<small>{paymentMethod === 'qris' ? 'Pelanggan memindai QRIS milik toko — pembayaran hanya dicatat sebagai QRIS.' : 'Pembayaran dicatat sebagai debit untuk laporan keuangan.'}</small>
+							<small>{paymentMethod === 'qris' ? 'Pelanggan memindai QRIS milik toko, pembayaran hanya dicatat sebagai QRIS.' : 'Pembayaran dicatat sebagai debit untuk laporan keuangan.'}</small>
 						</span>
 					</div>
 					<div class="cash-payment" style="margin-top:10px">
 						<label for="qrRef">Referensi / ID transaksi (opsional)</label>
-						<div class="cash-input-wrap" style="border:1px solid var(--line-strong);border-radius:12px;background:#fff"><input id="qrRef" type="text" bind:value={qrRef} placeholder="cth. ref bank/e-wallet" /></div>
+						<div class="cash-input-wrap" style="border:1px solid var(--line-strong);border-radius:12px;background:var(--surface)"><input id="qrRef" type="text" bind:value={qrRef} placeholder="cth. ref bank/e-wallet" /></div>
 					</div>
 				{/if}
 
@@ -651,7 +634,7 @@
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="M12 9v4M12 16.5h.01" /></svg>
 						</span>
 						<div>
-							<strong>Stok bahan tidak cukup — pembayaran dikunci</strong>
+							<strong>Stok bahan tidak cukup, pembayaran dikunci</strong>
 							<p>{stockBlockerText}</p>
 							<small>Tambahkan stok di Inventaris, atau kurangi jumlah/menu di keranjang.</small>
 						</div>
@@ -687,14 +670,10 @@
 		<article class="panel chart-panel">
 			<div class="panel-heading compact-heading">
 				<div><div class="section-kicker">PERFORMA PENJUALAN</div><h2>Omzet minggu ini</h2></div>
-				<button class="period-select" type="button" onclick={() => {
-						chartPeriod = chartPeriod === '7' ? '30' : '7';
-						showToast(`Grafik menampilkan omzet ${chartPeriod} hari terakhir`);
-					}}>{chartPeriod} hari <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></button>
 			</div>
 			<div class="chart-summary"><strong>{formatIDR(weekTotal)}</strong>{#if weekTrend !== null}<span class="trend-up">{weekTrend >= 0 ? '+' : ''}{weekTrend}%</span>{/if}<small>7 hari terakhir</small></div>
 			<div class="sales-chart" aria-label="Grafik omzet tujuh hari terakhir">
-				<div class="chart-y-axis"><span>10 jt</span><span>7,5 jt</span><span>5 jt</span><span>2,5 jt</span><span>0</span></div>
+				<div class="chart-y-axis">{#each chartTicks as tick}<span>{tick}</span>{/each}<span>0</span></div>
 				<div class="chart-plot">
 					<div class="chart-gridline line-one"></div><div class="chart-gridline line-two"></div><div class="chart-gridline line-three"></div><div class="chart-gridline line-four"></div>
 					<div class="chart-bars">
@@ -753,6 +732,11 @@
 						</span>
 						<div><strong>{movement.note}</strong><small>{movement.change > 0 ? '+' : ''}{movement.change.toLocaleString('id-ID')} {movementUnit === 'gram' ? 'g' : movementUnit} · {movement.ingredientName}</small></div>
 						<time>{formatClockLabel(movement.at)}</time>
+					</div>
+				{:else}
+					<div class="cart-empty" style="padding-top:18px">
+						<strong style="font-size:12px">Belum ada pergerakan stok</strong>
+						<p>Pergerakan muncul setelah ada penjualan, pembelian, atau opname.</p>
 					</div>
 				{/each}
 			</div>

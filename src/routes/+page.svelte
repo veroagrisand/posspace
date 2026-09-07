@@ -23,7 +23,7 @@
 			desc: 'Untuk warung kopi yang baru mulai berjualan.',
 			monthly: 149000,
 			annual: 119000,
-			cta: 'Mulai uji coba',
+			cta: 'Langganan sekarang',
 			features: ['1 toko & 1 kasir', 'Kasir cepat + struk', 'Resep & BOM dasar', 'Stok real-time 1 arah', 'Dukungan email'],
 			featured: false
 		},
@@ -33,7 +33,7 @@
 			desc: 'Paling populer untuk coffee shop yang ramai.',
 			monthly: 349000,
 			annual: 279000,
-			cta: 'Mulai 14 hari gratis',
+			cta: 'Langganan sekarang',
 			features: [
 				'Semua fitur Starter',
 				'3 kasir & shift bergilir',
@@ -98,8 +98,8 @@
 			a: 'Kurang dari 30 menit. Daftar, masukkan nama toko, tambahkan menu dan resep, lalu langsung bisa buka shift dan melayani pesanan.'
 		},
 		{
-			q: 'Apakah ada uji coba gratis?',
-			a: 'Ya, paket Pro bisa dicoba gratis 14 hari tanpa kartu kredit. Setelah masa uji coba, pilih paket berlangganan yang sesuai.'
+			q: 'Apakah harus berlangganan untuk memakai posspace?',
+			a: 'Ya. Setelah daftar, pilih paket dan selesaikan pembayaran invoice melalui Mayar (QRIS/VA/e-wallet). Aplikasi aktif setelah pembayaran terkonfirmasi otomatis oleh webhook.'
 		}
 	];
 
@@ -111,20 +111,22 @@
 
 	const testimonials = $derived.by((): { name: string; role: string; quote: string; avatar: string; tone: string }[] => {
 		const list = content.testimonials;
+		// Placeholder jujur: isi asli diisi lewat CMS admin (menu Konten).
+		// Testimoni rekaan tidak pernah ditampilkan sebagai data nyata.
 		const defs = [
-			{ name: 'Rina', role: 'Kasir / Barista — 24 th', quote: '“Dulu setiap malam stock opname lama sekali. Sekarang stok sudah otomatis, tinggal cek selisih sebentar. Lebih tenang saat shift selesai.”' },
-			{ name: 'Budi', role: 'Pemilik / Manajer Toko — 28 th', quote: '“Laporan HPP dan laba per menu langsung keluar. Saya jadi tahu menu mana yang benar-benar untung dan bahan mana yang sering menipis.”' },
-			{ name: 'Sari', role: 'Admin Gudang — 30 th', quote: '“Terima pembelian, catat stok masuk, opname, semua satu tempat. Data fisik sama persis dengan sistem dan setiap selisih ada alasannya.”' }
+			{ name: '[Nama kasir]', role: '[Peran]', quote: '[Tuliskan pengalaman Anda memakai posspace di menu admin, bagian Konten.]' },
+			{ name: '[Nama pemilik]', role: '[Peran]', quote: '[Tuliskan pengalaman Anda memakai posspace di menu admin, bagian Konten.]' },
+			{ name: '[Nama admin gudang]', role: '[Peran]', quote: '[Tuliskan pengalaman Anda memakai posspace di menu admin, bagian Konten.]' }
 		];
 		const tones = ['#111111', '#c2410c', '#277048'];
 		if (!Array.isArray(list) || list.length === 0) {
-			return defs.map((d, i) => ({ ...d, avatar: d.name.slice(0, 2).toUpperCase(), tone: tones[i] ?? tones[0] }));
+			return defs.map((d, i) => ({ ...d, avatar: d.name.slice(1, 3).toUpperCase(), tone: tones[i] ?? tones[0] }));
 		}
 		return list.map((t: any, i: number) => ({
 			name: t.name ?? '',
 			role: t.role ?? '',
 			quote: t.quote ?? '',
-			avatar: ((defs[i]?.name ?? t.name ?? 'PS') as string).slice(0, 2).toUpperCase(),
+			avatar: ((defs[i]?.name ?? t.name ?? 'PS') as string).slice(1, 3).toUpperCase(),
 			tone: tones[i] ?? tones[0]
 		}));
 	});
@@ -134,7 +136,7 @@
 		fitur: {
 			kicker: content.sections?.fitur?.kicker ?? 'FITUR LENGKAP',
 			title: content.sections?.fitur?.title ?? 'Semua yang kasir, gudang, dan pemilik butuhkan',
-			desc: content.sections?.fitur?.desc ?? 'Dari mencatat pesanan sampai laporan HPP — disatukan dalam satu aplikasi yang ringan dan cepat.'
+			desc: content.sections?.fitur?.desc ?? 'Dari mencatat pesanan sampai laporan HPP, disatukan dalam satu aplikasi yang ringan dan cepat.'
 		},
 		caraKerja: {
 			kicker: content.sections?.caraKerja?.kicker ?? 'CARA KERJA',
@@ -151,7 +153,7 @@
 		harga: {
 			kicker: content.sections?.harga?.kicker ?? 'HARGA BERLANGGANAN',
 			title: content.sections?.harga?.title ?? 'Harga sederhana, berlangganan per toko',
-			desc: content.sections?.harga?.desc ?? 'Semua paket sudah termasuk Supabase, pembaruan, dan dukungan. Bisa mulai uji coba gratis.'
+			desc: content.sections?.harga?.desc ?? 'Semua paket sudah termasuk Supabase, pembaruan, dan dukungan. Langganan per bulan atau per tahun, bisa berhenti kapan saja.'
 		},
 		testimoni: {
 			kicker: content.sections?.testimoni?.kicker ?? 'KATA MEREKA',
@@ -230,12 +232,20 @@
 		return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(value);
 	}
 
+	// Diskon tahunan diambil dari harga paket (server), bukan angka hardcoded.
+	const annualDiscountPct = $derived.by(() => {
+		const featured = plans.find((p) => p.featured) ?? plans[0];
+		if (!featured) return 0;
+		if (!featured.monthly || !featured.annual || featured.annual >= featured.monthly) return 0;
+		return Math.round((1 - featured.annual / featured.monthly) * 100);
+	});
+
 	function planPrice(plan: (typeof plans)[number]) {
 		return annual ? plan.annual : plan.monthly;
 	}
 </script>
 
-<svelte:head><title>posspace — POS kasir kopi dengan stok real-time</title></svelte:head>
+<svelte:head><title>posspace - POS kasir kopi dengan stok real-time</title></svelte:head>
 
 <div style="min-height:100vh">
 	<header class="section" style="padding-top:8px;padding-bottom:64px">
@@ -262,16 +272,16 @@
 				{content.hero?.title ?? 'Stok gudang selalu benar, '}<em style="font-style:normal;color:var(--brand-orange)">{content.hero?.titleEm ?? 'tanpa hitung manual.'}</em>
 			</h1>
 			<p style="margin-top:24px;max-width:640px;color:var(--brand-ink-soft);font-size:17px;line-height:1.65">
-				{content.hero?.subtitle ?? 'posspace mencatat pesanan dalam beberapa klik dan otomatis memotong bahan baku sesuai resep setiap transaksi. Pemilik selalu tahu sisa stok, HPP, dan laba — kapan saja, dari mana saja.'}
+				{content.hero?.subtitle ?? 'posspace mencatat pesanan dalam beberapa klik dan otomatis memotong bahan baku sesuai resep setiap transaksi. Pemilik selalu tahu sisa stok, HPP, dan laba, kapan saja dari mana saja.'}
 			</p>
 			<div style="display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:36px" class="hero-actions">
 				<a class="btn-pill btn-pill--orange" href="/register">
-					<span class="roll"><span class="roll-inner"><span class="roll-line">{content.hero?.ctaPrimary ?? 'Mulai 14 hari gratis'}</span><span class="roll-line">{content.hero?.ctaPrimary ?? 'Mulai 14 hari gratis'}</span></span></span>
+					<span class="roll"><span class="roll-inner"><span class="roll-line">{content.hero?.ctaPrimary ?? 'Langganan sekarang'}</span><span class="roll-line" aria-hidden="true">{content.hero?.ctaPrimary ?? 'Langganan sekarang'}</span></span></span>
 					<span class="btn-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></span>
 				</a>
 				<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-					<a class="btn-pill btn-pill--dark" href="/register?plan=demo">{content.hero?.ctaSecondary ?? 'Lihat demo kasir'}</a>
-					<span class="badge-pill">{content.hero?.note ?? 'Tanpa kartu kredit · Setup < 30 menit · Akurasi stok ≥ 98%'}</span>
+					<a class="btn-pill btn-pill--dark" href="/demo">{content.hero?.ctaSecondary ?? 'Coba demo kasir'}</a>
+					<span class="badge-pill">{content.hero?.note ?? 'Stok, HPP, dan laporan dalam satu aplikasi'}</span>
 				</div>
 			</div>
 		</div>
@@ -346,7 +356,7 @@
 					</div>
 				</div>
 				<div class="bom-card">
-					<h3>Contoh BOM — 1 porsi Es Kopi Susu Reguler</h3>
+					<h3>Contoh BOM: 1 porsi Es Kopi Susu Reguler</h3>
 					{#each bomRows as row}
 						<div class="bom-row">
 							<div><strong>{row.name}</strong><small>{row.unit}</small></div>
@@ -372,7 +382,7 @@
 			<div style="text-align:center">
 				<div class="toggle" role="group" aria-label="Periode penagihan">
 					<button type="button" class:active={!annual} onclick={() => (annual = false)}>Bulanan</button>
-					<button type="button" class:active={annual} onclick={() => (annual = true)}>Tahunan <small>-20%</small></button>
+					<button type="button" class:active={annual} onclick={() => (annual = true)}>Tahunan{annualDiscountPct > 0 ? ` <small>hemat ${annualDiscountPct}%</small>` : ''}</button>
 				</div>
 			</div>
 			<div class="plans-grid">
@@ -454,11 +464,11 @@
 		<section class="cta-band">
 			<div>
 				<h2>{content.ctaBand?.title ?? 'Siap membuat stok kopi Anda selalu benar?'}</h2>
-				<p>{content.ctaBand?.subtitle ?? 'Mulai uji coba 14 hari gratis. Tanpa kartu kredit, tanpa komitmen.'}</p>
+				<p>{content.ctaBand?.subtitle ?? 'Langganan dimulai saat toko Anda dibuka. Daftar sekarang, bayar setelah siap beroperasi.'}</p>
 			</div>
 			<div class="actions">
 				<a class="btn-pill btn-pill--orange" href="/register">
-					<span class="roll"><span class="roll-inner"><span class="roll-line">{content.ctaBand?.button ?? 'Daftar sekarang'}</span><span class="roll-line">{content.ctaBand?.button ?? 'Daftar sekarang'}</span></span></span>
+					<span class="roll"><span class="roll-inner"><span class="roll-line">{content.ctaBand?.button ?? 'Daftar sekarang'}</span><span class="roll-line" aria-hidden="true">{content.ctaBand?.button ?? 'Daftar sekarang'}</span></span></span>
 					<span class="btn-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></span>
 				</a>
 			</div>

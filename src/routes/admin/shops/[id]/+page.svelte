@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import AdminBreadcrumb from '$lib/components/AdminBreadcrumb.svelte';
+	import { trapFocus } from '$lib/focusTrap';
 
 	type ShopDetail = {
 		shop: { id: string; name: string; address: string; phone: string; currency: string; created_at: string };
@@ -38,6 +39,8 @@
 	let editForm = $state({ name: '', address: '', phone: '', currency: 'IDR' });
 	let deleteBusy = $state(false);
 	let actionError = $state('');
+	let editDialogEl = $state<HTMLElement | null>(null);
+	let editLastFocused: HTMLElement | null = null;
 	const shopId = $derived(page.params.id);
 
 	$effect(() => {
@@ -61,6 +64,25 @@
 		};
 		editError = '';
 		editOpen = true;
+	}
+
+	$effect(() => {
+		if (!editOpen) return;
+		editLastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		if (editDialogEl) {
+			editDialogEl.setAttribute('tabindex', '-1');
+			editDialogEl.focus();
+		}
+		return () => {
+			editLastFocused?.focus();
+		};
+	});
+
+	function onEditKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			editOpen = false;
+		}
 	}
 
 	async function saveEdit() {
@@ -100,9 +122,7 @@
 			const res = await fetch(`/api/admin/shops/${shopId}`, { method: 'DELETE' });
 			const json = await res.json().catch(() => ({}));
 			if (!res.ok) {
-				const message = json.message === 'SHOP_HAS_PAID_TRANSACTIONS'
-					? 'Backend masih menjalankan versi lama. Deploy ulang API agar toko dengan transaksi berbayar dapat dihapus.'
-					: json.message ?? 'Gagal menghapus toko';
+				const message = json.message ?? 'Gagal menghapus toko';
 				throw new Error(message);
 			}
 			window.location.href = '/admin/shops';
@@ -126,7 +146,7 @@
 	const payLabel: Record<string, string> = { cash: 'Tunai', qris: 'QRIS', debit: 'Debit' };
 </script>
 
-<svelte:head><title>{data?.shop.name ?? 'Toko'} — posspace admin</title></svelte:head>
+<svelte:head><title>{data?.shop.name ?? 'Toko'} - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
@@ -154,7 +174,15 @@
 
 {#if editOpen}
 	<div class="modal-overlay" role="presentation">
-		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Edit toko">
+		<div
+			class="modal-card"
+			role="dialog" tabindex="-1"
+			aria-modal="true"
+			aria-label="Edit toko"
+			bind:this={editDialogEl}
+			onkeydown={onEditKeydown}
+			use:trapFocus
+		>
 			<div class="modal-head">
 				<h3>Edit toko</h3>
 				<button class="icon-button" type="button" onclick={() => (editOpen = false)} aria-label="Tutup">✕</button>
@@ -206,11 +234,11 @@
 					<span class="admin-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg></span>
 				</div>
 				<strong class="admin-card-value">{formatIDR(data.stats.omzet)}</strong>
-				<div class="admin-card-meta">30 transaksi terakhir</div>
+				<div class="admin-card-meta">14 hari terakhir</div>
 			</article>
 			<article class="admin-card">
 				<div class="admin-card-top">
-					<span class="admin-card-label">Transaksi (terakhir)</span>
+					<span class="admin-card-label">Transaksi (14 hari)</span>
 					<span class="admin-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg></span>
 				</div>
 				<strong class="admin-card-value">{data.stats.txCount} <small>transaksi</small></strong>
@@ -229,7 +257,7 @@
 					<span class="admin-card-label">Paket langganan</span>
 					<span class="admin-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /></svg></span>
 				</div>
-				<strong class="admin-card-value" style="font-size:18px;text-transform:capitalize">{data.subscription?.planName ?? '—'}</strong>
+				<strong class="admin-card-value" style="font-size:18px;text-transform:capitalize">{data.subscription?.planName ?? '-'}</strong>
 				<div class="admin-card-meta">
 					{#if data.subscription?.period_end}
 						berakhir {new Date(data.subscription.period_end).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -245,7 +273,7 @@
 				<div class="admin-panel-head">
 					<div>
 						<div class="admin-panel-kicker">OMZET TOKO</div>
-						<h2>Omzet — 14 hari terakhir</h2>
+						<h2>Omzet: 14 hari terakhir</h2>
 					</div>
 					<span class="admin-panel-note">{formatIDR(data.revenue.reduce((s, d) => s + d.omzet, 0))}</span>
 				</div>
@@ -269,8 +297,8 @@
 				</div>
 				<div>
 					<div class="admin-fact-row"><span>Status langganan</span><strong>{data.subscription ? statusLabel[data.subscription.status] : 'Tanpa langganan'}</strong></div>
-					<div class="admin-fact-row"><span>Mulai periode</span><strong>{data.subscription?.period_start ? new Date(data.subscription.period_start).toLocaleDateString('id-ID') : '—'}</strong></div>
-					<div class="admin-fact-row"><span>Akhir periode</span><strong>{data.subscription?.period_end ? new Date(data.subscription.period_end).toLocaleDateString('id-ID') : '—'}</strong></div>
+					<div class="admin-fact-row"><span>Mulai periode</span><strong>{data.subscription?.period_start ? new Date(data.subscription.period_start).toLocaleDateString('id-ID') : '-'}</strong></div>
+					<div class="admin-fact-row"><span>Akhir periode</span><strong>{data.subscription?.period_end ? new Date(data.subscription.period_end).toLocaleDateString('id-ID') : '-'}</strong></div>
 					<div class="admin-fact-row"><span>Terdaftar sejak</span><strong>{new Date(data.shop.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</strong></div>
 				</div>
 				<div style="margin-top:14px">
@@ -420,10 +448,10 @@
 							{#each data.shifts as shift}
 								<tr>
 									<td style="white-space:nowrap">{new Date(shift.opened_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
-									<td style="white-space:nowrap">{shift.closed_at ? new Date(shift.closed_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+									<td style="white-space:nowrap">{shift.closed_at ? new Date(shift.closed_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
 									<td class="num">{formatIDR(Number(shift.opening_cash))}</td>
-									<td class="num">{shift.expected_cash != null ? formatIDR(Number(shift.expected_cash)) : '—'}</td>
-									<td class="num">{shift.actual_cash != null ? formatIDR(Number(shift.actual_cash)) : '—'}</td>
+									<td class="num">{shift.expected_cash != null ? formatIDR(Number(shift.expected_cash)) : '-'}</td>
+									<td class="num">{shift.actual_cash != null ? formatIDR(Number(shift.actual_cash)) : '-'}</td>
 								</tr>
 							{:else}
 								<tr><td colspan="5"><div class="admin-empty">Belum ada shift.</div></td></tr>

@@ -155,7 +155,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		response = new Response('Internal Server Error', { status: 500 });
 	}
 
-	// ===== Access log halaman (API /api/* dicatat oleh gateway — tidak double) =====
+	// Access log halaman (API /api/* dicatat oleh gateway — tidak double)
 	if (!event.url.pathname.startsWith('/api/') && shouldLogRequest(event.url.pathname)) {
 		// Jangan biarkan RPC logging menumpuk ketika Supabase sedang lambat.
 		if (accessLogInFlight < MAX_ACCESS_LOG_IN_FLIGHT) {
@@ -180,19 +180,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		throw thrownError;
 	}
 
-	// ===== Diagnostik sementara: cari header respons yang terlalu besar =====
-	try {
-		const cookie = event.request.headers.get('cookie') ?? '';
-		const headerSize = [...response.headers.entries()].reduce((s, [k, v]) => s + k.length + v.length + 4, 0);
-		if (headerSize > 6000 || cookie.length > 3000) {
-			const big = [...response.headers.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 5);
-			console.error(`[BIG HEADER] path=${event.url.pathname} respHeader=${headerSize} reqCookie=${cookie.length} headers=${JSON.stringify(big)} cookieStart=${cookie.slice(0, 120)}`);
-		}
-	} catch {
-		/* abaikan */
-	}
-
-	// ===== Security headers (best practice) =====
+	// Security headers (best practice)
 	response.headers.set('X-Content-Type-Options', 'nosniff');
 	response.headers.set('X-Frame-Options', 'DENY');
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

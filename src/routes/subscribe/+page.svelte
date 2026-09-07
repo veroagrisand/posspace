@@ -27,6 +27,15 @@
 		plan = id;
 	}
 
+	// Diskon tahunan dihitung dari harga server (bukan angka hardcoded).
+	const annualDiscountPct = $derived.by(() => {
+		const p = (data.plans ?? []).find((x: any) => x.id === plan);
+		const monthly = Number(p?.monthly_price ?? 0);
+		const annual = Number(p?.annual_price ?? 0);
+		if (!monthly || !annual || annual >= monthly) return 0;
+		return Math.round((1 - annual / monthly) * 100);
+	});
+
 	$effect(() => {
 		if (data.pendingInvoice?.qr_string && !qrDataUrl) {
 			QRCode.toDataURL(data.pendingInvoice.qr_string, {
@@ -53,26 +62,6 @@
 			}
 		} catch {
 			notice = 'Gagal memeriksa status. Coba lagi.';
-		}
-		polling = false;
-	}
-
-	async function simulatePay() {
-		polling = true;
-		try {
-			const res = await fetch('/api/payments/mock', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ merchantOrderId: data.pendingInvoice.merchant_order_id })
-			});
-			if (res.ok) {
-				notice = 'Pembayaran (simulasi) diterima! Mengarahkan ke aplikasi...';
-				window.setTimeout(() => (window.location.href = '/app'), 1200);
-			} else {
-				notice = 'Simulasi gagal.';
-			}
-		} catch {
-			notice = 'Terjadi kesalahan jaringan.';
 		}
 		polling = false;
 	}
@@ -136,7 +125,7 @@
 	}
 </script>
 
-<svelte:head><title>Berlangganan — posspace</title></svelte:head>
+<svelte:head><title>Berlangganan - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -150,7 +139,7 @@
 				Kembali ke beranda
 			</a>
 			<h1>Berlangganan posspace</h1>
-			<p>Setiap toko wajib berlangganan sebelum aplikasi aktif. Pembayaran diproses aman lewat Mayar (QRIS/VA/e-wallet).</p>
+			<p>Setiap toko wajib berlangganan sebelum aplikasi aktif. Pembayaran diproses lewat Mayar (QRIS/VA/e-wallet).</p>
 
 			{#if data.status}
 				<div class="auth-note auth-note--alert" style="margin-top:18px">
@@ -186,12 +175,16 @@
 
 				{#if data.pendingInvoice.discount_amount === 0}
 					<div style="display:flex;gap:8px;margin-top:16px">
-						<input
-							type="text"
-							bind:value={voucherCode}
-							placeholder="Punya kode voucher? (mis. HEMAT20)"
-							style="flex:1;min-width:0;padding:11px 14px;border:1px solid var(--brand-line-strong);border-radius:12px;font-size:13px;text-transform:uppercase;outline:none"
-						/>
+						<label for="voucher" style="display:contents">
+							<input
+								id="voucher"
+								type="text"
+								bind:value={voucherCode}
+								placeholder="Punya kode voucher?"
+								aria-label="Kode voucher"
+								style="flex:1;min-width:0;padding:11px 14px;border:1px solid var(--brand-line-strong);border-radius:12px;font-size:13px;text-transform:uppercase;outline:none"
+							/>
+						</label>
 						<button class="btn-pill btn-pill--dark btn-pill--sm" type="button" onclick={applyVoucher} disabled={voucherBusy}>
 							{voucherBusy ? 'Memeriksa...' : 'Pakai voucher'}
 						</button>
@@ -238,14 +231,17 @@
 
 				<div style="text-align:center;margin:22px 0 18px">
 					<div class="toggle" role="group" aria-label="Periode penagihan">
-						<button type="button" class:active={billing === 'monthly'} onclick={() => (billing = 'monthly')}>Bulanan</button>
-						<button type="button" class:active={billing === 'annual'} onclick={() => (billing = 'annual')}>Tahunan <small>-20%</small></button>
+						<button type="button" aria-pressed={billing === 'monthly'} class:active={billing === 'monthly'} onclick={() => (billing = 'monthly')}>Bulanan</button>
+						<button type="button" aria-pressed={billing === 'annual'} class:active={billing === 'annual'} onclick={() => (billing = 'annual')}>Tahunan{annualDiscountPct > 0 ? ` <small>hemat ${annualDiscountPct}%</small>` : ''}</button>
 					</div>
 				</div>
 
 				<form method="POST" action="?/subscribe">
 					<input type="hidden" name="billing" value={billing} />
 					<div style="display:grid;gap:10px">
+						{#if !(data.plans ?? []).length}
+							<p class="auth-error" style="margin:0">Daftar paket belum tersedia. Coba muat ulang halaman ini.</p>
+						{/if}
 						{#each data.plans ?? [] as p}
 							<button type="button" class="plan-select" class:active={plan === p.id} onclick={() => selectPlan(p.id)}>
 								<span class="copy">
@@ -258,7 +254,7 @@
 					</div>
 					<input type="hidden" name="planId" value={plan} />
 					<button class="auth-submit btn-pill--block" type="submit" style="margin-top:18px;display:flex">
-						Lanjut ke pembayaran — Rp {formatPrice((data.plans ?? []).find((p: any) => p.id === plan)?.monthly_price ?? 0)}
+						Lanjut ke pembayaran: Rp {formatPrice((data.plans ?? []).find((p: any) => p.id === plan)?.[billing === 'annual' ? 'annual_price' : 'monthly_price'] ?? 0)}
 					</button>
 				</form>
 				{#if form?.error}

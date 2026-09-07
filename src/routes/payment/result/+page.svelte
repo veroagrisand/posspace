@@ -4,7 +4,7 @@
 
 	let { data }: { data: any } = $props();
 
-	let status = $state<'pending' | 'paid' | 'failed'>('pending');
+	let status = $state<'pending' | 'paid'>('pending');
 	let notice = $state('');
 	let polling = $state(false);
 
@@ -46,7 +46,7 @@
 	}
 </script>
 
-<svelte:head><title>Hasil pembayaran — posspace</title></svelte:head>
+<svelte:head><title>Hasil pembayaran - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -72,10 +72,16 @@
 				</div>
 			{:else}
 				<h1 style="font-size:1.6rem">Menunggu pembayaran</h1>
-				<p style="margin-top:10px;color:var(--brand-muted);font-size:13px;line-height:1.6">
-					Invoice <strong>{data.merchantOrderId}</strong> masih berstatus pending. Webhook Mayar akan
-					mengonfirmasi otomatis saat pembayaran selesai.
-				</p>
+				{#if data.merchantOrderId}
+					<p style="margin-top:10px;color:var(--brand-muted);font-size:13px;line-height:1.6">
+						Invoice <strong>{data.merchantOrderId}</strong> masih berstatus pending. Webhook Mayar akan
+						mengonfirmasi otomatis saat pembayaran selesai.
+					</p>
+				{:else}
+					<p style="margin-top:10px;color:var(--brand-muted);font-size:13px;line-height:1.6">
+						Tidak ada invoice yang dicari. Buka halaman <a href="/subscribe" style="color:var(--brand-orange);font-weight:700">langganan</a> untuk memilih paket.
+					</p>
+				{/if}
 				{#if data.mock}
 					<div class="auth-note" style="margin-top:18px">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 4.6-2.9 8-7 10-4.1-2-7-5.4-7-10V6l7-3Z" /><path d="M12 9v4M12 16h.01" /></svg>
@@ -86,7 +92,7 @@
 					</button>
 				{/if}
 				<button class="btn-pill btn-pill--ghost btn-pill--block" style="margin-top:12px" type="button" onclick={check} disabled={polling}>
-					{polling ? 'Memeriksa...' : 'Saya sudah membayar — cek status'}
+					{polling ? 'Memeriksa...' : 'Saya sudah membayar, cek status'}
 				</button>
 				{#if notice}
 					<p class="auth-error" style="margin-top:12px">{notice}</p>

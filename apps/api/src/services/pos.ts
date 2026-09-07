@@ -410,11 +410,12 @@ posDataService.post('/purchases', async (c) => {
 // ============ OPNAMES ============
 /** GET /api/data/opnames — daftar opname toko. */
 posDataService.get('/opnames', async (c) => {
-	await requireApiAuth(c);
+	const ctx = await requireApiAuth(c);
 
-	const { data, error: selectError } = await c.get('db')!
+	const { data, error: selectError } = await ctx.db
 		.from('stock_opnames')
 		.select('*, ingredients(shop_id)')
+		.eq('shop_id', ctx.shop.shopId)
 		.order('created_at', { ascending: false })
 		.limit(200);
 
@@ -522,11 +523,12 @@ transactionsService.post('/', async (c) => {
 /** GET /api/transactions — daftar transaksi toko (untuk laporan). */
 transactionsService.get('/', async (c) => {
 	const ctx = await requireApiAuth(c);
-	const limit = Number(c.req.query('limit') ?? '50');
+	const limit = Math.min(500, Math.max(1, Number(c.req.query('limit') ?? '50') || 50));
 
 	const { data, error: selectError } = await ctx.db
 		.from('transactions')
 		.select('*, transaction_items(*)')
+		.eq('shop_id', ctx.shop.shopId)
 		.order('created_at', { ascending: false })
 		.limit(limit);
 
@@ -868,6 +870,10 @@ reportsService.get('/summary', async (c) => {
 /** GET /api/reports/export/sales?period=weekly|monthly|yearly|all&format=csv|xlsx|pdf — ekspor laporan. */
 reportsService.get('/export/sales', async (c) => {
 	const ctx = await requireApiAuth(c);
+	// Fitur "Ekspor laporan" hanya tersedia untuk paket Pro ke atas.
+	if (!['pro', 'tumbuh'].includes(ctx.shop.subscription?.planId ?? '')) {
+		httpError(403, 'PLAN_FEATURE_UNAVAILABLE');
+	}
 
 	const period = c.req.query('period') ?? 'all';
 	const format = (c.req.query('format') ?? 'csv').toLowerCase();
@@ -1001,6 +1007,10 @@ reportsService.get('/export/sales', async (c) => {
 /** GET /api/reports/export/stock — ekspor laporan stok CSV. */
 reportsService.get('/export/stock', async (c) => {
 	const ctx = await requireApiAuth(c);
+	// Fitur "Ekspor laporan" hanya tersedia untuk paket Pro ke atas.
+	if (!['pro', 'tumbuh'].includes(ctx.shop.subscription?.planId ?? '')) {
+		httpError(403, 'PLAN_FEATURE_UNAVAILABLE');
+	}
 
 	const { data, error: selectError } = await ctx.db
 		.from('ingredients')

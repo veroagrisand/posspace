@@ -16,7 +16,7 @@
 	} = $props();
 </script>
 
-<svelte:head><title>{title} — posspace</title></svelte:head>
+<svelte:head><title>{title} - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">

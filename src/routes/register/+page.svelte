@@ -24,11 +24,37 @@
 	let success = $state(false);
 	let resendCooldown = $state(0);
 
-	const plans = [
+	const defaultPlans = [
 		{ id: 'starter', label: 'Starter', note: 'Rp 149rb/bulan · 1 toko & 1 kasir' },
 		{ id: 'pro', label: 'Pro', note: 'Rp 349rb/bulan · hingga 3 kasir + laporan HPP' },
 		{ id: 'tumbuh', label: 'Tumbuh', note: 'Rp 649rb/bulan · multi-cabang & tanpa batas kasir' }
 	];
+
+	// Harga paket diambil dari server (CMS) agar tidak melenceng dari halaman
+	// berlangganan; teks lokal hanya cadangan saat data belum termuat.
+	let plans = $state(defaultPlans);
+
+	$effect(() => {
+		fetch('/api/cms/landing')
+			.then((r) => r.json().catch(() => ({})))
+			.then((d) => {
+				const rows = Array.isArray(d.plans) ? d.plans : [];
+				if (!rows.length) return;
+				plans = defaultPlans.map((dp) => {
+					const row = rows.find((r: any) => r.id === dp.id);
+					if (!row) return dp;
+					const monthly = Number(row.monthly_price ?? 0);
+					const label = monthly >= 1_000_000 ? 'jt' : 'rb';
+					const scaled = monthly >= 1_000_000 ? monthly / 1_000_000 : monthly / 1_000;
+					const price = `Rp ${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(scaled)}${label}`;
+					const tail = dp.note.split('·').slice(1).join('·').trim();
+					return { ...dp, label: row.name ?? dp.label, note: `${price}/bulan${tail ? ` · ${tail}` : ''}` };
+				});
+			})
+			.catch(() => {
+				/* biarkan harga cadangan */
+			});
+	});
 
 	function isEmailValid() {
 		return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -185,7 +211,7 @@
 	}
 </script>
 
-<svelte:head><title>Daftar — posspace</title></svelte:head>
+<svelte:head><title>Daftar - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -199,7 +225,7 @@
 				Kembali ke beranda
 			</a>
 			<h1>Buat akun baru</h1>
-			<p>Mulai uji coba 14 hari gratis. Tanpa kartu kredit.</p>
+			<p>Langganan dimulai saat toko Anda dibuka. Daftar dulu, bayar setelah siap beroperasi.</p>
 
 			<div class="auth-steps" role="list" aria-label="Langkah pendaftaran">
 				<span class:active={step === 'email'} class:done={step !== 'email'}>1 · Email</span>
@@ -209,22 +235,25 @@
 
 			{#if step === 'email'}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); sendOtp(); }}>
+					{#if error}
+						<p class="auth-error" id="reg-email-error" role="alert">{error}</p>
+					{/if}
 					<div class="field">
 						<label for="email">Alamat email</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z" /><path d="m4 7 8 6 8-6" /></svg>
-							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required />
+							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reg-email-error' : undefined} />
 						</div>
 					</div>
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Mengirim kode...' : 'Kirim kode verifikasi'}
 					</button>
 				</form>
 			{:else if step === 'otp'}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); verifyOtpAndContinue(code); }}>
+					{#if error}
+						<p class="auth-error" id="reg-otp-error" role="alert">{error}</p>
+					{/if}
 					<p style="margin:2px 0 4px;color:var(--brand-muted);font-size:13px;line-height:1.6">
 						Masukkan 6 digit kode yang dikirim ke <strong>{email}</strong>.
 					</p>
@@ -232,14 +261,11 @@
 						<label for="otp">Kode OTP</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-							<input id="otp" type="text" inputmode="numeric" maxlength="6" bind:value={code} placeholder="••••••" autocomplete="one-time-code" required />
+							<input id="otp" type="text" inputmode="numeric" maxlength="6" bind:value={code} placeholder="••••••" autocomplete="one-time-code" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reg-otp-error' : undefined} />
 						</div>
 					</div>
 					{#if notice}
 						<p class="auth-notice">{notice}</p>
-					{/if}
-					{#if error}
-						<p class="auth-error">{error}</p>
 					{/if}
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Memeriksa...' : 'Verifikasi & lanjutkan'}
@@ -253,6 +279,9 @@
 				</form>
 			{:else}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+					{#if error}
+						<p class="auth-error" id="reg-form-error" role="alert">{error}</p>
+					{/if}
 					{#if notice}
 						<p class="auth-notice">✓ {notice}</p>
 					{/if}
@@ -260,7 +289,7 @@
 						<label for="name">Nama lengkap</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-							<input id="name" type="text" bind:value={name} placeholder="Rina Anjani" autocomplete="name" required />
+							<input id="name" type="text" bind:value={name} placeholder="Nama Anda" autocomplete="name" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reg-form-error' : undefined} />
 						</div>
 					</div>
 					<div class="field">
@@ -290,15 +319,11 @@
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h9L19 7v13.5H6V3.5Z" /><path d="M14 3.5V8h5" /></svg>
 							<select id="plan" bind:value={plan}>
 								{#each plans as p}
-									<option value={p.id}>{p.label} — {p.note}</option>
+									<option value={p.id}>{p.label}: {p.note}</option>
 								{/each}
 							</select>
 						</div>
 					</div>
-
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
 
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Membuat akun...' : success ? 'Akun dibuat ✓' : 'Daftar & buka aplikasi'}

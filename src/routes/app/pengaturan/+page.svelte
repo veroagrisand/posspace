@@ -22,7 +22,7 @@
 		}
 		if (printer.enabled) {
 			await dismissPrinterSetup();
-			showToast('Struk tidak dicetak — struk tampil di layar.');
+			showToast('Struk tidak dicetak, struk tampil di layar.');
 		} else {
 			printerSetupOpen = true;
 		}
@@ -47,7 +47,7 @@
 			await navigator.clipboard.writeText(inviteResult.tempPassword);
 			showToast('Password sementara disalin ke clipboard');
 		} catch {
-			showToast('Tidak bisa menyalin otomatis — pilih teks password lalu salin manual');
+			showToast('Tidak bisa menyalin otomatis, pilih teks password lalu salin manual');
 		}
 	}
 
@@ -64,8 +64,13 @@
 	async function setRole(id: string, role: string) {
 		const profile = store.profiles.find((p) => p.id === id);
 		if (!profile) return;
-		await setMemberRole(id, role);
-		showToast(`Hak akses ${profile.name} diubah menjadi ${roles.find((r) => r.id === role)?.label}`);
+		try {
+			await setMemberRole(id, role);
+			showToast(`Hak akses ${profile.name} diubah menjadi ${roles.find((r) => r.id === role)?.label}`);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : '';
+			showToast(message.startsWith('KASIR_LIMIT_REACHED') ? message.replace('KASIR_LIMIT_REACHED: ', '') : 'Gagal mengubah hak akses');
+		}
 	}
 
 	function openEditMember(p: { id: string; name: string; email: string; role: string }) {
@@ -105,9 +110,12 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ name: addName.trim(), email: addEmail.trim(), role: addRole })
 			});
-			const result = (await res.json().catch(() => ({}))) as { ok?: boolean; tempPassword?: string; emailSent?: boolean };
+			const result = (await res.json().catch(() => ({}))) as { ok?: boolean; tempPassword?: string; emailSent?: boolean; message?: string };
 			if (!res.ok || !result.ok) {
-				showToast('Gagal mengundang anggota (email mungkin sudah terdaftar)');
+				const reason = result.message?.startsWith('KASIR_LIMIT_REACHED')
+					? result.message.replace('KASIR_LIMIT_REACHED: ', '')
+					: 'Gagal mengundang anggota (email mungkin sudah terdaftar)';
+				showToast(reason);
 				return;
 			}
 			// Tampilkan password sementara di dialog tengah yang bisa disalin.
@@ -137,14 +145,14 @@
 <div class="page-content">
 	<section class="page-heading">
 		<div>
-			<div class="eyebrow"><span class="eyebrow-line"></span> FASE 4 — AKUN &amp; PENGATURAN</div>
+			<div class="eyebrow"><span class="eyebrow-line"></span> FASE 4 - AKUN &amp; PENGATURAN</div>
 			<h1>Profil toko &amp; hak akses.</h1>
 			<p>Atur identitas toko, mata uang struk, dan peran anggota tim.</p>
 		</div>
 		<div class="heading-actions">
-			<span class="lp-footer-demo" style="display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;background:#fff;border:1px solid var(--line-strong);font-size:10px">
+			<span class="lp-footer-demo" style="display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line-strong);font-size:10px">
 				<i style="width:6px;height:6px;border-radius:50%;background:var(--amber)"></i>
-				Paket {backend.subscription?.planName ?? '—'} · {store.shop.currency}
+				Paket {backend.subscription?.planName ?? '-'} · {store.shop.currency}
 			</span>
 		</div>
 	</section>
@@ -171,10 +179,10 @@
 					<label for="shopCurrency">Mata uang</label>
 					<div class="form-input">
 						<select id="shopCurrency" bind:value={currency}>
-							<option value="IDR">IDR — Rupiah (Rp)</option>
-							<option value="USD">USD — Dollar ($)</option>
-							<option value="MYR">MYR — Ringgit (RM)</option>
-							<option value="SGD">SGD — Dollar Singapura (S$)</option>
+							<option value="IDR">IDR: Rupiah (Rp)</option>
+							<option value="USD">USD: Dollar ($)</option>
+							<option value="MYR">MYR: Ringgit (RM)</option>
+							<option value="SGD">SGD: Dollar Singapura (S$)</option>
 						</select>
 					</div>
 				</div>
@@ -191,14 +199,14 @@
 		</div>
 		<div class="au-demo-note" style="margin-top:0;max-width:560px">
 			<span style="font-weight:700;min-width:150px">{printer.enabled ? 'Aktif' : 'Nonaktif'}</span>
-			<span style="color:#718078">
+			<span style="color:#5e6a64">
 				{printer.enabled
 					? printer.printerType === 'webusb'
 						? 'Printer USB (thermal)'
 						: printer.printerType === 'agent'
 							? 'Printer jaringan / agen lokal'
 							: 'Printer sistem (browser)'
-					: 'Struk tidak dicetak — hanya tampil di layar.'}
+					: 'Struk tidak dicetak, hanya tampil di layar.'}
 			</span>
 		</div>
 		<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
@@ -235,7 +243,7 @@
 							<td>{profile.email}</td>
 							<td>
 								<div class="form-input" style="height:36px;min-width:210px">
-									<select value={profile.role} onchange={(e) => setRole(profile.id, (e.currentTarget as HTMLSelectElement).value)} disabled={backend.role !== 'pemilik'}>
+									<select value={profile.role} aria-label="Peran {profile.name}" onchange={(e) => setRole(profile.id, (e.currentTarget as HTMLSelectElement).value)} disabled={backend.role !== 'pemilik'}>
 										{#each roles as role}
 											<option value={role.id} disabled={profile.role === 'pemilik' && role.id !== 'pemilik'}>{role.label}</option>
 										{/each}
@@ -251,7 +259,9 @@
 								</td>
 							{/if}
 						</tr>
-					{/each}
+					{:else}
+						<tr><td colspan="4" class="empty-cell">Belum ada anggota. Undang anggota pertama untuk toko ini.</td></tr>
+{/each}
 				</tbody>
 			</table>
 		</div>
@@ -259,7 +269,7 @@
 			{#each roles as role}
 				<div class="au-demo-note" style="margin-top:0">
 					<span style="font-weight:700;min-width:140px">{role.label}</span>
-					<span style="color:#718078">{role.desc}</span>
+					<span style="color:#5e6a64">{role.desc}</span>
 				</div>
 			{/each}
 		</div>
@@ -270,7 +280,7 @@
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
 		if (e.target === e.currentTarget) addMemberOpen = false;
 	}}>
-		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Undang anggota">
+		<div class="modal-card" role="dialog" tabindex="-1" aria-modal="true" aria-label="Undang anggota">
 			<div class="modal-head">
 				<h3>Undang anggota tim</h3>
 				<button class="icon-button" type="button" onclick={() => (addMemberOpen = false)} aria-label="Tutup dialog">
@@ -313,7 +323,7 @@
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
 		if (e.target === e.currentTarget) editMemberOpen = false;
 	}}>
-		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Ubah anggota">
+		<div class="modal-card" role="dialog" tabindex="-1" aria-modal="true" aria-label="Ubah anggota">
 			<div class="modal-head">
 				<h3>Ubah anggota</h3>
 				<button class="icon-button" type="button" onclick={() => (editMemberOpen = false)} aria-label="Tutup dialog">
@@ -354,7 +364,7 @@
 	<div class="modal-overlay" role="presentation" onclick={(e) => {
 		if (e.target === e.currentTarget) inviteResult = null;
 	}}>
-		<div class="modal-card" role="dialog" aria-modal="true" aria-label="Password sementara anggota">
+		<div class="modal-card" role="dialog" tabindex="-1" aria-modal="true" aria-label="Password sementara anggota">
 			<div class="modal-head">
 				<h3>Anggota berhasil diundang</h3>
 				<button class="icon-button" type="button" onclick={() => (inviteResult = null)} aria-label="Tutup dialog">
@@ -367,7 +377,7 @@
 					<strong>{inviteResult.name}</strong>
 					<p>{inviteResult.email}</p>
 				</div>
-				<p style="color:#718078;font-size:12px;line-height:1.6;margin:14px 0 8px">
+				<p style="color:#5e6a64;font-size:12px;line-height:1.6;margin:14px 0 8px">
 					{#if inviteResult.emailSent}
 						Email aktivasi sudah dikirim ke <strong>{inviteResult.email}</strong>. Simpan password sementara ini sebagai cadangan.
 					{:else}
@@ -376,7 +386,7 @@
 					Anggota wajib verifikasi email sebelum login pertama.
 				</p>
 				<div class="invite-password">
-					<code>{inviteResult.tempPassword || '—'}</code>
+					<code>{inviteResult.tempPassword || '-'}</code>
 					<button class="button button-secondary" type="button" onclick={copyTempPassword}>
 						<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg>
 						Salin
@@ -410,7 +420,7 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		background: #f4f6f2;
+		background: var(--surface);
 		border: 1px dashed var(--line-strong);
 		border-radius: 12px;
 		padding: 10px 12px;

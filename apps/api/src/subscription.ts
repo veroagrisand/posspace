@@ -174,10 +174,11 @@ export async function redeemVoucherToPendingInvoice(input: {
 	const original = Number(invoice.amount ?? 0);
 	const discount =
 		voucher.type === 'percent'
-			? Math.round((original * Number(voucher.value)) / 100)
-			: Math.min(Number(voucher.value), original);
+			? Math.round((original * Math.min(100, Math.max(0, Number(voucher.value)))) / 100)
+			: Math.min(Math.max(0, Number(voucher.value)), original);
 	if (discount <= 0) throw new Error('VOUCHER_NO_DISCOUNT');
 	const amount = original - discount;
+	if (amount <= 0) throw new Error('VOUCHER_INVALID');
 
 	// Regenerasi instruksi pembayaran Mayar dengan nominal baru (jika gateway aktif).
 	let paymentUrl: string | null = null;

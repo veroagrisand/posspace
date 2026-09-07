@@ -5,6 +5,7 @@ import { service } from '../db.js';
 import { isSupabaseConfigured } from '../env.js';
 import { checkMayarStatus, isMayarConfigured, isMayarPaid, mayarWebhookToken, parseMayarWebhook } from '../mayar.js';
 import { ALLOW_MOCK_PAYMENT } from '../mock.js';
+import { rateLimit, clientIp } from '../rateLimit.js';
 
 /**
  * Service payment — Mayar untuk invoice langganan + mock (dev only).
@@ -60,13 +61,25 @@ paymentService.get('/mayar/status', async (c) => {
  * ulang nominal/status ke API Mayar. Idempoten.
  */
 paymentService.post('/mayar/webhook', async (c) => {
+	// Webhook publik: batasi frekuensi per IP agar tidak jadi penguras kuota
+	// API Mayar lewat panggilan palsu.
+	const ip = clientIp(c.req.raw.headers);
+	if (!rateLimit(`webhook:ip:${ip}`, 60, 60 * 1000)) {
+		return new Response('FAILED: rate limited', { status: 429 });
+	}
+
 	const raw = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
 	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
 		return new Response('FAILED: invalid json', { status: 400 });
 	}
 
-	// Verifikasi webhook token (jika dikonfigurasi) — Authorization Bearer atau X-Api-Key.
-	if (mayarWebhookToken) {
+	// Verifikasi webhook token WAJIB (Authorization Bearer atau X-Api-Key).
+	// Tanpa token yang dikonfigurasi, endpoint ditolak: webhook tidak boleh
+	// berjalan tanpa autentikasi.
+	if (!mayarWebhookToken) {
+		return new Response('FAILED: webhook token not configured', { status: 503 });
+	}
+	{
 		const auth = c.req.header('authorization') ?? '';
 		const apiKey = c.req.header('x-api-key') ?? '';
 		const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : apiKey.trim();
@@ -150,6 +163,19 @@ async function activateInvoice(
 	transactionId?: string,
 	paymentChannel?: string
 ): Promise<{ error: unknown } | undefined> {
+	// Urutan penting: aktifkan subscription DULU, baru tandai invoice lunas.
+	// Jika langkah pertama gagal, invoice tetap pending dan Mayar akan mengirim
+	// ulang webhook (retry) sampai keduanya berhasil. Jika langkah kedua gagal,
+	// subscription sudah aktif tapi invoice belum lunas: kembalikan error agar
+	// webhook membalas 500 dan Mayar mencoba lagi, lalu aktivasi ulang idempoten.
+	const nowIso = new Date().toISOString();
+	const days = invoice.billing_period === 'annual' ? 365 : 30;
+	const { error: subError } = await db
+		.from('subscriptions')
+		.update({ status: 'active', period_start: nowIso, period_end: new Date(Date.now() + days * 864e5).toISOString() })
+		.eq('id', invoice.subscription_id);
+	if (subError) return { error: subError };
+
 	const { error: invoiceError } = await db
 		.from('invoices')
 		.update({
@@ -160,13 +186,5 @@ async function activateInvoice(
 		})
 		.eq('id', invoice.id);
 	if (invoiceError) return { error: invoiceError };
-
-	const nowIso = new Date().toISOString();
-	const days = invoice.billing_period === 'annual' ? 365 : 30;
-	const { error: subError } = await db
-		.from('subscriptions')
-		.update({ status: 'active', period_start: nowIso, period_end: new Date(Date.now() + days * 864e5).toISOString() })
-		.eq('id', invoice.subscription_id);
-	if (subError) return { error: subError };
 	return undefined;
 }

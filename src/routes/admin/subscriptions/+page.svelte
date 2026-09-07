@@ -27,7 +27,6 @@
 	const monthsOptions = [1, 3, 6, 12];
 	// pilihan bulan per baris
 	const monthSel = new Map<string, number>();
-	const planSel = new Map<string, string>();
 
 	$effect(() => {
 		if (data) return;
@@ -47,7 +46,7 @@
 	const mrr = $derived((data ?? []).reduce((sum, s) => sum + (s.subscription?.active ? s.subscription.monthlyPrice : 0), 0));
 
 	const formatIDR = (n: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(n)))}`;
-	const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+	const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-');
 
 	const statusMeta = (s: Sub): { label: string; cls: string } => {
 		if (s.subscription?.active) return { label: s.subscription.status === 'trialing' ? 'Trial' : 'Aktif', cls: 'admin-status-active' };
@@ -74,7 +73,7 @@
 				action === 'cancel'
 					? `/api/admin/subscriptions/${shopId}/cancel`
 					: `/api/admin/subscriptions/${shopId}/activate`;
-			const body = action === 'cancel' ? {} : { months, planId: planSel.get(shopId) ?? row.subscription?.planId ?? 'starter' };
+			const body = action === 'cancel' ? {} : { months, planId: row.subscription?.planId ?? 'starter' };
 			const res = await fetch(endpoint, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -98,7 +97,7 @@
 	}
 </script>
 
-<svelte:head><title>Kelola langganan — posspace admin</title></svelte:head>
+<svelte:head><title>Kelola langganan - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
@@ -125,10 +124,10 @@
 				<div class="admin-panel-kicker">SEMUA LANGGANAN</div>
 				<h2>{filtered.length} toko</h2>
 			</div>
-			<span class="admin-panel-note">Aktivasi &amp; pembatalan hanya dari dashboard ini — pemilik toko tidak bisa melakukannya sendiri</span>
+			<span class="admin-panel-note">Aktivasi &amp; pembatalan hanya dari dashboard ini, pemilik toko tidak bisa melakukannya sendiri</span>
 		</div>
 		{#if notice}
-			<p style="margin:0 0 12px;color:var(--forest-800);font-size:12px;font-weight:600">{notice}</p>
+			<p style="margin:0 0 12px;color:var(--ink-soft);font-size:12px;font-weight:600">{notice}</p>
 		{/if}
 		<div style="overflow-x:auto">
 			<table class="admin-table">
@@ -153,20 +152,20 @@
 								</a>
 							</td>
 							<td>
-								{row.subscription?.planName ?? '—'}
+								{row.subscription?.planName ?? '-'}
 								{#if row.subscription?.active}
 									<div style="margin-top:3px;color:var(--muted);font-size:10.5px">{formatIDR(row.subscription.monthlyPrice)}/bulan</div>
 								{/if}
 							</td>
 							<td><span class="admin-status {meta.cls}">{meta.label}</span></td>
 							<td style="white-space:nowrap">
-								{row.subscription ? `${fmtDate(row.subscription.periodStart)} → ${fmtDate(row.subscription.periodEnd)}` : '—'}
+								{row.subscription ? `${fmtDate(row.subscription.periodStart)} → ${fmtDate(row.subscription.periodEnd)}` : '-'}
 							</td>
 							<td class="num">
 								{#if row.lastInvoice}
 									{formatIDR(row.lastInvoice.amount)}
 									<div style="color:var(--muted);font-size:10.5px">{row.lastInvoice.status === 'paid' ? 'lunas' : 'pending'}</div>
-								{:else}—{/if}
+								{:else}-{/if}
 							</td>
 							<td>
 								<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">

@@ -26,7 +26,7 @@
 	const hppPct = $derived(omzet > 0 ? Math.round((hppTotal / omzet) * 1000) / 10 : 0);
 	const marginPct = $derived(omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0);
 
-	const bestSellers = $derived(() => {
+	const bestSellers = $derived.by(() => {
 		const map = new Map<string, { name: string; qty: number; revenue: number; hpp: number }>();
 		for (const txn of todaySales) {
 			for (const item of txn.items) {
@@ -121,7 +121,7 @@
 		<div>
 			<div class="eyebrow"><span class="eyebrow-line"></span> LAPORAN &amp; KEUANGAN</div>
 			<h1>Omzet, HPP, dan laba dalam satu klik.</h1>
-			<p>Ringkasan penjualan, menu terlaris, dan margin per menu — tanpa spreadsheet.</p>
+			<p>Ringkasan penjualan, menu terlaris, dan margin per menu: tanpa spreadsheet.</p>
 		</div>
 		<div class="heading-actions">
 			<label class="period-picker">
@@ -182,9 +182,9 @@
 	<section class="panel" style="padding: 24px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
 			<div><div class="section-kicker">MENU TERLARIS</div><h2>Laba kotor per menu</h2></div>
-			<span style="color:#9aa39c;font-size:11px">hari ini · live</span>
+			<span style="color:#5d6861;font-size:11px">hari ini · live</span>
 		</div>
-		{#if bestSellers().length === 0}
+		{#if bestSellers.length === 0}
 			<div class="cart-empty" style="padding-top:16px">
 				<strong style="font-size:12px">Belum ada transaksi</strong>
 				<p>Lakukan pembayaran di kasir untuk melihat peringkat menu.</p>
@@ -202,7 +202,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each bestSellers() as item}
+						{#each bestSellers as item}
 							<tr>
 								<td>{item.name}</td>
 								<td>{item.qty} porsi</td>
@@ -216,7 +216,7 @@
 			</div>
 		{/if}
 		<div class="export-banner">
-			<p><strong>Ekspor laporan</strong><br />Unduh laporan {periodLabels[period]} dalam format Excel atau PDF — lengkap dengan ringkasan, transaksi, per menu, dan per hari.</p>
+			<p><strong>Ekspor laporan</strong><br />Unduh laporan {periodLabels[period]} dalam format Excel atau PDF, lengkap dengan ringkasan, transaksi, per menu, dan per hari.</p>
 			<div style="display:flex;gap:8px">
 				<button class="button button-secondary" type="button" disabled={exporting} onclick={() => exportReport('xlsx')}>
 					{exporting ? 'Memproses...' : 'Ekspor Excel'}

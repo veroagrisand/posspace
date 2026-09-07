@@ -84,7 +84,7 @@
 	}
 </script>
 
-<svelte:head><title>Atur ulang kata sandi — posspace</title></svelte:head>
+<svelte:head><title>Atur ulang kata sandi - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -115,24 +115,23 @@
 			{:else if step === 'form'}
 				<p>Buat kata sandi baru untuk akun Anda.</p>
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+					{#if error}
+						<p class="auth-error" id="reset-pw-error" role="alert">{error}</p>
+					{/if}
 					<div class="field">
 						<label for="password">Kata sandi baru</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-							<input id="password" type="password" bind:value={password} placeholder="Minimal 8 karakter" autocomplete="new-password" required />
+							<input id="password" type="password" bind:value={password} placeholder="Minimal 8 karakter" autocomplete="new-password" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reset-pw-error' : undefined} />
 						</div>
 					</div>
 					<div class="field">
 						<label for="confirm-password">Ulangi kata sandi</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-							<input id="confirm-password" type="password" bind:value={confirmPassword} placeholder="Ulangi kata sandi" autocomplete="new-password" required />
+							<input id="confirm-password" type="password" bind:value={confirmPassword} placeholder="Ulangi kata sandi" autocomplete="new-password" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reset-pw-error' : undefined} />
 						</div>
 					</div>
-
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
 
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Menyimpan...' : 'Simpan kata sandi baru'}

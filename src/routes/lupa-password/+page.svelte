@@ -46,7 +46,7 @@
 	}
 </script>
 
-<svelte:head><title>Lupa kata sandi — posspace</title></svelte:head>
+<svelte:head><title>Lupa kata sandi - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">
@@ -73,17 +73,16 @@
 				<div class="auth-notice" style="margin-top:16px">{notice}</div>
 			{:else}
 				<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+					{#if error}
+						<p class="auth-error" id="reset-error" role="alert">{error}</p>
+					{/if}
 					<div class="field">
 						<label for="email">Email</label>
 						<div class="field-input">
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z" /><path d="m4 7 8 6 8-6" /></svg>
-							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required />
+							<input id="email" type="email" bind:value={email} placeholder="nama@posspace.id" autocomplete="email" required aria-invalid={error ? 'true' : undefined} aria-describedby={error ? 'reset-error' : undefined} />
 						</div>
 					</div>
-
-					{#if error}
-						<p class="auth-error">{error}</p>
-					{/if}
 
 					<button class="auth-submit" type="submit" disabled={submitting}>
 						{submitting ? 'Mengirim tautan...' : 'Kirim tautan reset'}

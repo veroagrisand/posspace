@@ -3,7 +3,7 @@
 	import PublicFooter from '$lib/components/PublicFooter.svelte';
 </script>
 
-<svelte:head><title>Setup — posspace</title></svelte:head>
+<svelte:head><title>Setup - posspace</title></svelte:head>
 
 <div class="auth-page">
 	<div class="wrap" style="padding-top:8px">

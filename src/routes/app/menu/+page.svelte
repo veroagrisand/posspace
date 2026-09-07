@@ -6,18 +6,18 @@
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
 
-	// ===== Status proses (mencegah input ganda saat tombol ditekan berkali-kali) =====
+	// Status proses (mencegah input ganda saat tombol ditekan berkali-kali)
 	let saving = $state(false);
 	let busyMenu = $state('');
 
-	// ===== Tambah menu =====
+	// Tambah menu
 	let addOpen = $state(false);
 	let addName = $state('');
 	let addCategory = $state('Kopi');
 	let addVariantName = $state('Reguler');
 	let addPrice = $state(18000);
 
-	// ===== Kelola menu (draft lokal, disimpan sekali) =====
+	// Kelola menu (draft lokal, disimpan sekali)
 	type DraftRecipe = { ingredientId: string; qty: number };
 	type DraftVariant = { id: string | null; name: string; price: number; recipe: DraftRecipe[] };
 
@@ -29,7 +29,7 @@
 	let newVariantName = $state('');
 	let newVariantPrice = $state(0);
 
-	// ===== Bahan baku =====
+	// Bahan baku
 	let ingOpen = $state(false);
 	let ingEditId = $state<string | null>(null);
 	let ingName = $state('');
@@ -38,15 +38,16 @@
 	let ingMin = $state(0);
 	let ingCost = $state(0);
 
-	// ===== Hitung harga modal otomatis: harga modal = total harga ÷ jumlah =====
+	// Hitung harga modal otomatis: harga modal = total harga ÷ jumlah
 	let ingQtyAuto = $state(0);
 	let ingTotalAuto = $state(0);
 	const ingCostAuto = $derived(ingQtyAuto > 0 ? ingTotalAuto / ingQtyAuto : 0);
-	$effect(() => {
+
+	function syncIngCostAuto() {
 		if (ingQtyAuto > 0 && ingTotalAuto > 0) {
 			ingCost = Math.round(ingCostAuto * 100) / 100;
 		}
-	});
+	}
 
 	function withSaving(action: () => Promise<void>, onFail?: () => void) {
 		if (saving) return;
@@ -84,12 +85,12 @@
 			addName = '';
 			addVariantName = 'Reguler';
 			addPrice = 18000;
-			addOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			addOpen = false;
 			showToast('Menu baru ditambahkan');
 		});
 	}
 
-	// ===== Operasi draft pada modal kelola (tanpa API — disimpan sekali) =====
+	// Operasi draft pada modal kelola (tanpa API — disimpan sekali)
 	function draftAddIngredient(variant: DraftVariant) {
 		const ingId = store.ingredients[0]?.id;
 		if (!ingId) return;
@@ -122,20 +123,34 @@
 		if (saving || !draftName.trim()) return;
 		const p = store.products.find((x) => x.id === manageProductId);
 		if (!p) return;
-		p.name = draftName.trim();
-		p.category = draftCategory;
-		p.variants = draftVariants.map((v) => ({
+		// Salin dulu ke draft lokal; store baru dimutasi setelah server berhasil.
+		const nextVariants = draftVariants.map((v) => ({
 			id: v.id ?? `__new__${Date.now()}`,
 			name: v.name.trim() || 'Reguler',
 			price: v.price,
 			recipe: v.recipe.filter((r) => r.ingredientId && r.qty > 0).map((r) => ({ ...r }))
 		}));
+		const previous = { name: p.name, category: p.category, variants: p.variants };
+		const applyDraft = () => {
+			p.name = draftName.trim();
+			p.category = draftCategory;
+			p.variants = nextVariants;
+		};
+		applyDraft();
 		withSaving(async () => {
-			if (backend.enabled) {
-				await saveProductFull(p.id);
+			try {
+				if (backend.enabled) {
+					await saveProductFull(p.id);
+				}
+				manageOpen = false;
+				showToast('Perubahan menu disimpan');
+			} catch (err) {
+				// Kembalikan data toko ke kondisi sebelum draft (rollback UI).
+				p.name = previous.name;
+				p.category = previous.category;
+				p.variants = previous.variants;
+				throw err;
 			}
-			manageOpen = false; // tutup popup + toast hanya setelah BERHASIL
-			showToast('Perubahan menu disimpan');
 		});
 	}
 
@@ -144,7 +159,7 @@
 		if (!window.confirm(`Hapus menu "${draftName}" beserta semua varian & resepnya? Tindakan ini tidak bisa dibatalkan.`)) return;
 		withSaving(async () => {
 			await deleteProduct(manageProductId);
-			manageOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			manageOpen = false;
 			showToast('Menu dihapus');
 		});
 	}
@@ -159,7 +174,7 @@
 				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku ditambahkan');
 			}
-			ingOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			ingOpen = false;
 		});
 	}
 
@@ -200,7 +215,7 @@
 <div class="page-content">
 	<section class="page-heading">
 		<div>
-			<div class="eyebrow"><span class="eyebrow-line"></span> FASE 2 — ATUR MENU &amp; RESEP</div>
+			<div class="eyebrow"><span class="eyebrow-line"></span> FASE 2 - ATUR MENU &amp; RESEP</div>
 			<h1>Menu, resep, dan bahan baku.</h1>
 			<p>Setiap varian punya harga dan resep sendiri. HPP dihitung otomatis dari BOM.</p>
 		</div>
@@ -213,7 +228,7 @@
 	<section class="panel" style="padding: 24px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
 			<div><div class="section-kicker">DAFTAR MENU</div><h2>Menu aktif</h2></div>
-			<span style="color:#9aa39c;font-size:11px">{store.products.length} menu</span>
+			<span style="color:#5d6861;font-size:11px">{store.products.length} menu</span>
 		</div>
 		<div style="overflow-x:auto">
 			<table class="data-table">
@@ -256,6 +271,7 @@
 										type="checkbox"
 										checked={product.isActive}
 										disabled={saving || busyMenu === product.id}
+										aria-label="{product.name} aktif"
 										onchange={() => toggleActive(product.id)}
 									/>
 									<i></i>
@@ -267,6 +283,8 @@
 								</button>
 							</td>
 						</tr>
+					{:else}
+						<tr><td colspan="8" class="empty-cell">Belum ada menu. Tambahkan menu pertama Anda.</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -346,7 +364,7 @@
 	</div>
 </Modal>
 
-<Modal bind:open={manageOpen} title={`Kelola menu — ${draftName}`} wide>
+<Modal bind:open={manageOpen} title={`Kelola menu - ${draftName}`} wide>
 	<div class="form-grid">
 		<div class="form-grid two">
 			<div class="form-row">
@@ -395,7 +413,7 @@
 							<div class="recipe-hint">
 								Stok {riIng.stock.toLocaleString('id-ID')} {riIng.unit} · {entry.qty || 0} × {formatRupiahExact(riIng.costPerUnit)}/{riIng.unit} = {formatRupiahExact(riIng.costPerUnit * (entry.qty || 0))}
 								{#if riIng.costPerUnit === 0}
-									<span class="recipe-hint-warn">— harga modal 0, isi di Kelola bahan agar HPP akurat</span>
+									<span class="recipe-hint-warn">Harga modal 0, isi di Kelola bahan agar HPP akurat</span>
 								{/if}
 							</div>
 						{/if}
@@ -468,11 +486,11 @@
 			<div class="form-grid two">
 				<div class="form-row">
 					<label for="ingQtyAuto">Jumlah ({ingUnit})</label>
-					<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} placeholder="cth. 200" disabled={saving} /></div>
+					<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} oninput={syncIngCostAuto} placeholder="cth. 200" disabled={saving} /></div>
 				</div>
 				<div class="form-row">
 					<label for="ingTotalAuto">Total harga (Rp)</label>
-					<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} placeholder="cth. 150000" disabled={saving} /></div>
+					<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} oninput={syncIngCostAuto} placeholder="cth. 150000" disabled={saving} /></div>
 				</div>
 			</div>
 			{#if ingQtyAuto > 0 && ingTotalAuto > 0}
@@ -483,7 +501,7 @@
 				<p class="cost-hint">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
 			{/if}
 		</div>
-		<p class="cost-hint" style="margin-top:2px">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual — pembelian tidak mengubahnya otomatis.</p>
+		<p class="cost-hint" style="margin-top:2px">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual, pembelian tidak mengubahnya otomatis.</p>
 	</div>
 	<div class="modal-actions">
 		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
@@ -545,7 +563,7 @@
 	}
 
 	.cost-hint {
-		color: #7f8b82;
+		color: #5e6a64;
 		font-size: 10px;
 		line-height: 1.5;
 		margin-top: 5px;
@@ -555,7 +573,7 @@
 		padding: 12px;
 		border: 1px solid var(--line-strong);
 		border-radius: 12px;
-		background: #fafafa;
+		background: var(--surface);
 	}
 
 	.auto-cost-label {

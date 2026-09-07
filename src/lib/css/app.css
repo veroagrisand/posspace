@@ -46,6 +46,9 @@
 	letter-spacing: 0.02em;
 }
 
+/* Label bagian (kicker): uppercase + tracking lebar dipakai konsisten untuk
+   memberi label cepat pada modul POS saat dipindai kasir dalam shift sibuk.
+   Konsisten dengan DESIGN.md (kalem, presisi, cepat). */
 .sidebar-label,
 .section-kicker {
 	color: #8da395;
@@ -242,7 +245,7 @@
 .main-content {
 	min-width: 0;
 	min-height: 100vh;
-	background: radial-gradient(circle at 88% 2%, rgba(222, 235, 218, 0.72), transparent 19rem), var(--paper);
+	background: var(--paper);
 }
 
 .topbar {
@@ -308,7 +311,7 @@
 }
 
 .sync-status small {
-	color: #9aa39c;
+	color: #5d6861;
 	font-size: 10px;
 	font-weight: 400;
 }
@@ -324,7 +327,7 @@
 	width: 33px;
 	height: 33px;
 	padding: 0;
-	color: #718078;
+	color: #5e6a64;
 	border-radius: 10px;
 	background: transparent;
 	transition: color 160ms ease, background 160ms ease;
@@ -752,7 +755,7 @@
 	gap: 5px;
 	min-height: 32px;
 	padding: 0 9px;
-	color: #8a958d;
+	color: #5d6861;
 	border-radius: 7px;
 	background: transparent;
 	font-size: 10px;
@@ -843,26 +846,7 @@
 	background: linear-gradient(145deg, #e7b45f, #b87935);
 }
 
-.art-badge {
-	position: absolute;
-	z-index: 2;
-	top: 8px;
-	left: 8px;
-	padding: 4px 6px;
-	color: #fff3e9;
-	border: 1px solid rgba(255, 255, 255, 0.25);
-	border-radius: 5px;
-	background: rgba(115, 60, 37, 0.43);
-	font-size: 7px;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-}
 
-.art-badge-light {
-	color: #6d411e;
-	background: rgba(255, 243, 204, 0.68);
-	border-color: rgba(255, 255, 255, 0.4);
-}
 
 .art-cup {
 	position: absolute;
@@ -990,7 +974,7 @@
 .variant-badge {
 	min-height: 21px;
 	padding: 0 7px;
-	color: #8a958d;
+	color: #5d6861;
 	border: 1px solid #dfe8df;
 	border-radius: 999px;
 	background: #f8fbf8;
@@ -1274,7 +1258,7 @@
 
 .cart-item-info small {
 	margin-top: 4px;
-	color: #99a39b;
+	color: #5d6861;
 	font-size: 9px;
 }
 
@@ -1300,11 +1284,11 @@
 .quantity-control button {
 	display: inline-grid;
 	place-items: center;
-	width: 18px;
-	height: 18px;
+	width: 30px;
+	height: 30px;
 	color: var(--forest-700);
 	border: 1px solid #dbe4dc;
-	border-radius: 5px;
+	border-radius: 6px;
 	background: #f4f8f4;
 	font-size: 14px;
 	line-height: 1;
@@ -1328,7 +1312,7 @@
 	display: grid;
 	justify-items: center;
 	padding: 27px 10px 24px;
-	color: #99a39b;
+	color: #5d6861;
 	text-align: center;
 }
 
@@ -1461,9 +1445,9 @@
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
-	min-height: 41px;
+	min-height: 44px;
 	padding: 0 5px;
-	color: #849088;
+	color: #5d6861;
 	border: 1px solid var(--line);
 	border-radius: 8px;
 	background: #fff;
@@ -1504,7 +1488,7 @@
 .cash-payment > label {
 	display: block;
 	margin-bottom: 6px;
-	color: #8a958d;
+	color: #5d6861;
 	font-size: 9px;
 	font-weight: 600;
 }
@@ -1556,8 +1540,9 @@
 }
 
 .quick-cash button {
+	min-height: 44px;
 	padding: 4px 7px;
-	color: #849088;
+	color: #5d6861;
 	border: 1px solid var(--line);
 	border-radius: 5px;
 	background: #fff;
@@ -2177,7 +2162,7 @@
 }
 
 .margin-summary span {
-	color: #718078;
+	color: #5e6a64;
 	font-size: 9px;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -2813,7 +2798,7 @@
 .shift-rekap > div {
 	display: flex;
 	justify-content: space-between;
-	color: #7f8b82;
+	color: #5e6a64;
 	font-size: 11px;
 }
 
@@ -2844,7 +2829,7 @@
 }
 
 .success-box p {
-	color: #7f8b82;
+	color: #5e6a64;
 	font-size: 12px;
 	line-height: 1.5;
 }
@@ -2947,7 +2932,7 @@
 
 .paying-box > p {
 	margin: 10px 0;
-	color: #7f8b82;
+	color: #5e6a64;
 	font-size: 11px;
 	line-height: 1.5;
 }
@@ -2998,7 +2983,7 @@
 }
 
 .ref-line span {
-	color: #8b968d;
+	color: #5e6a64;
 	font-size: 10px;
 }
 
@@ -3034,7 +3019,7 @@
 }
 
 .receipt-shop span {
-	color: #8b968d;
+	color: #5e6a64;
 	font-size: 9px;
 }
 
@@ -3042,7 +3027,7 @@
 	display: grid;
 	gap: 2px;
 	margin-top: 12px;
-	color: #8b968d;
+	color: #5e6a64;
 	font-size: 9px;
 }
 
@@ -3068,7 +3053,7 @@
 }
 
 .receipt-item span {
-	color: #9aa39c;
+	color: #5d6861;
 	font-size: 9px;
 }
 
@@ -3087,7 +3072,7 @@
 .receipt-totals > div {
 	display: flex;
 	justify-content: space-between;
-	color: #8b968d;
+	color: #5e6a64;
 	font-size: 10px;
 }
 
@@ -3116,7 +3101,7 @@
 
 .receipt-footer {
 	margin-top: 10px;
-	color: #9aa39c;
+	color: #5d6861;
 	font-size: 9px;
 	text-align: center;
 }
@@ -3318,7 +3303,7 @@
 
 .data-table th {
 	padding: 9px 10px;
-	color: #98a29a;
+	color: #5d6861;
 	font-size: 10px;
 	font-weight: 600;
 	text-align: left;
@@ -4857,4 +4842,12 @@ html[data-theme='dark'] .quick-actions-subtitle {
 	.quick-actions-grid {
 		grid-template-columns: 1fr;
 	}
+}
+
+/* Baris kosong pada tabel data: alasan + langkah berikutnya */
+.empty-cell {
+	padding: 18px 14px !important;
+	color: var(--muted);
+	font-size: 12px;
+	text-align: center;
 }

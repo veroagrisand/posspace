@@ -5,7 +5,7 @@
 			{ href: '#harga', label: 'Harga' },
 			{ href: '#faq', label: 'FAQ' }
 		],
-		ctaLabel = 'Coba gratis',
+		ctaLabel = 'Langganan',
 		ctaHref = '/register',
 		secondaryLabel = 'Masuk',
 		secondaryHref = '/login',
@@ -41,7 +41,7 @@
 			{/if}
 			<a class="btn-pill btn-pill--ghost btn-pill--sm" href={secondaryHref}>{secondaryLabel}</a>
 			<a class="btn-pill btn-pill--dark btn-pill--sm" href={ctaHref}>
-				<span class="roll"><span class="roll-inner"><span class="roll-line">{ctaLabel}</span><span class="roll-line">{ctaLabel}</span></span></span>
+				<span class="roll"><span class="roll-inner"><span class="roll-line">{ctaLabel}</span><span class="roll-line" aria-hidden="true">{ctaLabel}</span></span></span>
 				<span class="btn-arrow">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
 				</span>
@@ -54,7 +54,7 @@
 </div>
 
 {#if menuOpen}
-	<div class="pub-mobile-menu" role="dialog" aria-modal="true" aria-label="Menu navigasi">
+	<div class="pub-mobile-menu" role="dialog" tabindex="-1" aria-modal="true" aria-label="Menu navigasi">
 		<div class="pub-mobile-sheet">
 			<nav>
 				{#each items as item}

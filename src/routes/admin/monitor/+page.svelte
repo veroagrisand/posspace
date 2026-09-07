@@ -119,7 +119,7 @@
 	});
 </script>
 
-<svelte:head><title>Log & Monitor — posspace admin</title></svelte:head>
+<svelte:head><title>Log &amp; Monitor - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
@@ -178,7 +178,7 @@
 			<div class="admin-panel-head">
 				<div>
 					<div class="admin-panel-kicker">TRAFFIK</div>
-					<h2>Request & error per hari — 14 hari terakhir</h2>
+					<h2>Request & error per hari: 14 hari terakhir</h2>
 				</div>
 				<div style="display:flex;gap:14px;align-items:center">
 					{#each summary.statusBreakdown as s}
@@ -205,7 +205,7 @@
 			<div class="admin-panel-head">
 				<div>
 					<div class="admin-panel-kicker">ENDPOINT TERSIBUK</div>
-					<h2>12 endpoint paling sering diakses — 7 hari terakhir</h2>
+					<h2>12 endpoint paling sering diakses: 7 hari terakhir</h2>
 				</div>
 				<span class="admin-panel-note">avg = latensi rata-rata</span>
 			</div>
@@ -268,10 +268,10 @@
 								<td style="font-family:ui-monospace,Menlo,monospace;font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis">{e.path}</td>
 								<td class="num"><span class="admin-pill alert">{e.status}</span></td>
 								<td class="num">{fmtMs(e.durationMs)}</td>
-								<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)">{e.errorMsg || '—'}</td>
+								<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)">{e.errorMsg || '-'}</td>
 							</tr>
 						{:else}
-							<tr><td colspan="6"><div class="admin-empty">Tidak ada error — bagus!</div></td></tr>
+							<tr><td colspan="6"><div class="admin-empty">Tidak ada error, bagus!</div></td></tr>
 						{/each}
 					</tbody>
 				</table>
@@ -282,7 +282,7 @@
 			<div class="admin-panel-head">
 				<div>
 					<div class="admin-panel-kicker">TERLAMBAT</div>
-					<h2>5 request paling lambat — 24 jam terakhir</h2>
+					<h2>5 request paling lambat: 24 jam terakhir</h2>
 				</div>
 			</div>
 			<div style="overflow-x:auto">
@@ -377,7 +377,7 @@
 											<span style="color:var(--muted)">anonim</span>
 										{/if}
 									</td>
-									<td style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{log.ip || '—'}</td>
+									<td style="font-family:ui-monospace,Menlo,monospace;font-size:11px">{log.ip || '-'}</td>
 								</tr>
 							{:else}
 								<tr><td colspan="7"><div class="admin-empty">Tidak ada log yang cocok.</div></td></tr>
@@ -388,8 +388,8 @@
 				<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px;flex-wrap:wrap">
 					<span style="color:var(--muted);font-size:11.5px">Halaman {logPage} dari {totalPages}</span>
 					<div style="display:flex;gap:6px">
-						<button class="button button-secondary" style="min-height:30px;padding:0 12px;font-size:11px" type="button" onclick={() => { logPage = Math.max(1, logPage - 1); loadLogs(); }} disabled={logPage <= 1}>← Sebelumnya</button>
-						<button class="button button-secondary" style="min-height:30px;padding:0 12px;font-size:11px" type="button" onclick={() => { logPage = Math.min(totalPages, logPage + 1); loadLogs(); }} disabled={logPage >= totalPages}>Berikutnya →</button>
+						<button class="button button-secondary" style="min-height:40px;padding:0 12px;font-size:11px" type="button" onclick={() => { logPage = Math.max(1, logPage - 1); loadLogs(); }} disabled={logPage <= 1}>← Sebelumnya</button>
+						<button class="button button-secondary" style="min-height:40px;padding:0 12px;font-size:11px" type="button" onclick={() => { logPage = Math.min(totalPages, logPage + 1); loadLogs(); }} disabled={logPage >= totalPages}>Berikutnya →</button>
 					</div>
 				</div>
 			{/if}
@@ -402,7 +402,7 @@
 		height: 34px;
 		border: 1px solid #d6d3c8;
 		border-radius: 8px;
-		background: #fff;
+		background: var(--surface);
 		color: inherit;
 		font-size: 12px;
 		padding: 0 10px;

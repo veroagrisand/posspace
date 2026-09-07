@@ -2,6 +2,7 @@
 	import { printer, savePrinterSettings, dismissPrinterSetup, backend } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import { buildReceiptLines, printAgent, printWebUsb, type PrinterType } from '$lib/printing';
+	import { trapFocus } from '$lib/focusTrap';
 
 	let {
 		open = $bindable(false)
@@ -16,12 +17,14 @@
 	let testing = $state(false);
 	let testResult = $state('');
 	let saving = $state(false);
+	let dialogEl = $state<HTMLElement | null>(null);
+	let lastFocused: HTMLElement | null = null;
 
 	const options: { id: PrinterType | 'none'; label: string; desc: string }[] = [
-		{ id: 'none', label: 'Tidak mencetak struk', desc: 'Struk cukup tampil di layar — bisa diaktifkan kapan saja dari menu Pengaturan' },
-		{ id: 'webusb', label: 'Printer USB (thermal)', desc: 'Kabel USB langsung ke PC kasir — dicetak tanpa driver (Chrome/Edge)' },
+		{ id: 'none', label: 'Tidak mencetak struk', desc: 'Struk cukup tampil di layar, bisa diaktifkan kapan saja dari menu Pengaturan' },
+		{ id: 'webusb', label: 'Printer USB (thermal)', desc: 'Kabel USB langsung ke PC kasir, dicetak tanpa driver (Chrome/Edge)' },
 		{ id: 'browser', label: 'Printer sistem (browser)', desc: 'Pakai printer yang sudah terpasang di Windows/Mac lewat dialog cetak' },
-		{ id: 'agent', label: 'Printer jaringan / agen lokal', desc: 'Printer Ethernet/WiFi (TCP 9100) atau USB — lewat agen cetak di PC kasir' }
+		{ id: 'agent', label: 'Printer jaringan / agen lokal', desc: 'Printer Ethernet/WiFi (TCP 9100) atau USB, lewat agen cetak di PC kasir' }
 	];
 
 	$effect(() => {
@@ -33,6 +36,25 @@
 			agentUrl = printer.agentUrl || 'http://127.0.0.1:9123';
 		}
 	});
+
+	$effect(() => {
+		if (!open) return;
+		lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		if (dialogEl) {
+			dialogEl.setAttribute('tabindex', '-1');
+			dialogEl.focus();
+		}
+		return () => {
+			lastFocused?.focus();
+		};
+	});
+
+	function onKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.stopPropagation();
+			later();
+		}
+	}
 
 	function sampleLines(): string[] {
 		return buildReceiptLines(
@@ -67,7 +89,7 @@
 				testResult = 'Cetak uji terkirim ke agen cetak.';
 			} else {
 				window.print();
-				testResult = 'Dialog cetak browser dibuka — pilih printer struk lalu cetak.';
+				testResult = 'Dialog cetak browser dibuka, pilih printer struk lalu cetak.';
 			}
 			step = 'done';
 		} catch (err) {
@@ -82,7 +104,7 @@
 		try {
 			if (printerType === 'none') {
 				await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false });
-				showToast('Struk tidak dicetak — struk tampil di layar.');
+				showToast('Struk tidak dicetak, struk tampil di layar.');
 			} else {
 				await savePrinterSettings({ printerType, paperWidth, agentUrl: printerType === 'agent' ? agentUrl : undefined, enabled: true });
 				showToast('Pengaturan printer disimpan.');
@@ -99,7 +121,7 @@
 		// Pilih "Tidak mencetak struk" = langsung simpan & tutup, tanpa langkah lagi.
 		if (id === 'none') {
 			await savePrinterSettings({ printerType: 'browser', paperWidth: '80', enabled: false });
-			showToast('Struk tidak dicetak — struk tampil di layar.');
+			showToast('Struk tidak dicetak, struk tampil di layar.');
 			open = false;
 			return;
 		}
@@ -116,7 +138,7 @@
 
 {#if open}
 	<div class="modal-overlay" role="presentation">
-		<div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-label="Setup printer struk">
+		<div class="modal-card modal-wide" role="dialog" tabindex="-1" aria-modal="true" aria-label="Setup printer struk" bind:this={dialogEl} onkeydown={onKeydown} use:trapFocus>
 			<div class="modal-head">
 				<h3>Setup printer struk</h3>
 				<button class="icon-button" type="button" onclick={later} aria-label="Tutup dialog">
@@ -220,7 +242,7 @@
 		padding: 12px 14px;
 		border: 1px solid var(--line-strong);
 		border-radius: 12px;
-		background: #fff;
+		background: var(--surface);
 		text-align: left;
 		cursor: pointer;
 		transition: border-color 160ms ease, background 160ms ease;
@@ -268,7 +290,7 @@
 		border: 1px solid var(--line-strong);
 		border-radius: 10px;
 		font-size: 13px;
-		background: #fff;
+		background: var(--surface);
 	}
 
 	.setup-test {

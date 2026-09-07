@@ -43,9 +43,7 @@
 			const res = await fetch(`/api/admin/shops/${s.id}`, { method: 'DELETE' });
 			const json = await res.json().catch(() => ({}));
 			if (!res.ok) {
-				const message = json.message === 'SHOP_HAS_PAID_TRANSACTIONS'
-					? 'Backend masih menjalankan versi lama. Deploy ulang API agar toko dengan transaksi berbayar dapat dihapus.'
-					: json.message ?? 'Gagal menghapus toko';
+				const message = json.message ?? 'Gagal menghapus toko';
 				throw new Error(message);
 			}
 			shops = (shops ?? []).filter((x) => x.id !== s.id);
@@ -72,13 +70,13 @@
 	};
 </script>
 
-<svelte:head><title>Toko terdaftar — posspace admin</title></svelte:head>
+<svelte:head><title>Toko terdaftar - posspace admin</title></svelte:head>
 
 <header class="admin-topbar">
 	<div>
 		<AdminBreadcrumb items={[{ label: 'Toko terdaftar' }]} />
 		<h1>Toko terdaftar</h1>
-		<p class="admin-subtitle">Semua toko yang menggunakan posspace — status langganan, aktivitas, dan stok.</p>
+		<p class="admin-subtitle">Semua toko yang menggunakan posspace: status langganan, aktivitas, dan stok.</p>
 	</div>
 	<div class="admin-topbar-spacer"></div>
 	<label class="search-box" style="min-width:260px">
@@ -124,10 +122,10 @@
 							<td>
 								<a class="admin-shop-cell" href={`/admin/shops/${shop.id}`}>
 									<span class="admin-shop-avatar">{shop.name.slice(0, 2).toUpperCase()}</span>
-									<span><strong>{shop.name}</strong><small>{shop.address || shop.currency || '—'}</small></span>
+									<span><strong>{shop.name}</strong><small>{shop.address || shop.currency || '-'}</small></span>
 								</a>
 							</td>
-							<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '—'}</td>
+							<td style="white-space:nowrap;color:var(--muted)">{shop.ownerEmail ?? '-'}</td>
 							<td>
 								{#if shop.subscription}
 									<span class="admin-status admin-status-{shop.subscription.status}">{statusMeta[shop.subscription.status].label}</span>

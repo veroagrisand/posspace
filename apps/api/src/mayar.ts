@@ -14,7 +14,7 @@ const mayarToken = env.MAYAR_TOKEN ?? '';
 const isProduction = env.MAYAR_ENV !== 'sandbox';
 const apiBase = isProduction ? 'https://api.mayar.id/hl/v2' : 'https://api.mayar.io/hl/v2';
 
-/** Token webhook Mayar (opsional) — diverifikasi pada setiap notifikasi masuk. */
+/** Token webhook Mayar — WAJIB dikonfigurasi agar endpoint webhook berfungsi. */
 export const mayarWebhookToken = (env.MAYAR_WEBHOOK_TOKEN ?? '').trim();
 
 export class MayarError extends Error {

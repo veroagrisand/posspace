@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { businessContact, businessPhoneHref } from '$lib/site';
 	import { isSupabaseConfigured } from '$lib/supabase';
-	import Toast from './Toast.svelte';
-
-	let notice = $state('');
-
-	function showNotice(message: string) {
-		notice = message;
-	}
 </script>
 
 <footer class="pub-footer">
@@ -16,7 +9,7 @@
 			<h2>Siap membuat stok kopi<br class="hidden-sm" /> Anda selalu benar?</h2>
 			<div class="actions">
 				<a class="btn-pill btn-pill--orange" href="/register">
-					<span class="roll"><span class="roll-inner"><span class="roll-line">Mulai 14 hari gratis</span><span class="roll-line">Mulai 14 hari gratis</span></span></span>
+					<span class="roll"><span class="roll-inner"><span class="roll-line">Langganan sekarang</span><span class="roll-line" aria-hidden="true">Langganan sekarang</span></span></span>
 					<span class="btn-arrow">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
 					</span>
@@ -41,7 +34,7 @@
 				</div>
 				<span class="badge-pill badge-pill--dark" style="margin-top:16px">
 					<span class="badge-dot"></span>
-					{isSupabaseConfigured ? 'Terhubung ke Supabase' : 'Mode demo aktif — isi .env untuk Supabase'}
+					{isSupabaseConfigured ? 'Terhubung ke Supabase' : 'Mode demo aktif, isi .env untuk Supabase'}
 				</span>
 			</div>
 			<nav class="footer-col" aria-label="Tautan produk">
@@ -68,7 +61,7 @@
 					<li><a href="/faq">FAQ<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/refund-policy">Refund Policy<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 					<li><a href="/terms-and-conditions">Syarat &amp; Ketentuan<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
-					<li><button type="button" onclick={() => showNotice('Semua sistem berjalan normal')}>Status Sistem</button></li>
+					<li><a href="/kontak">Kontak<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg></a></li>
 				</ul>
 			</nav>
 		</div>
@@ -80,7 +73,7 @@
 
 	<div class="wrap">
 		<div class="footer-bottom">
-			<p>© 2026 posspace.id — Dibangun dengan SvelteKit &amp; Supabase.</p>
+			<p>© 2026 posspace.id, dibangun dengan SvelteKit &amp; Supabase.</p>
 			<div class="legal">
 				<a href="/terms-and-conditions">Syarat &amp; Ketentuan</a>
 				<a href="/refund-policy">Kebijakan Refund</a>
@@ -89,8 +82,6 @@
 		</div>
 	</div>
 </footer>
-
-<Toast message={notice} />
 
 <style>
 	.hidden-sm {

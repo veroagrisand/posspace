@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
+import { randomBytes } from 'node:crypto';
 import { json, httpError } from '../http.js';
-import { requireApiAuth, requireAuth } from '../guards.js';
+import { requireApiAuth, requireAuth, type ApiContext } from '../guards.js';
 import { service } from '../db.js';
 import { createShopSubscription, payPendingInvoice, redeemVoucherToPendingInvoice } from '../subscription.js';
 import { sendMail, isSmtpConfigured } from '../mail.js';
 import { publicBaseUrl } from '../url.js';
+import { rateLimit, clientIp } from '../rateLimit.js';
 
 /**
  * Service shop — profil toko, manajemen anggota, voucher langganan.
@@ -124,7 +126,10 @@ shopService.post('/members', async (c) => {
 	if (!['kasir', 'admin_gudang', 'pemilik'].includes(body.role ?? '')) httpError(400, 'INVALID_ROLE');
 
 	const db = service();
-	const tempPassword = `PS-${Math.random().toString(36).slice(2, 10)}`;
+	if (body.role === 'kasir') {
+		await assertCashierQuota(ctx, db);
+	}
+	const tempPassword = randomBytes(6).toString('base64url');
 
 	const { data: created, error: createError } = await db.auth.admin.createUser({
 		email: body.email.trim(),
@@ -189,6 +194,33 @@ function escapeHtml(value: string): string {
 	return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] as string);
 }
 
+/**
+ * Batas jumlah kasir per paket langganan (RBAC per paket):
+ * starter = 1 kasir, pro = 3 kasir, tumbuh = tanpa batas (null).
+ */
+export function maxCashiersForPlan(planId: string | null | undefined): number | null {
+	if (planId === 'tumbuh') return null;
+	if (planId === 'pro') return 3;
+	return 1;
+}
+
+/** Hitung kasir aktif toko + cek kuota paket; lempar error bila melebihi. */
+async function assertCashierQuota(ctx: ApiContext, db: ReturnType<typeof service>, extraCount = 0): Promise<void> {
+	const limit = maxCashiersForPlan(ctx.shop.subscription?.planId);
+	if (limit === null) return;
+
+	const { count } = await db
+		.from('profiles')
+		.select('id', { count: 'exact', head: true })
+		.eq('shop_id', ctx.shop.shopId)
+		.eq('role', 'kasir');
+
+	const current = Number(count ?? 0);
+	if (current + extraCount > limit) {
+		httpError(403, `KASIR_LIMIT_REACHED: paket ${ctx.shop.subscription?.planName ?? ctx.shop.subscription?.planId ?? 'starter'} maksimal ${limit} kasir`);
+	}
+}
+
 /** PATCH /api/shop/members/[id] — ubah nama & peran anggota (pemilik toko). */
 shopService.patch('/members/:id', async (c) => {
 	const ctx = await requireApiAuth(c);
@@ -219,6 +251,10 @@ shopService.patch('/members/:id', async (c) => {
 	// Pemilik terakhir tidak boleh diturunkan perannya.
 	if (member.role === 'pemilik' && body.role !== undefined && body.role !== 'pemilik') {
 		httpError(400, 'LAST_OWNER');
+	}
+	// Naikkan peran menjadi kasir wajib lolos kuota paket (selain kasir yang sudah ada).
+	if (body.role === 'kasir' && member.role !== 'kasir') {
+		await assertCashierQuota(ctx, db, 1);
 	}
 
 	const patch: Record<string, unknown> = {};
@@ -307,6 +343,10 @@ subscriptionService.post('/create', async (c) => {
 // ============ VOUCHER ============
 /** POST /api/subscription/voucher — pakai voucher diskon untuk invoice PENDING. */
 subscriptionService.post('/voucher', async (c) => {
+	const ip = clientIp(c.req.raw.headers);
+	if (!rateLimit(`voucher:ip:${ip}`, 20, 60 * 60 * 1000)) httpError(429, 'VOUCHER_RATE_LIMITED');
+	if (!rateLimit(`voucher:code:${ip}`, 5, 10 * 60 * 1000)) httpError(429, 'VOUCHER_RATE_LIMITED');
+
 	const body = (await c.req.json().catch(() => ({}))) as { code?: string };
 	const code = (body.code ?? '').trim();
 	if (!code) httpError(400, 'CODE_REQUIRED');

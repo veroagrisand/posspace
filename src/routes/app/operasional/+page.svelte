@@ -89,7 +89,7 @@
 	}
 
 	async function submitAdd() {
-		if (saving) return; // throttle: hanya klik pertama yang diproses
+		if (saving) return;
 		if (!addCategory || addAmount <= 0) {
 			showToast('Isi kategori & jumlah beban');
 			return;
@@ -113,7 +113,7 @@
 				periodStart: addType === 'sekali' ? null : addStart,
 				periodEnd: addType === 'sekali' ? null : addEnd
 			});
-			addOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			addOpen = false;
 			showToast('Beban operasional dicatat');
 		} catch (err) {
 			showToast(`Gagal mencatat beban: ${err instanceof Error ? err.message : 'error'}`);
@@ -164,7 +164,7 @@
 				periodEnd: editType === 'sekali' ? null : editEnd
 			});
 			editing = null;
-			editOpen = false; // tutup popup + toast hanya setelah BERHASIL
+			editOpen = false;
 			showToast('Beban operasional diperbarui');
 		} catch (err) {
 			showToast(`Gagal memperbarui beban: ${err instanceof Error ? err.message : 'error'}`);
@@ -200,7 +200,7 @@
 	const netMargin = $derived(omzet > 0 ? Math.round((netProfit / omzet) * 1000) / 10 : 0);
 </script>
 
-<svelte:head><title>Operasional — posspace</title></svelte:head>
+<svelte:head><title>Operasional - posspace</title></svelte:head>
 
 <header class="topbar">
 	<div class="breadcrumbs" aria-label="Breadcrumb">
@@ -214,7 +214,7 @@
 	<section class="page-heading">
 		<div>
 			<div class="eyebrow"><span class="eyebrow-line"></span> BEBAN OPERASIONAL</div>
-			<h1>Listrik, sewa, gaji — semua tercatat.</h1>
+			<h1>Listrik, sewa, gaji: semua tercatat.</h1>
 			<p>Laba bersih = omzet − HPP (dari resep) − beban operasional.</p>
 		</div>
 		<div class="heading-actions">
@@ -258,7 +258,7 @@
 
 	<section class="panel" style="padding: 24px;margin-top: 19px">
 		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
-			<div><div class="section-kicker">RINCIAN BEBAN</div><h2>Beban operasional — {month}</h2></div>
+			<div><div class="section-kicker">RINCIAN BEBAN</div><h2>Beban operasional: {month}</h2></div>
 			<span class="live-label"><i></i> {monthExpenses.length} catatan</span>
 		</div>
 
@@ -288,10 +288,10 @@
 						<tr>
 							<td style="white-space:nowrap">
 								<div style="font-size:11px">{expensePeriodText(expense)}</div>
-								<small style="color:#9aa39c;font-size:9px">{expenseTypeLabel(expense.expenseType)}</small>
+								<small style="color:#5d6861;font-size:9px">{expenseTypeLabel(expense.expenseType)}</small>
 							</td>
 							<td><span class="admin-pill">{expenseLabel(expense.category)}</span></td>
-							<td style="max-width:240px;font-size:11px">{expense.note || '—'}</td>
+							<td style="max-width:240px;font-size:11px">{expense.note || '-'}</td>
 							<td class="num" style="font-family:var(--font-display);font-weight:700">{formatIDR(expense.amount)}</td>
 							<td>
 								<div style="display:flex;gap:6px">
@@ -465,7 +465,7 @@
 	}
 
 	.expense-hint {
-		color: #7f8b82;
+		color: #5e6a64;
 		font-size: 10px;
 		line-height: 1.5;
 		margin-top: 5px;

@@ -1,4 +1,4 @@
-/* ====== Admin SaaS (owner) — dashboard lintas toko ====== */
+/* Admin SaaS (owner) — dashboard lintas toko */
 .admin-shell {
 	display: grid;
 	grid-template-columns: 246px minmax(0, 1fr);
@@ -165,7 +165,7 @@
 	color: #96a099;
 	border: 1px solid var(--line);
 	border-radius: 9px;
-	background: #fbfbf9;
+	background: var(--surface);
 }
 
 .search-box:focus-within {
@@ -302,7 +302,7 @@
 
 .admin-panel-head .admin-panel-kicker {
 	margin-bottom: 3px;
-	color: #c8a05c;
+	color: #9A6B1F;
 	font-size: 10px;
 	font-weight: 700;
 	letter-spacing: 0.13em;
@@ -698,7 +698,6 @@
 	gap: 12px;
 }
 
-/* Tombol & modal (dipakai di halaman admin) */
 .button {
 	display: inline-flex;
 	align-items: center;
@@ -829,7 +828,7 @@
 	}
 
 	.admin-nav .nav-item {
-		min-height: 36px;
+		min-height: 44px;
 		padding: 0 11px;
 	}
 
@@ -840,7 +839,7 @@
 	}
 
 	.admin-utils a {
-		min-height: 36px;
+		min-height: 44px;
 		padding: 0 10px;
 	}
 
@@ -937,7 +936,6 @@
 		padding: 16px 12px 32px;
 	}
 }
-/* ===== Responsive hardening (HP/tablet) ===== */
 .admin-grid > *,
 .admin-panel,
 .admin-card {
@@ -1002,7 +1000,7 @@
 }
 
 .sf-admin-shell .admin-nav .nav-item {
-	min-height: 40px;
+	min-height: 44px;
 	padding: 0 11px;
 	color: #64748b;
 	border-radius: 8px;
@@ -1059,7 +1057,7 @@
 	}
 }
 
-/* ===== Dark mode — admin SaaS (skin SvelteForge) ===== */
+/* Dark mode — admin SaaS (skin SvelteForge) */
 html[data-theme='dark'] .sf-admin-shell {
 	--paper: #0f172a;
 	--surface: #1e293b;
@@ -1177,13 +1175,9 @@ html[data-theme='dark'] .sf-admin-shell .modal-card {
 	background: #1e293b;
 }
 
-/* =====================================================================
+/* Brand palette — Stripe-style untuk admin SaaS */
 
-/* =====================================================================
-   Brand palette — Stripe-style untuk admin SaaS
-   ===================================================================== */
-
-/* ---------- LIGHT ---------- */
+/* LIGHT */
 .sf-admin-shell {
 	--paper: #F6F8FA;
 	--surface: #FFFFFF;
@@ -1191,7 +1185,7 @@ html[data-theme='dark'] .sf-admin-shell .modal-card {
 	--line-strong: #D9DDE3;
 	--ink: #0A2540;
 	--ink-soft: #425466;
-	--muted: #7C7C84;
+	--muted: #6A6A74;
 	--forest-950: #0A2540;
 	--forest-900: #0A2540;
 	--forest-800: #1A1F36;
@@ -1262,7 +1256,7 @@ html[data-theme='dark'] .sf-admin-shell .modal-card {
 	background: #5851EA;
 }
 
-/* ---------- DARK ---------- */
+/* DARK */
 html[data-theme='dark'] .sf-admin-shell {
 	--paper: #101012;
 	--surface: #1A1A1C;
@@ -1274,7 +1268,8 @@ html[data-theme='dark'] .sf-admin-shell {
 	--forest-950: #0C0C0E;
 	--forest-900: #151517;
 	--forest-800: #1A1A1C;
-	--forest-700: #425466;
+	--forest-100: #26262A;
+	--forest-700: #90A7BB;
 	--amber: #7A73FF;
 	background: var(--paper);
 }
@@ -1376,4 +1371,18 @@ html[data-theme='dark'] .sf-admin-shell .modal-overlay {
 html[data-theme='dark'] .sf-admin-shell .modal-card {
 	border-color: #26262A;
 	background: #1A1A1C;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-panel-head .admin-panel-kicker {
+	color: #c8a05c;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-pill.warn {
+	background: rgba(217, 179, 106, 0.14);
+	color: #D9B36A;
+}
+
+html[data-theme='dark'] .sf-admin-shell .admin-pill.alert {
+	background: rgba(224, 138, 128, 0.14);
+	color: #E08A80;
 }
