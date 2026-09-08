@@ -188,6 +188,17 @@ if [ -f "$APP_DIR/deploy/apply-nginx.sh" ]; then
 	sudo -u "$APP_USER" env DOMAIN="$DOMAIN" bash "$APP_DIR/deploy/apply-nginx.sh" || true
 fi
 
+log "12c/12 Cron healthcheck (setiap hari 05.00)"
+# Health check terjadwal sebagai user aplikasi; kegagalan dicatat ke
+# /var/log/posspace/healthcheck.log (folder sudah di-chown ke $APP_USER).
+CRON_LINE="0 5 * * * bash $APP_DIR/scripts/healthcheck.sh https://$DOMAIN || echo \"DOWN \$(date -Is)\" >> /var/log/posspace/healthcheck.log"
+if sudo -u "$APP_USER" crontab -l 2>/dev/null | grep -Fq "scripts/healthcheck.sh"; then
+	log "   cron healthcheck sudah terpasang — dilewati"
+else
+	sudo -u "$APP_USER" bash -c "( crontab -l 2>/dev/null; echo '$CRON_LINE' ) | crontab -"
+	log "   cron healthcheck dipasang: setiap hari 05.00"
+fi
+
 echo ""
 echo "======================================================"
 echo " VPS SIAP."

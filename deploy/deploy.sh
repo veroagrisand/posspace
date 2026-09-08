@@ -162,6 +162,19 @@ if [ -f deploy/apply-nginx.sh ]; then
 	bash deploy/apply-nginx.sh || echo "(apply-nginx dilewati — konfigurasi lama tetap aktif)"
 fi
 
+# Health check terjadwal: setiap hari pukul 05.00 (cron user deploy).
+# Menulis baris DOWN ke /var/log/posspace/healthcheck.log bila gagal.
+install_healthcheck_cron() {
+	local cron_line="0 5 * * * bash ${PWD}/scripts/healthcheck.sh https://posspace.id || echo \"DOWN \$(date -Is)\" >> /var/log/posspace/healthcheck.log"
+	if crontab -l 2>/dev/null | grep -Fq "scripts/healthcheck.sh"; then
+		echo "==> 6c/6 Cron healthcheck (05.00) sudah terpasang"
+	else
+		( crontab -l 2>/dev/null; echo "$cron_line" ) | crontab -
+		echo "==> 6c/6 Cron healthcheck dipasang: setiap hari 05.00"
+	fi
+}
+install_healthcheck_cron
+
 
 echo "$PREV_COMMIT" > .last-release
 
