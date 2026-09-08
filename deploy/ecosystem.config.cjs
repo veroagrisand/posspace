@@ -27,8 +27,12 @@ const os = require('os');
 const totalMemMB = Math.floor(os.totalmem() / 1024 / 1024);
 const small = totalMemMB < 3072;
 const webInstances = Number(process.env.WEB_INSTANCES || 0) || (small ? 1 : 2);
-const webMem = small ? '320M' : '512M';
-const apiMem = small ? '240M' : '400M';
+// Batas memori dibuat cukup lega: SSR SvelteKit + klien Supabase per request
+// nyaman di 350-450MB RSS saat kena burst crawler. Cap terlalu rendah
+// (mis. 300MB) membuat PM2 me-restart worker tiap beberapa menit dan
+// membuka jendela 502 singkat. Swap 2G dari init-server.sh menyerap lonjakan.
+const webMem = small ? '480M' : '600M';
+const apiMem = small ? '280M' : '400M';
 
 const root = path.resolve(__dirname, '..');
 
