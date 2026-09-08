@@ -3,6 +3,9 @@
 	import AppLayout from '../app/+layout.svelte';
 	import CashierPage from '../app/+page.svelte';
 	import { clearDemoStore, seedDemoStore } from '$lib/demo-data';
+	import { showToast } from '$lib/toast.svelte';
+	import { getBrowserClient } from '$lib/supabase';
+	import { clearDemoSession } from '$lib/demo';
 
 	const DEMO_TTL = 10 * 60 * 1000;
 	const EXPIRY_KEY = 'posspace.demo.expiresAt';
@@ -17,7 +20,33 @@
 		return `${minutes}:${rest}`;
 	}
 
+	// Demo dan akun live tidak boleh tercampur: begitu masuk demo, sesi live
+	// (cookie + storage Supabase) dan sesi demo lama dibersihkan.
+	async function clearSessions() {
+		const supabase = getBrowserClient();
+		if (supabase) {
+			try {
+				await supabase.auth.signOut();
+			} catch {
+				// Sesi sudah tidak valid; lanjut bersihkan storage lokal.
+			}
+		}
+		clearDemoSession();
+	}
+
+	// Tautan ke modul akun live (/app/*) tidak boleh terbuka dari demo,
+	// agar pengunjung demo tidak pernah masuk ke akun berlangganan sungguhan.
+	function interceptLiveLinks(e: MouseEvent) {
+		const target = e.target as HTMLElement | null;
+		const anchor = target?.closest?.('a[href^="/app"]');
+		if (!anchor) return;
+		e.preventDefault();
+		e.stopPropagation();
+		showToast('Modul ini hanya tersedia di akun berlangganan, tidak di demo');
+	}
+
 	onMount(() => {
+		void clearSessions();
 		let storedExpiry = 0;
 		try {
 			storedExpiry = Number(sessionStorage.getItem(EXPIRY_KEY));
@@ -67,7 +96,7 @@
 		<a class="btn-pill btn-pill--orange" href="/register">Langganan sekarang</a>
 	</div>
 {:else}
-	<div class="demo-route">
+	<div class="demo-route" onclickcapture={interceptLiveLinks}>
 		<div class="demo-notice" role="status">
 			<div>
 				<strong>Demo interaktif</strong>
