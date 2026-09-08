@@ -20,6 +20,6 @@ jobs:
     name: Health check produksi
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Cek /health dan /login
         run: bash scripts/healthcheck.sh https://posspace.id
