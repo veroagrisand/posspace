@@ -18,14 +18,17 @@ const path = require('path');
 const os = require('os');
 
 // RAM-aware sizing: VPS kecil mudah OOM (proses dibunuh kernel → 502).
-// Aturan: 1 worker hanya bila RAM sangat kecil (<1.5GB); di atasnya 2 worker
-// agar restart salah satu worker TIDAK memutus layanan. Limit memori dibuat
-// lebih rendah pada mesin kecil agar tidak menekan OS.
+// Aturan: 2 worker web HANYA bila RAM >= 3GB. Pada VPS 1-2GB (umum di
+// Hostinger), 1 worker + api sudah ~600MB; 2 worker × 512MB + api 400MB
+// = ~1.4GB+ dan kernel OOM-killer bisa menebas KEDUA worker sekaligus,
+// yang menghasilkan jendela 502 selama beberapa detik. Satu worker lebih
+// aman: restart-nya pendek (1-2 dtk) dan nginx proxy_next_upstream
+// menutup sisanya.
 const totalMemMB = Math.floor(os.totalmem() / 1024 / 1024);
-const small = totalMemMB < 1536;
+const small = totalMemMB < 3072;
 const webInstances = Number(process.env.WEB_INSTANCES || 0) || (small ? 1 : 2);
-const webMem = small ? '300M' : '512M';
-const apiMem = small ? '250M' : '400M';
+const webMem = small ? '320M' : '512M';
+const apiMem = small ? '240M' : '400M';
 
 const root = path.resolve(__dirname, '..');
 
@@ -40,8 +43,8 @@ module.exports = {
 			exec_mode: 'cluster',
 			max_memory_restart: webMem,
 			kill_timeout: 15_000, // biarkan in-flight SSR selesai sebelum stop
-			listen_timeout: 5_000, // waktu worker baru untuk mulai listen saat reload
-			restart_delay: 1_000,
+			listen_timeout: 10_000, // waktu worker baru untuk mulai listen saat reload (build berat bisa lambat)
+			restart_delay: 500,
 			min_uptime: '10s',
 			max_restarts: 10,
 			exp_backoff_restart_delay: 100,
@@ -58,7 +61,7 @@ module.exports = {
 			instances: 1,
 			max_memory_restart: apiMem,
 			kill_timeout: 10_000,
-			restart_delay: 1_000,
+			restart_delay: 500,
 			min_uptime: '10s',
 			max_restarts: 10,
 			exp_backoff_restart_delay: 100,
