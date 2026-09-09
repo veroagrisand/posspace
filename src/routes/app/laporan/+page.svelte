@@ -4,43 +4,71 @@
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
 
-	function isToday(iso: string): boolean {
-		const d = new Date(iso);
-		const n = new Date();
-		return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+	let period = $state<'weekly' | 'monthly' | 'yearly' | 'all'>('monthly');
+	const periodLabels: Record<string, string> = { weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan', all: 'Keseluruhan' };
+
+	// Rentang tanggal sama dengan backend (report-export.ts) agar angka dashboard
+	// konsisten dengan hasil ekspor.
+	function periodRangeFor(p: string): { from: string; to: string } {
+		const now = new Date();
+		const to = now.toISOString().slice(0, 10);
+		const iso = (d: Date) => d.toISOString().slice(0, 10);
+		if (p === 'weekly') {
+			const day = (now.getDay() + 6) % 7; // Senin = 0
+			const monday = new Date(now);
+			monday.setDate(now.getDate() - day);
+			return { from: iso(monday), to };
+		}
+		if (p === 'monthly') return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to };
+		if (p === 'yearly') return { from: iso(new Date(now.getFullYear(), 0, 1)), to };
+		return { from: '2000-01-01', to };
 	}
 
-	const todaySales = $derived(store.transactions.filter((t) => isToday(t.paidAt)));
-	const omzet = $derived(todaySales.reduce((s, t) => s + t.total, 0));
-	const txCount = $derived(todaySales.length);
-	// HPP = Σ (unit_cost × qty) — unit_cost dibekukan saat penjualan, presisi 2 desimal.
-	const hppTotal = $derived(
-		todaySales.reduce((sum, txn) => {
-			for (const item of txn.items) {
-				sum += (item.unitCost != null ? item.unitCost : 0) * item.qty;
-			}
-			return sum;
-		}, 0)
-	);
-	const profit = $derived(omzet - hppTotal);
-	const hppPct = $derived(omzet > 0 ? Math.round((hppTotal / omzet) * 1000) / 10 : 0);
-	const marginPct = $derived(omzet > 0 ? Math.round((profit / omzet) * 1000) / 10 : 0);
+	type Summary = {
+		omzet: number;
+		txCount: number;
+		hpp: number;
+		profit: number;
+		marginPct: number;
+		expenses: number;
+		netProfit: number;
+		netMarginPct: number;
+		topMenus: { name: string; qty: number; revenue: number; hpp: number; profit: number }[];
+	};
+	let summary = $state<Summary | null>(null);
+	let summaryLoading = $state(true);
+	let summaryError = $state('');
 
-	const bestSellers = $derived.by(() => {
-		const map = new Map<string, { name: string; qty: number; revenue: number; hpp: number }>();
-		for (const txn of todaySales) {
-			for (const item of txn.items) {
-				const key = `${item.productName}|${item.variant}`;
-				const hpp = (item.unitCost != null ? item.unitCost : 0) * item.qty;
-				const current = map.get(key) ?? { name: `${item.productName} (${item.variant})`, qty: 0, revenue: 0, hpp: 0 };
-				current.qty += item.qty;
-				current.revenue += item.lineTotal;
-				current.hpp += hpp;
-				map.set(key, current);
-			}
-		}
-		return [...map.values()].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+	$effect(() => {
+		const { from, to } = periodRangeFor(period);
+		summaryLoading = true;
+		summaryError = '';
+		summary = null;
+		fetch(`/api/reports/summary?from=${from}&to=${to}`)
+			.then(async (res) => {
+				if (!res.ok) throw new Error('FAILED');
+				return res.json();
+			})
+			.then((d) => {
+				summary = d as Summary;
+				summaryLoading = false;
+			})
+			.catch(() => {
+				summaryError = 'Gagal memuat laporan. Coba lagi atau muat ulang halaman.';
+				summaryLoading = false;
+			});
 	});
+
+	const omzet = $derived(summary?.omzet ?? 0);
+	const txCount = $derived(summary?.txCount ?? 0);
+	const hppTotal = $derived(summary?.hpp ?? 0);
+	const profit = $derived(summary?.profit ?? 0);
+	const marginPct = $derived(summary?.marginPct ?? 0);
+	const hppPct = $derived(omzet > 0 ? Math.round((hppTotal / omzet) * 1000) / 10 : 0);
+	const expenses = $derived(summary?.expenses ?? 0);
+	const netProfit = $derived(summary?.netProfit ?? 0);
+	const netMarginPct = $derived(summary?.netMarginPct ?? 0);
+	const topMenus = $derived(summary?.topMenus ?? []);
 
 	const stockRows = $derived(
 		store.ingredients.map((i) => ({ name: i.name, unit: i.unit, stock: i.stock, min: i.minStock, status: i.stock <= i.minStock ? 'Perlu beli' : 'Aman' }))
@@ -75,8 +103,6 @@
 		showToast('Laporan stok diunduh (CSV)');
 	}
 
-	let period = $state<'weekly' | 'monthly' | 'yearly' | 'all'>('monthly');
-	const periodLabels: Record<string, string> = { weekly: 'Mingguan', monthly: 'Bulanan', yearly: 'Tahunan', all: 'Keseluruhan' };
 	let exporting = $state(false);
 
 	async function exportReport(format: 'csv' | 'xlsx' | 'pdf') {
@@ -85,7 +111,7 @@
 		try {
 			const res = await fetch(`/api/reports/export/sales?period=${period}&format=${format}`);
 			if (!res.ok) {
-				showToast('Gagal mengekspor laporan');
+				showToast(res.status === 403 ? 'Ekspor laporan hanya tersedia di paket Pro ke atas' : 'Gagal mengekspor laporan');
 				return;
 			}
 			const blob = await res.blob();
@@ -148,85 +174,114 @@
 		</div>
 	</section>
 
-	<section class="metrics-grid">
-		<article class="metric-card metric-revenue">
-			<div class="metric-topline"><span class="metric-label">Omzet hari ini</span><span class="metric-icon">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg>
-			</span></div>
-			<strong class="metric-value">{formatIDR(omzet)}</strong>
-			<div class="metric-meta"><span class="trend-up">{txCount > 0 ? '+' + txCount : '0'}</span><span>transaksi hari ini</span></div>
-		</article>
-		<article class="metric-card metric-orders">
-			<div class="metric-topline"><span class="metric-label">Transaksi</span><span class="metric-icon">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg>
-			</span></div>
-			<strong class="metric-value">{txCount} <small>transaksi</small></strong>
-			<div class="metric-meta"><span class="trend-up">+{txCount}</span><span>sejak pukul 08.00</span></div>
-		</article>
-		<article class="metric-card metric-profit">
-			<div class="metric-topline"><span class="metric-label">HPP total</span><span class="metric-icon">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
-			</span></div>
-			<strong class="metric-value">{formatRupiahExact(hppTotal)}</strong>
-			<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>{hppPct}% dari omzet</span></div>
-		</article>
-		<article class="metric-card">
-			<div class="metric-topline"><span class="metric-label">Laba kotor</span><span class="metric-icon">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5 9.5 11l3.5 3.5L21 7M16 7h5v5" /></svg>
-			</span></div>
-			<strong class="metric-value">{formatIDR(profit)}</strong>
-			<div class="metric-meta"><span class="trend-good">margin {marginPct}%</span><span>dari omzet</span></div>
-		</article>
-	</section>
+	{#if summaryLoading}
+		<div class="panel" style="padding:40px 24px">
+			<div class="cart-empty" style="padding-top:0">
+				<strong style="font-size:12px">Memuat laporan {periodLabels[period]}...</strong>
+			</div>
+		</div>
+	{:else if summaryError}
+		<div class="panel" style="padding:40px 24px">
+			<div class="cart-empty" style="padding-top:0">
+				<strong style="font-size:12px;color:var(--red)">Gagal memuat laporan</strong>
+				<p>{summaryError}</p>
+			</div>
+		</div>
+	{:else}
+		<section class="metrics-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+			<article class="metric-card metric-revenue">
+				<div class="metric-topline"><span class="metric-label">Omzet {periodLabels[period]}</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7" /></svg>
+				</span></div>
+				<strong class="metric-value">{formatIDR(omzet)}</strong>
+				<div class="metric-meta"><span class="trend-up">{txCount > 0 ? '+' + txCount : '0'}</span><span>transaksi {periodLabels[period].toLowerCase()}</span></div>
+			</article>
+			<article class="metric-card metric-orders">
+				<div class="metric-topline"><span class="metric-label">Transaksi</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h4" /></svg>
+				</span></div>
+				<strong class="metric-value">{txCount} <small>transaksi</small></strong>
+				<div class="metric-meta"><span class="trend-up">+{txCount}</span><span>periode {periodLabels[period].toLowerCase()}</span></div>
+			</article>
+			<article class="metric-card metric-profit">
+				<div class="metric-topline"><span class="metric-label">HPP total</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.5 9.5 12l3.5 3.5L20 8.5M15 8.5h5v5" /></svg>
+				</span></div>
+				<strong class="metric-value">{formatRupiahExact(hppTotal)}</strong>
+				<div class="metric-meta"><span class="trend-{hppPct <= 35 ? 'good' : 'alert'}">{hppPct <= 35 ? 'Dalam target' : 'Perlu perhatian'}</span><span>{hppPct}% dari omzet</span></div>
+			</article>
+			<article class="metric-card">
+				<div class="metric-topline"><span class="metric-label">Laba kotor</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5 9.5 11l3.5 3.5L21 7M16 7h5v5" /></svg>
+				</span></div>
+				<strong class="metric-value">{formatIDR(profit)}</strong>
+				<div class="metric-meta"><span class="trend-good">margin {marginPct}%</span><span>dari omzet</span></div>
+			</article>
+			<article class="metric-card metric-stock">
+				<div class="metric-topline"><span class="metric-label">Beban operasional</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v12H5zM8 8V6a4 4 0 0 1 8 0v2" /></svg>
+				</span></div>
+				<strong class="metric-value">{formatIDR(expenses)}</strong>
+				<div class="metric-meta"><span>dari Operasional</span><span>periode ini</span></div>
+			</article>
+			<article class="metric-card">
+				<div class="metric-topline"><span class="metric-label">Laba bersih</span><span class="metric-icon">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5 9.5 11l3.5 3.5L21 7M16 7h5v5" /></svg>
+				</span></div>
+				<strong class="metric-value">{formatIDR(netProfit)}</strong>
+				<div class="metric-meta"><span class="trend-{netProfit >= 0 ? 'good' : 'alert'}">margin bersih {netMarginPct}%</span><span>laba kotor - beban</span></div>
+			</article>
+		</section>
 
-	<section class="panel" style="padding: 24px">
-		<div class="panel-heading compact-heading" style="margin-bottom: 18px">
-			<div><div class="section-kicker">MENU TERLARIS</div><h2>Laba kotor per menu</h2></div>
-			<span style="color:#5d6861;font-size:11px">hari ini · live</span>
-		</div>
-		{#if bestSellers.length === 0}
-			<div class="cart-empty" style="padding-top:16px">
-				<strong style="font-size:12px">Belum ada transaksi</strong>
-				<p>Lakukan pembayaran di kasir untuk melihat peringkat menu.</p>
+		<section class="panel" style="padding: 24px">
+			<div class="panel-heading compact-heading" style="margin-bottom: 18px">
+				<div><div class="section-kicker">MENU TERLARIS</div><h2>Laba kotor per menu</h2></div>
+				<span style="color:#5d6861;font-size:11px">{periodLabels[period].toLowerCase()}</span>
 			</div>
-		{:else}
-			<div style="overflow-x:auto">
-				<table class="data-table">
-					<thead>
-						<tr>
-							<th>Menu</th>
-							<th>Terjual</th>
-							<th>Omzet</th>
-							<th>HPP</th>
-							<th>Laba kotor</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each bestSellers as item}
+			{#if topMenus.length === 0}
+				<div class="cart-empty" style="padding-top:16px">
+					<strong style="font-size:12px">Belum ada transaksi periode ini</strong>
+					<p>Lakukan pembayaran di kasir untuk melihat peringkat menu.</p>
+				</div>
+			{:else}
+				<div style="overflow-x:auto">
+					<table class="data-table">
+						<thead>
 							<tr>
-								<td>{item.name}</td>
-								<td>{item.qty} porsi</td>
-								<td style="font-family:var(--font-display)">{formatIDR(item.revenue)}</td>
-								<td style="font-family:var(--font-display)">{formatRupiahExact(item.hpp)}</td>
-								<td style="font-family:var(--font-display);color:var(--green);font-weight:700">{formatRupiahExact(item.revenue - item.hpp)}</td>
+								<th>Menu</th>
+								<th>Terjual</th>
+								<th>Omzet</th>
+								<th>HPP</th>
+								<th>Laba kotor</th>
 							</tr>
-						{/each}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{#each topMenus as item}
+								<tr>
+									<td>{item.name}</td>
+									<td>{item.qty} porsi</td>
+									<td style="font-family:var(--font-display)">{formatIDR(item.revenue)}</td>
+									<td style="font-family:var(--font-display)">{formatRupiahExact(item.hpp)}</td>
+									<td style="font-family:var(--font-display);color:var(--green);font-weight:700">{formatRupiahExact(item.profit)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+			<div class="export-banner">
+				<p><strong>Ekspor laporan</strong><br />Unduh laporan {periodLabels[period]} dalam format Excel atau PDF, lengkap dengan ringkasan, transaksi, per menu, dan per hari.</p>
+				<div style="display:flex;gap:8px">
+					<button class="button button-secondary" type="button" disabled={exporting} onclick={() => exportReport('xlsx')}>
+						{exporting ? 'Memproses...' : 'Ekspor Excel'}
+					</button>
+					<button class="button button-primary" type="button" disabled={exporting} onclick={() => exportReport('pdf')}>
+						{exporting ? 'Memproses...' : 'Ekspor PDF'}
+					</button>
+				</div>
 			</div>
-		{/if}
-		<div class="export-banner">
-			<p><strong>Ekspor laporan</strong><br />Unduh laporan {periodLabels[period]} dalam format Excel atau PDF, lengkap dengan ringkasan, transaksi, per menu, dan per hari.</p>
-			<div style="display:flex;gap:8px">
-				<button class="button button-secondary" type="button" disabled={exporting} onclick={() => exportReport('xlsx')}>
-					{exporting ? 'Memproses...' : 'Ekspor Excel'}
-				</button>
-				<button class="button button-primary" type="button" disabled={exporting} onclick={() => exportReport('pdf')}>
-					{exporting ? 'Memproses...' : 'Ekspor PDF'}
-				</button>
-			</div>
-		</div>
-	</section>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -254,7 +309,11 @@
 		font: inherit;
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--forest-800);
+		color: var(--ink);
 		cursor: pointer;
+	}
+	.period-picker select option {
+		background-color: var(--surface);
+		color: var(--ink);
 	}
 </style>
