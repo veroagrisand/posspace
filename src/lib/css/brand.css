@@ -59,6 +59,17 @@ body {
 }
 
 /* ============ Navigasi pill (floating) ============ */
+/* Bar navbar selalu tampil di atas saat halaman di-scroll. */
+.pub-nav-sticky {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 50;
+	background: var(--brand-bg);
+	padding-block: 8px;
+}
+
 .pub-nav-wrap {
 	padding-block: 8px;
 }
@@ -426,6 +437,7 @@ body {
 /* ============ Bagian (section) ============ */
 .section {
 	padding-block: 72px;
+	scroll-margin-top: 88px;
 }
 
 @media (min-width: 1024px) {

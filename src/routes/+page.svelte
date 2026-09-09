@@ -248,7 +248,7 @@
 <svelte:head><title>posspace - POS kasir kopi dengan stok real-time</title></svelte:head>
 
 <div style="min-height:100vh">
-	<header class="section" style="padding-top:8px;padding-bottom:64px">
+	<div class="pub-nav-sticky">
 		<div class="wrap">
 			<PublicNav
 				items={[
@@ -261,9 +261,9 @@
 				note="POS kasir untuk coffee shop UMKM"
 			/>
 		</div>
-	</header>
+	</div>
 
-	<section style="padding-bottom:64px">
+	<section style="padding-top:96px;padding-bottom:64px">
 		<div class="wrap">
 			<span class="sec-kicker" style="margin-bottom:22px">
 				<span class="badge-pill"><span class="badge-dot"></span>{content.hero?.badge ?? 'POS kasir untuk coffee shop UMKM'}</span>
