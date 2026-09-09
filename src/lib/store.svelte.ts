@@ -698,7 +698,11 @@ export async function updateIngredient(id: string, data: { name: string; unit: U
 	}
 	const ing = getIngredient(id);
 	if (!ing) return;
-	ing.name = data.name;
+	// Cegah rename ke nama bahan lain yang sudah ada (duplikat tidak boleh).
+	const name = data.name.trim();
+	const clash = store.ingredients.find((i) => i.id !== id && i.name.toLowerCase() === name.toLowerCase());
+	if (clash) throw new Error('DUPLICATE_NAME');
+	ing.name = name;
 	ing.unit = data.unit;
 	ing.minStock = data.minStock;
 	if (data.costPerUnit !== undefined) ing.costPerUnit = data.costPerUnit;

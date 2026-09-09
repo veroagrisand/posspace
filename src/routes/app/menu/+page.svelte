@@ -49,6 +49,9 @@
 		}
 	}
 
+	// Bahan lain (bukan yang sedang diedit) dengan nama sama persis (abaikan huruf besar/kecil).
+	const ingNameTaken = $derived(store.ingredients.find((i) => i.id !== ingEditId && i.name.toLowerCase() === ingName.trim().toLowerCase()));
+
 	function withSaving(action: () => Promise<void>, onFail?: () => void) {
 		if (saving) return;
 		saving = true;
@@ -166,6 +169,10 @@
 
 	async function submitIngredient() {
 		if (saving || !ingName.trim()) return;
+		if (ingNameTaken) {
+			showToast(ingEditId ? `Nama "${ingNameTaken.name}" sudah dipakai bahan lain` : `Bahan "${ingNameTaken.name}" sudah ada. Gunakan "Ubah" di daftar, jangan duplikat`);
+			return;
+		}
 		withSaving(async () => {
 			if (ingEditId) {
 				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
@@ -183,6 +190,7 @@
 	}
 
 	function openIngredient(id: string | null) {
+		if (saving) return;
 		ingEditId = id;
 		const ing = id ? store.ingredients.find((i) => i.id === id) : null;
 		ingName = ing?.name ?? '';
@@ -457,7 +465,32 @@
 	<div class="form-grid">
 		<div class="form-row">
 			<label for="ingName">Nama bahan</label>
-			<div class="form-input"><input id="ingName" type="text" bind:value={ingName} placeholder="cth. Biji kopi robusta" disabled={saving} /></div>
+			<div class="form-input">
+				<input
+					id="ingName"
+					type="text"
+					list="ing-name-list"
+					bind:value={ingName}
+					placeholder="Ketik nama baru, atau pilih dari daftar yang sudah ada"
+					aria-describedby={ingNameTaken ? 'ing-name-taken' : undefined}
+					disabled={saving}
+				/>
+				<datalist id="ing-name-list">
+					{#each store.ingredients as ing}
+						<option value={ing.name}></option>
+					{/each}
+				</datalist>
+			</div>
+			{#if ingNameTaken}
+				<p id="ing-name-taken" class="dup-hint" role="alert">
+					{#if ingEditId}
+						Nama ini sudah dipakai bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b>. Pilih nama lain agar tidak ada dua bahan dengan nama sama.
+					{:else}
+						Bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b> sudah ada di daftar. Tidak akan dibuat duplikat.
+						<button class="text-button" type="button" disabled={saving} onclick={() => openIngredient(ingNameTaken.id)}>Ubah bahan itu</button>
+					{/if}
+				</p>
+			{/if}
 		</div>
 		<div class="form-grid two">
 			<div class="form-row">
@@ -509,7 +542,7 @@
 	</div>
 	<div class="modal-actions">
 		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
-		<button class="button button-primary" type="button" disabled={saving} onclick={submitIngredient}>
+		<button class="button button-primary" type="button" disabled={saving || !!ingNameTaken} onclick={submitIngredient}>
 			{#if saving}<span class="btn-spinner"></span> Menyimpan...{:else}Simpan{/if}
 		</button>
 	</div>
@@ -597,5 +630,24 @@
 
 	.recipe-hint-warn {
 		color: var(--red);
+	}
+
+	.dup-hint {
+		color: var(--red);
+		font-size: 10px;
+		line-height: 1.6;
+		margin-top: 5px;
+	}
+
+	.dup-hint .text-button {
+		color: var(--red);
+		font-size: 10px;
+		padding: 0;
+		margin-left: 4px;
+		text-decoration: underline;
+	}
+
+	.dup-hint .text-button:hover {
+		color: #b84a3e;
 	}
 </style>

@@ -198,6 +198,11 @@ posDataService.delete('/products/:id', async (c) => {
 });
 
 // ============ INGREDIENTS ============
+/** Amankan pola ILIKE dari wildcard yang diketik pengguna (% dan _). */
+function escapeLike(value: string): string {
+	return value.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
 /** GET /api/data/ingredients — stok bahan baku toko (real-time). */
 posDataService.get('/ingredients', async (c) => {
 	const ctx = await requireApiAuth(c);
@@ -223,7 +228,8 @@ posDataService.post('/ingredients', async (c) => {
 		minStock?: number;
 		costPerUnit?: number;
 	};
-	if (!body.name) httpError(400, 'NAME_REQUIRED');
+	const name = String(body.name ?? '').trim();
+	if (!name) httpError(400, 'NAME_REQUIRED');
 	if (!['gram', 'ml', 'pcs'].includes(body.unit ?? '')) httpError(400, 'INVALID_UNIT');
 	const stock = Number(body.stock ?? 0);
 	const minStock = Number(body.minStock ?? 0);
@@ -238,7 +244,7 @@ posDataService.post('/ingredients', async (c) => {
 		.from('ingredients')
 		.select('id, stock_quantity')
 		.eq('shop_id', ctx.shop.shopId)
-		.ilike('name', body.name)
+		.ilike('name', escapeLike(name))
 		.maybeSingle();
 
 	if (existing) {
@@ -258,7 +264,7 @@ posDataService.post('/ingredients', async (c) => {
 		.from('ingredients')
 		.insert({
 			shop_id: ctx.shop.shopId,
-			name: body.name,
+			name,
 			unit: body.unit ?? 'gram',
 			stock_quantity: stock,
 			min_stock: minStock,
@@ -284,17 +290,31 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		costPerUnit?: number;
 	};
 
-	if (body.name !== undefined && !body.name.trim()) httpError(400, 'NAME_REQUIRED');
+	if (body.name !== undefined && !String(body.name ?? '').trim()) httpError(400, 'NAME_REQUIRED');
 	if (body.unit !== undefined && !['gram', 'ml', 'pcs'].includes(body.unit)) httpError(400, 'INVALID_UNIT');
 	if (body.minStock !== undefined && (!Number.isFinite(Number(body.minStock)) || Number(body.minStock) < 0))
 		httpError(400, 'INVALID_MIN_STOCK');
 	if (body.costPerUnit !== undefined && (!Number.isFinite(Number(body.costPerUnit)) || Number(body.costPerUnit) < 0))
 		httpError(400, 'INVALID_COST');
 
+	const name = body.name !== undefined ? String(body.name).trim() : undefined;
+
+	// Jangan izinkan rename ke nama bahan lain yang sudah ada di toko ini.
+	if (name !== undefined) {
+		const { data: clash } = await ctx.db
+			.from('ingredients')
+			.select('id, name')
+			.eq('shop_id', ctx.shop.shopId)
+			.ilike('name', escapeLike(name))
+			.neq('id', ingredientId)
+			.maybeSingle();
+		if (clash) httpError(409, 'DUPLICATE_NAME');
+	}
+
 	const { data, error: updateError } = await ctx.db
 		.from('ingredients')
 		.update({
-			name: body.name ?? undefined,
+			name: name ?? undefined,
 			unit: body.unit ?? undefined,
 			min_stock: body.minStock ?? undefined,
 			cost_per_unit: body.costPerUnit !== undefined ? Math.round(Number(body.costPerUnit) * 100) / 100 : undefined
