@@ -2,6 +2,7 @@
 	import '../../lib/css/app.css';
 	import { page } from '$app/state';
 	import { getDemoSession, clearDemoSession } from '$lib/demo';
+	import { getBrowserClient } from '$lib/supabase';
 	import { toastState } from '$lib/toast.svelte';
 	import { backend, printer } from '$lib/store.svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -24,7 +25,13 @@
 		{ href: '/app/tutorial', label: 'Tutorial', icon: 'help', module: 'Tutorial', ownerOnly: true }
 	];
 
-	const visibleNavItems = $derived(navItems.filter((i) => !(i as { ownerOnly?: boolean }).ownerOnly || user?.role === 'pemilik'));
+	// Di mode demo hanya halaman kasir yang tersedia; modul lain milik akun
+	// live dan tidak boleh ditaut dari demo (mencegah bocor ke akun sungguhan).
+	const visibleNavItems = $derived(
+		data?.demo
+			? navItems.filter((i) => i.href === '/app').map((i) => ({ ...i, href: '/demo' }))
+			: navItems.filter((i) => !(i as { ownerOnly?: boolean }).ownerOnly || user?.role === 'pemilik')
+	);
 
 	// Data otorisasi berasal dari server (guard layout server) — bukan localStorage.
 	$effect(() => {
@@ -75,8 +82,14 @@
 			.toUpperCase();
 	}
 
-	function handleSignOut() {
+	async function handleSignOut() {
 		if (backend.enabled) {
+			const supabase = getBrowserClient();
+			if (supabase) {
+				await supabase.auth.signOut().catch(() => {
+					/* sesi lokal sudah tidak valid; lanjut ke halaman masuk */
+				});
+			}
 			window.location.href = '/login';
 		} else {
 			clearDemoSession();
@@ -90,7 +103,7 @@
 {#if !data || data.demo || (data.user && data.shop)}
 	<div class="app-shell sf-shell">
 		<aside class="sidebar" aria-label="Navigasi utama">
-			<a class="brand" href="/app" aria-label="posspace">
+			<a class="brand" href={data?.demo ? '/demo' : '/app'} aria-label="posspace">
 				<span class="brand-mark" aria-hidden="true">ps</span>
 				<span class="brand-copy">
 					<strong>pos</strong><small>space</small>
