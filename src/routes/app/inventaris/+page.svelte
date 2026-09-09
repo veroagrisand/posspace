@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { showToast } from '$lib/toast.svelte';
-	import { store, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost, formatRupiahExact } from '$lib/store.svelte';
+	import { store, addIngredient, recordPurchase, createOpname, approveOpname, stockStatus, formatClockLabel, purchaseUnitsFor, setIngredientCost, formatRupiahExact } from '$lib/store.svelte';
 	import { page } from '$app/state';
 	import Modal from '$lib/components/Modal.svelte';
 
 	const formatIDR = (amount: number) => `Rp ${new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(amount)))}`;
 
 	let purchaseOpen = $state(false);
-	let purchaseIngredient = $state('');
+	let purchaseIngredientName = $state('');
+	let purchaseNewUnit = $state<'gram' | 'ml' | 'pcs'>('gram');
 	let purchaseSupplier = $state('');
 	let purchaseQty = $state(0);
 	let purchaseUnit = $state('gram');
@@ -46,19 +47,20 @@
 		{ id: 'adjustment', label: 'Penyesuaian' }
 	];
 
-	const selectedPurchaseIng = $derived(store.ingredients.find((i) => i.id === purchaseIngredient));
-	const purchaseUnits = $derived(purchaseUnitsFor(selectedPurchaseIng?.unit ?? 'gram'));
+	const selectedPurchaseIng = $derived(store.ingredients.find((i) => i.name.toLowerCase() === purchaseIngredientName.trim().toLowerCase()));
+	const purchaseBaseUnit = $derived(selectedPurchaseIng?.unit ?? purchaseNewUnit);
+	const purchaseUnits = $derived(purchaseUnitsFor(purchaseBaseUnit));
 	const purchaseFactor = $derived(purchaseUnits.find((u) => u.id === purchaseUnit)?.factor ?? 1);
 	const baseQuantity = $derived(purchaseQty * purchaseFactor);
 	const purchaseUnitPrice = $derived(baseQuantity > 0 ? purchaseTotal / baseQuantity : 0);
 	const selectedCostIng = $derived(store.ingredients.find((i) => i.id === costIngredient));
 
 	function openPurchase() {
-		const first = store.ingredients[0];
-		purchaseIngredient = first?.id ?? '';
+		purchaseIngredientName = '';
+		purchaseNewUnit = 'gram';
 		purchaseSupplier = '';
 		purchaseQty = 0;
-		purchaseUnit = first ? purchaseUnitsFor(first.unit)[0].id : 'gram';
+		purchaseUnit = 'gram';
 		purchaseTotal = 0;
 		purchaseOpen = true;
 	}
@@ -70,17 +72,28 @@
 		}
 	});
 
-	function changePurchaseIngredient() {
-		const ing = store.ingredients.find((i) => i.id === purchaseIngredient);
-		if (ing) purchaseUnit = purchaseUnitsFor(ing.unit)[0].id;
+	function onPurchaseIngredientInput() {
+		purchaseQty = 0;
+		purchaseTotal = 0;
+		// Jika nama cocok dengan bahan yang ada, satuan beli mengikuti satuan bahan tsb.
+		if (selectedPurchaseIng) {
+			purchaseUnit = purchaseUnitsFor(selectedPurchaseIng.unit)[0].id;
+		} else if (!purchaseUnits.some((u) => u.id === purchaseUnit)) {
+			purchaseUnit = purchaseUnits[0]?.id ?? 'gram';
+		}
+	}
+
+	function onPurchaseNewUnitChange() {
+		purchaseUnit = purchaseUnitsFor(purchaseNewUnit)[0].id;
 		purchaseQty = 0;
 		purchaseTotal = 0;
 	}
 
 	async function submitPurchase() {
 		if (saving) return;
-		if (!purchaseIngredient || baseQuantity <= 0) {
-			showToast('Isi jumlah pembelian yang valid');
+		const name = purchaseIngredientName.trim();
+		if (!name || baseQuantity <= 0) {
+			showToast('Isi nama bahan dan jumlah pembelian yang valid');
 			return;
 		}
 		if (purchaseTotal <= 0) {
@@ -89,15 +102,23 @@
 		}
 		saving = true;
 		try {
+			// Pakai bahan yang sudah ada; jika nama belum ada, buat dulu (stok 0),
+			// lalu pembelian dicatat ke bahan tersebut.
+			let ingredientId = selectedPurchaseIng?.id ?? '';
+			if (!ingredientId) {
+				const created = await addIngredient({ name, unit: purchaseNewUnit, stock: 0, minStock: 0 });
+				ingredientId = created.ingredientId ?? '';
+				if (!ingredientId) throw new Error('GAGAL_CREATE_INGREDIENT');
+			}
 			await recordPurchase({
-				ingredientId: purchaseIngredient,
+				ingredientId,
 				supplier: purchaseSupplier || 'Pemasok',
 				quantity: purchaseQty,
 				unit: purchaseUnit,
 				totalPrice: purchaseTotal
 			});
 			purchaseOpen = false;
-			showToast('Pembelian dicatat, stok bertambah otomatis');
+			showToast(selectedPurchaseIng ? 'Pembelian dicatat, stok bertambah otomatis' : `Bahan "${name}" dibuat & stok bertambah`);
 		} catch (err) {
 			showToast(`Gagal mencatat pembelian: ${err instanceof Error ? err.message : 'error'}`);
 		} finally {
@@ -338,13 +359,34 @@
 		<div class="form-row">
 			<label for="purchaseIngredient">Bahan</label>
 			<div class="form-input">
-				<select id="purchaseIngredient" bind:value={purchaseIngredient} onchange={changePurchaseIngredient}>
+				<input
+					id="purchaseIngredient"
+					type="text"
+					list="ingredient-list"
+					bind:value={purchaseIngredientName}
+					oninput={onPurchaseIngredientInput}
+					placeholder="Ketik nama, atau pilih dari daftar yang sudah ada"
+					disabled={saving}
+				/>
+				<datalist id="ingredient-list">
 					{#each store.ingredients as ing}
-						<option value={ing.id}>{ing.name} ({ing.unit})</option>
+						<option value={ing.name}>{ing.unit} · stok {ing.stock.toLocaleString('id-ID')}</option>
 					{/each}
-				</select>
+				</datalist>
 			</div>
 		</div>
+		{#if !selectedPurchaseIng}
+			<div class="form-row">
+				<label for="purchaseNewUnit">Satuan dasar bahan baru</label>
+				<div class="form-input">
+					<select id="purchaseNewUnit" bind:value={purchaseNewUnit} onchange={onPurchaseNewUnitChange} disabled={saving}>
+						<option value="gram">gram (berat)</option>
+						<option value="ml">ml (cairan)</option>
+						<option value="pcs">pcs (satuan)</option>
+					</select>
+				</div>
+			</div>
+		{/if}
 		<div class="form-row">
 			<label for="purchaseSupplier">Pemasok</label>
 			<div class="form-input"><input id="purchaseSupplier" type="text" bind:value={purchaseSupplier} placeholder="cth. Fresh Milk Co" /></div>
@@ -371,7 +413,7 @@
 		</div>
 		<p class="purchase-preview" style="margin:2px 0 0">
 			{baseQuantity > 0
-				? `≈ ${formatRupiahExact(purchaseUnitPrice)} per ${selectedPurchaseIng?.unit ?? ''} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${selectedPurchaseIng?.unit ?? ''}`
+				? `≈ ${formatRupiahExact(purchaseUnitPrice)} per ${purchaseBaseUnit} · stok bertambah ${baseQuantity.toLocaleString('id-ID')} ${purchaseBaseUnit}`
 				: 'Masukkan jumlah & total harga untuk melihat harga/satuan.'}
 			<br />Harga modal (HPP) <b>tidak berubah otomatis</b>, sesuaikan manual di kolom "Harga modal" bila harga beli berubah.
 		</p>

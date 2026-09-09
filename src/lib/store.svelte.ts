@@ -649,16 +649,16 @@ export async function closeShift(actualCash: number): Promise<{ expectedCash: nu
 }
 
 // Bahan baku
-export async function addIngredient(data: { name: string; unit: Unit; stock: number; minStock: number; costPerUnit?: number }): Promise<{ merged: boolean }> {
+export async function addIngredient(data: { name: string; unit: Unit; stock: number; minStock: number; costPerUnit?: number }): Promise<{ merged: boolean; ingredientId: string }> {
 	const name = data.name.trim();
-	if (!name) return { merged: false };
+	if (!name) return { merged: false, ingredientId: '' };
 	if (backend.enabled) {
 		const result = (await apiFetch('/api/data/ingredients', {
 			method: 'POST',
 			body: JSON.stringify({ name, unit: data.unit, stock: data.stock, minStock: data.minStock, costPerUnit: data.costPerUnit ?? 0 })
-		})) as { merged?: boolean };
+		})) as { merged?: boolean; ingredient?: { id: string } };
 		await hydrateStore();
-		return { merged: result.merged === true };
+		return { merged: result.merged === true, ingredientId: result.ingredient?.id ?? '' };
 	}
 	// Mode demo: nama yang sama (case-insensitive) menambah stok ke bahan yang ada.
 	const existing = store.ingredients.find((i) => i.name.toLowerCase() === name.toLowerCase());
@@ -673,17 +673,18 @@ export async function addIngredient(data: { name: string; unit: Unit; stock: num
 			note: `Penambahan stok (${name})`,
 			at: now()
 		});
-		return { merged: true };
+		return { merged: true, ingredientId: existing.id };
 	}
-	store.ingredients.push({
+	const ingredient: Ingredient = {
 		id: `ing-${Date.now()}`,
 		name,
 		unit: data.unit,
 		stock: data.stock,
 		minStock: data.minStock,
 		costPerUnit: data.costPerUnit ?? 0
-	});
-	return { merged: false };
+	};
+	store.ingredients.push(ingredient);
+	return { merged: false, ingredientId: ingredient.id };
 }
 
 export async function updateIngredient(id: string, data: { name: string; unit: Unit; minStock: number; costPerUnit?: number }): Promise<void> {
