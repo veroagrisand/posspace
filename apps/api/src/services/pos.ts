@@ -212,7 +212,7 @@ posDataService.get('/ingredients', async (c) => {
 	return json({ ingredients: data ?? [] });
 });
 
-/** POST /api/data/ingredients — tambah bahan baku baru. */
+/** POST /api/data/ingredients — tambah bahan baku baru (atau tambah stok jika nama sudah ada). */
 posDataService.post('/ingredients', async (c) => {
 	const ctx = await requireApiAuth(c);
 
@@ -232,6 +232,28 @@ posDataService.post('/ingredients', async (c) => {
 	if (!Number.isFinite(minStock) || minStock < 0) httpError(400, 'INVALID_MIN_STOCK');
 	if (!Number.isFinite(costPerUnit) || costPerUnit < 0) httpError(400, 'INVALID_COST');
 
+	// Bahan dengan nama sama (case-insensitive) di toko ini TIDAK dibuat baru:
+	// stok ditambahkan ke bahan yang sudah ada. Cegah duplikat dari input manual.
+	const { data: existing } = await ctx.db
+		.from('ingredients')
+		.select('id, stock_quantity')
+		.eq('shop_id', ctx.shop.shopId)
+		.ilike('name', body.name)
+		.maybeSingle();
+
+	if (existing) {
+		const { data: updated, error: updateError } = await ctx.db
+			.from('ingredients')
+			.update({ stock_quantity: Number(existing.stock_quantity) + stock })
+			.eq('id', existing.id)
+			.eq('shop_id', ctx.shop.shopId)
+			.select('*')
+			.single();
+		if (rlsDenied(updateError)) httpError(403, 'FORBIDDEN');
+		if (updateError || !updated) httpError(500, 'INSERT_FAILED');
+		return json({ ingredient: updated, merged: true });
+	}
+
 	const { data, error: insertError } = await ctx.db
 		.from('ingredients')
 		.insert({
@@ -247,7 +269,7 @@ posDataService.post('/ingredients', async (c) => {
 
 	if (rlsDenied(insertError)) httpError(403, 'FORBIDDEN');
 	if (insertError || !data) httpError(500, 'INSERT_FAILED');
-	return json({ ingredient: data });
+	return json({ ingredient: data, merged: false });
 });
 
 /** PATCH /api/data/ingredients/[id] — ubah nama, satuan, batas minimum, harga modal. */

@@ -171,8 +171,12 @@
 				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
 				showToast('Bahan baku diperbarui');
 			} else {
-				await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
-				showToast('Bahan baku ditambahkan');
+				const result = await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
+				showToast(
+					result.merged
+						? `Bahan sudah ada, stok ditambah ${Number(ingStock).toLocaleString('id-ID')} ${ingUnit}`
+						: 'Bahan baku ditambahkan'
+				);
 			}
 			ingOpen = false;
 		});
