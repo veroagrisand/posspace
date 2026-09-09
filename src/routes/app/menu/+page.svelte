@@ -37,6 +37,7 @@
 	let ingStock = $state(0);
 	let ingMin = $state(0);
 	let ingCost = $state(0);
+	let ingPick = $state('');
 
 	// Hitung harga modal otomatis: harga modal = total harga ÷ jumlah
 	let ingQtyAuto = $state(0);
@@ -192,6 +193,7 @@
 	function openIngredient(id: string | null) {
 		if (saving) return;
 		ingEditId = id;
+		ingPick = '';
 		const ing = id ? store.ingredients.find((i) => i.id === id) : null;
 		ingName = ing?.name ?? '';
 		ingUnit = ing?.unit ?? 'gram';
@@ -201,6 +203,13 @@
 		ingQtyAuto = 0;
 		ingTotalAuto = 0;
 		ingOpen = true;
+	}
+
+	function onIngPick(e: Event) {
+		const v = (e.currentTarget as HTMLSelectElement).value;
+		(e.currentTarget as HTMLSelectElement).value = '';
+		const ing = store.ingredients.find((i) => i.id === v);
+		if (ing) openIngredient(ing.id);
 	}
 
 	async function toggleActive(productId: string) {
@@ -464,22 +473,16 @@
 <Modal bind:open={ingOpen} title={ingEditId ? 'Ubah bahan baku' : 'Tambah bahan baku'}>
 	<div class="form-grid">
 		<div class="form-row">
-			<label for="ingName">Nama bahan</label>
+			<label for="ingName">Nama bahan {#if !ingEditId}<small class="ing-name-hint">(bahan baru)</small>{/if}</label>
 			<div class="form-input">
 				<input
 					id="ingName"
 					type="text"
-					list="ing-name-list"
 					bind:value={ingName}
-					placeholder="Ketik nama baru, atau pilih dari daftar yang sudah ada"
+					placeholder={ingEditId ? 'Ubah nama bahan' : 'Ketik nama bahan baru'}
 					aria-describedby={ingNameTaken ? 'ing-name-taken' : undefined}
 					disabled={saving}
 				/>
-				<datalist id="ing-name-list">
-					{#each store.ingredients as ing}
-						<option value={ing.name}></option>
-					{/each}
-				</datalist>
 			</div>
 			{#if ingNameTaken}
 				<p id="ing-name-taken" class="dup-hint" role="alert">
@@ -492,6 +495,20 @@
 				</p>
 			{/if}
 		</div>
+		{#if !ingEditId}
+			<div class="form-row">
+				<label for="ingPick">Pilih bahan yang sudah ada</label>
+				<div class="form-input">
+					<select id="ingPick" disabled={saving} onchange={onIngPick}>
+						<option value="">Pilih bahan dari daftar</option>
+						{#each store.ingredients as ing}
+							<option value={ing.id}>{ing.name} ({ing.unit})</option>
+						{/each}
+					</select>
+				</div>
+				<p class="ing-pick-hint">Bahan yang dipilih langsung dibuka untuk diubah, tidak membuat duplikat. Untuk bahan baru, isi kolom "Nama bahan" di atas.</p>
+			</div>
+		{/if}
 		<div class="form-grid two">
 			<div class="form-row">
 				<label for="ingUnit">Satuan</label>
@@ -649,5 +666,17 @@
 
 	.dup-hint .text-button:hover {
 		color: #b84a3e;
+	}
+
+	.ing-name-hint {
+		color: var(--ink-soft);
+		font-weight: 500;
+	}
+
+	.ing-pick-hint {
+		color: var(--ink-soft);
+		font-size: 10px;
+		line-height: 1.5;
+		margin-top: 4px;
 	}
 </style>
