@@ -2,6 +2,7 @@
 	import { store, openShift, closeShift, formatClockLabel } from '$lib/store.svelte';
 	import { showToast } from '$lib/toast.svelte';
 	import { trapFocus } from '$lib/focusTrap';
+	import { untrack } from 'svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -23,8 +24,11 @@
 		if (store.shift.status === 'open') mode = 'close';
 	}
 
+	// Reset hanya saat modal BARU dibuka. Tanpa untrack, efek ini ikut
+	// mengeksekusi ulang saat store.shift.status berubah (mis. setelah shift
+	// ditutup) dan menghapus hasil rekap "berhasil ditutup" yang baru tampil.
 	$effect(() => {
-		if (open) reset();
+		if (open) untrack(() => reset());
 	});
 
 	$effect(() => {

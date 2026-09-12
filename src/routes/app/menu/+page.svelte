@@ -29,8 +29,10 @@
 	let newVariantName = $state('');
 	let newVariantPrice = $state(0);
 
-	// Bahan baku
+	// Bahan baku: langkah modal — pilih dulu: bahan baru atau bahan yang sudah ada.
+	type IngStep = 'choose' | 'new' | 'existing';
 	let ingOpen = $state(false);
+	let ingStep = $state<IngStep>('choose');
 	let ingEditId = $state<string | null>(null);
 	let ingName = $state('');
 	let ingUnit = $state<'gram' | 'ml' | 'pcs'>('gram');
@@ -38,6 +40,12 @@
 	let ingMin = $state(0);
 	let ingCost = $state(0);
 	let ingPick = $state('');
+	let ingStockAdd = $state(0);
+
+	const ingEdited = $derived(store.ingredients.find((i) => i.id === ingEditId));
+	const ingModalTitle = $derived(
+		ingStep === 'choose' ? 'Kelola bahan baku' : ingStep === 'new' ? 'Tambah bahan baru' : ingEditId ? 'Ubah bahan baku' : 'Pilih bahan yang sudah ada'
+	);
 
 	// Hitung harga modal otomatis: harga modal = total harga ÷ jumlah
 	let ingQtyAuto = $state(0);
@@ -176,8 +184,12 @@
 		}
 		withSaving(async () => {
 			if (ingEditId) {
-				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost });
-				showToast('Bahan baku diperbarui');
+				await updateIngredient(ingEditId, { name: ingName.trim(), unit: ingUnit, minStock: ingMin, costPerUnit: ingCost, stockToAdd: ingStockAdd });
+				showToast(
+					ingStockAdd > 0
+						? `Stok ${ingName.trim()} ditambah ${Number(ingStockAdd).toLocaleString('id-ID')} ${ingUnit}`
+						: 'Bahan baku diperbarui'
+				);
 			} else {
 				const result = await addIngredient({ name: ingName.trim(), unit: ingUnit, stock: ingStock, minStock: ingMin, costPerUnit: ingCost });
 				showToast(
@@ -194,6 +206,7 @@
 		if (saving) return;
 		ingEditId = id;
 		ingPick = '';
+		ingStockAdd = 0;
 		const ing = id ? store.ingredients.find((i) => i.id === id) : null;
 		ingName = ing?.name ?? '';
 		ingUnit = ing?.unit ?? 'gram';
@@ -202,7 +215,23 @@
 		ingCost = ing?.costPerUnit ?? 0;
 		ingQtyAuto = 0;
 		ingTotalAuto = 0;
+		ingStep = id ? 'existing' : 'choose';
 		ingOpen = true;
+	}
+
+	function pickIngredient() {
+		if (saving) return;
+		ingEditId = null;
+		ingPick = '';
+		ingStockAdd = 0;
+		ingStep = 'existing';
+	}
+
+	function backToIngChoose() {
+		ingEditId = null;
+		ingPick = '';
+		ingStockAdd = 0;
+		ingStep = 'choose';
 	}
 
 	function onIngPick(e: Event) {
@@ -470,99 +499,199 @@
 	</div>
 </Modal>
 
-<Modal bind:open={ingOpen} title={ingEditId ? 'Ubah bahan baku' : 'Tambah bahan baku'}>
-	<div class="form-grid">
-		<div class="form-row">
-			<label for="ingName">Nama bahan {#if !ingEditId}<small class="ing-name-hint">(bahan baru)</small>{/if}</label>
-			<div class="form-input">
-				<input
-					id="ingName"
-					type="text"
-					bind:value={ingName}
-					placeholder={ingEditId ? 'Ubah nama bahan' : 'Ketik nama bahan baru'}
-					aria-describedby={ingNameTaken ? 'ing-name-taken' : undefined}
-					disabled={saving}
-				/>
-			</div>
-			{#if ingNameTaken}
-				<p id="ing-name-taken" class="dup-hint" role="alert">
-					{#if ingEditId}
-						Nama ini sudah dipakai bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b>. Pilih nama lain agar tidak ada dua bahan dengan nama sama.
-					{:else}
-						Bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b> sudah ada di daftar. Tidak akan dibuat duplikat.
-						<button class="text-button" type="button" disabled={saving} onclick={() => openIngredient(ingNameTaken.id)}>Ubah bahan itu</button>
-					{/if}
-				</p>
+<Modal bind:open={ingOpen} title={ingModalTitle}>
+	{#if ingStep === 'choose'}
+		<div class="ing-choose">
+			<button class="ing-choice" type="button" disabled={saving} onclick={() => (ingStep = 'new')}>
+				<span class="ing-choice-mark">+</span>
+				<span class="ing-choice-copy">
+					<strong>Tambah bahan baru</strong>
+					<small>Buat bahan baru dengan stok awal, satuan, batas minimum, dan harga modal.</small>
+				</span>
+			</button>
+			<button class="ing-choice" type="button" disabled={saving || store.ingredients.length === 0} onclick={pickIngredient}>
+				<span class="ing-choice-mark">▤</span>
+				<span class="ing-choice-copy">
+					<strong>Pilih bahan yang sudah ada</strong>
+					<small>Tambah stok atau ubah data bahan yang sudah terdaftar, tanpa membuat duplikat.</small>
+				</span>
+			</button>
+			{#if store.ingredients.length === 0}
+				<p class="ing-empty-hint">Belum ada bahan di daftar. Mulai dengan "Tambah bahan baru".</p>
 			{/if}
 		</div>
-		{#if !ingEditId}
+	{:else if ingStep === 'new'}
+		<button class="ing-back" type="button" disabled={saving} onclick={backToIngChoose}>&larr; Kembali</button>
+		<div class="form-grid">
 			<div class="form-row">
-				<label for="ingPick">Pilih bahan yang sudah ada</label>
+				<label for="ingName">Nama bahan <small class="ing-name-hint">(bahan baru)</small></label>
 				<div class="form-input">
-					<select id="ingPick" disabled={saving} onchange={onIngPick}>
-						<option value="">Pilih bahan dari daftar</option>
-						{#each store.ingredients as ing}
-							<option value={ing.id}>{ing.name} ({ing.unit})</option>
-						{/each}
-					</select>
+					<input
+						id="ingName"
+						type="text"
+						bind:value={ingName}
+						placeholder="Ketik nama bahan baru"
+						aria-describedby={ingNameTaken ? 'ing-name-taken' : undefined}
+						disabled={saving}
+					/>
 				</div>
-				<p class="ing-pick-hint">Bahan yang dipilih langsung dibuka untuk diubah, tidak membuat duplikat. Untuk bahan baru, isi kolom "Nama bahan" di atas.</p>
+				{#if ingNameTaken}
+					<p id="ing-name-taken" class="dup-hint" role="alert">
+						Bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b> sudah ada di daftar. Tidak akan dibuat duplikat.
+						<button class="text-button" type="button" disabled={saving} onclick={() => openIngredient(ingNameTaken.id)}>Ubah bahan itu</button>
+					</p>
+				{/if}
 			</div>
-		{/if}
-		<div class="form-grid two">
-			<div class="form-row">
-				<label for="ingUnit">Satuan</label>
-				<div class="form-input">
-					<select id="ingUnit" bind:value={ingUnit} disabled={saving}>
-						<option value="gram">gram</option>
-						<option value="ml">ml</option>
-						<option value="pcs">pcs</option>
-					</select>
+			<div class="form-grid two">
+				<div class="form-row">
+					<label for="ingUnit">Satuan</label>
+					<div class="form-input">
+						<select id="ingUnit" bind:value={ingUnit} disabled={saving}>
+							<option value="gram">gram</option>
+							<option value="ml">ml</option>
+							<option value="pcs">pcs</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-row">
+					<label for="ingMin">Batas minimum</label>
+					<div class="form-input"><input id="ingMin" type="number" min="0" bind:value={ingMin} disabled={saving} /></div>
 				</div>
 			</div>
-			<div class="form-row">
-				<label for="ingMin">Batas minimum</label>
-				<div class="form-input"><input id="ingMin" type="number" min="0" bind:value={ingMin} disabled={saving} /></div>
-			</div>
-		</div>
-		{#if !ingEditId}
 			<div class="form-row">
 				<label for="ingStock">Stok awal</label>
 				<div class="form-input"><input id="ingStock" type="number" min="0" bind:value={ingStock} disabled={saving} /></div>
 			</div>
-		{/if}
-		<div class="form-row">
-			<label for="ingCost">Harga modal per {ingUnit} (Rp)</label>
-			<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 750 untuk 200 gram seharga 150.000" disabled={saving} /></div>
-		</div>
-		<div class="form-row auto-cost-row">
-			<span class="auto-cost-label">Hitung otomatis dari jumlah &amp; total harga</span>
-			<div class="form-grid two">
-				<div class="form-row">
-					<label for="ingQtyAuto">Jumlah ({ingUnit})</label>
-					<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} oninput={syncIngCostAuto} placeholder="cth. 200" disabled={saving} /></div>
+			<div class="form-row">
+				<label for="ingCost">Harga modal per {ingUnit} (Rp)</label>
+				<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 750 untuk 200 gram seharga 150.000" disabled={saving} /></div>
+			</div>
+			<div class="form-row auto-cost-row">
+				<span class="auto-cost-label">Hitung otomatis dari jumlah &amp; total harga</span>
+				<div class="form-grid two">
+					<div class="form-row">
+						<label for="ingQtyAuto">Jumlah ({ingUnit})</label>
+						<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} oninput={syncIngCostAuto} placeholder="cth. 200" disabled={saving} /></div>
+					</div>
+					<div class="form-row">
+						<label for="ingTotalAuto">Total harga (Rp)</label>
+						<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} oninput={syncIngCostAuto} placeholder="cth. 150000" disabled={saving} /></div>
+					</div>
 				</div>
+				{#if ingQtyAuto > 0 && ingTotalAuto > 0}
+					<p class="cost-hint">
+						= {formatRupiahExact(ingCostAuto)} per {ingUnit} &nbsp;({new Intl.NumberFormat('id-ID').format(Math.round(ingTotalAuto))} ÷ {ingQtyAuto.toLocaleString('id-ID')})
+					</p>
+				{:else}
+					<p class="cost-hint">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
+				{/if}
+			</div>
+			<p class="cost-hint" style="margin-top:2px">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual, pembelian tidak mengubahnya otomatis.</p>
+		</div>
+		<div class="modal-actions">
+			<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
+			<button class="button button-primary" type="button" disabled={saving || !!ingNameTaken} onclick={submitIngredient}>
+				{#if saving}<span class="btn-spinner"></span> Menyimpan...{:else}Simpan{/if}
+			</button>
+		</div>
+	{:else}
+		{#if !ingEditId}
+			<button class="ing-back" type="button" disabled={saving} onclick={backToIngChoose}>&larr; Kembali</button>
+			<div class="form-grid">
 				<div class="form-row">
-					<label for="ingTotalAuto">Total harga (Rp)</label>
-					<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} oninput={syncIngCostAuto} placeholder="cth. 150000" disabled={saving} /></div>
+					<label for="ingPick">Pilih bahan dari daftar</label>
+					<div class="form-input">
+						<select id="ingPick" disabled={saving} onchange={onIngPick}>
+							<option value="">Pilih bahan untuk ditambah stok atau diubah</option>
+							{#each store.ingredients as ing}
+								<option value={ing.id}>{ing.name} ({ing.unit}) · stok {ing.stock.toLocaleString('id-ID')}</option>
+							{/each}
+						</select>
+					</div>
 				</div>
 			</div>
-			{#if ingQtyAuto > 0 && ingTotalAuto > 0}
-				<p class="cost-hint">
-					= {formatRupiahExact(ingCostAuto)} per {ingUnit} &nbsp;({new Intl.NumberFormat('id-ID').format(Math.round(ingTotalAuto))} ÷ {ingQtyAuto.toLocaleString('id-ID')})
-				</p>
-			{:else}
-				<p class="cost-hint">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
-			{/if}
-		</div>
-		<p class="cost-hint" style="margin-top:2px">Dipakai rumus HPP: HPP menu = Σ (bahan × jumlah resep × harga modal). Diisi manual, pembelian tidak mengubahnya otomatis.</p>
-	</div>
-	<div class="modal-actions">
-		<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
-		<button class="button button-primary" type="button" disabled={saving || !!ingNameTaken} onclick={submitIngredient}>
-			{#if saving}<span class="btn-spinner"></span> Menyimpan...{:else}Simpan{/if}
-		</button>
-	</div>
+			<p class="ing-pick-hint">Setelah dipilih, form terbuka dengan data bahan tersebut. Jumlah stok yang dimasukkan akan ditambahkan ke stok yang ada.</p>
+		{:else}
+			<button class="ing-back" type="button" disabled={saving} onclick={backToIngChoose}>&larr; Pilih bahan lain</button>
+			<div class="form-grid">
+				<div class="form-row">
+					<label for="ingName">Nama bahan</label>
+					<div class="form-input">
+						<input
+							id="ingName"
+							type="text"
+							bind:value={ingName}
+							placeholder="Ubah nama bahan"
+							aria-describedby={ingNameTaken ? 'ing-name-taken' : undefined}
+							disabled={saving}
+						/>
+					</div>
+					{#if ingNameTaken}
+						<p id="ing-name-taken" class="dup-hint" role="alert">
+							Nama ini sudah dipakai bahan <b>"{ingNameTaken.name}" ({ingNameTaken.unit})</b>. Pilih nama lain agar tidak ada dua bahan dengan nama sama.
+						</p>
+					{/if}
+				</div>
+				<div class="form-grid two">
+					<div class="form-row">
+						<label for="ingUnit">Satuan</label>
+						<div class="form-input">
+							<select id="ingUnit" bind:value={ingUnit} disabled={saving}>
+								<option value="gram">gram</option>
+								<option value="ml">ml</option>
+								<option value="pcs">pcs</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-row">
+						<label for="ingMin">Batas minimum</label>
+						<div class="form-input"><input id="ingMin" type="number" min="0" bind:value={ingMin} disabled={saving} /></div>
+					</div>
+				</div>
+				<div class="form-grid two">
+					<div class="form-row">
+						<span class="ing-static-label">Stok saat ini</span>
+						<div class="form-input ing-stock-now" aria-label="Stok saat ini">{ingEdited?.stock.toLocaleString('id-ID') ?? '0'} {ingUnit}</div>
+					</div>
+					<div class="form-row">
+						<label for="ingStockAdd">Tambah stok</label>
+						<div class="form-input"><input id="ingStockAdd" type="number" min="0" step="any" bind:value={ingStockAdd} placeholder="cth. 500" disabled={saving} /></div>
+					</div>
+				</div>
+				<p class="cost-hint">Jumlah di "Tambah stok" ditambahkan ke stok saat ini. Isi 0 jika hanya mengubah data bahan.</p>
+				<div class="form-row">
+					<label for="ingCost">Harga modal per {ingUnit} (Rp)</label>
+					<div class="form-input"><input id="ingCost" type="number" min="0" step="any" bind:value={ingCost} placeholder="cth. 750 untuk 200 gram seharga 150.000" disabled={saving} /></div>
+				</div>
+				<div class="form-row auto-cost-row">
+					<span class="auto-cost-label">Hitung otomatis dari jumlah &amp; total harga</span>
+					<div class="form-grid two">
+						<div class="form-row">
+							<label for="ingQtyAuto">Jumlah ({ingUnit})</label>
+							<div class="form-input"><input id="ingQtyAuto" type="number" min="0" step="any" bind:value={ingQtyAuto} oninput={syncIngCostAuto} placeholder="cth. 200" disabled={saving} /></div>
+						</div>
+						<div class="form-row">
+							<label for="ingTotalAuto">Total harga (Rp)</label>
+							<div class="form-input"><input id="ingTotalAuto" type="number" min="0" step="any" bind:value={ingTotalAuto} oninput={syncIngCostAuto} placeholder="cth. 150000" disabled={saving} /></div>
+						</div>
+					</div>
+					{#if ingQtyAuto > 0 && ingTotalAuto > 0}
+						<p class="cost-hint">
+							= {formatRupiahExact(ingCostAuto)} per {ingUnit} &nbsp;({new Intl.NumberFormat('id-ID').format(Math.round(ingTotalAuto))} ÷ {ingQtyAuto.toLocaleString('id-ID')})
+						</p>
+					{:else}
+						<p class="cost-hint">Rumus: harga modal = total harga ÷ jumlah. Contoh: 150.000 ÷ 200 gram = <b>Rp 750/gram</b>.</p>
+					{/if}
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="button button-secondary" type="button" disabled={saving} onclick={() => (ingOpen = false)}>Batal</button>
+				<button class="button button-primary" type="button" disabled={saving || !!ingNameTaken} onclick={submitIngredient}>
+					{#if saving}<span class="btn-spinner"></span> Menyimpan...{:else}Simpan{/if}
+				</button>
+			</div>
+		{/if}
+	{/if}
 </Modal>
 
 <style>
@@ -678,5 +807,101 @@
 		font-size: 10px;
 		line-height: 1.5;
 		margin-top: 4px;
+	}
+
+	.ing-choose {
+		display: grid;
+		gap: 10px;
+	}
+
+	.ing-choice {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		padding: 14px;
+		border: 1px solid var(--line-strong);
+		border-radius: 12px;
+		background: var(--surface);
+		color: var(--ink);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.ing-choice:hover:not(:disabled) {
+		border-color: var(--orange);
+	}
+
+	.ing-choice:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.ing-choice-mark {
+		display: grid;
+		place-items: center;
+		flex: 0 0 36px;
+		width: 36px;
+		height: 36px;
+		border: 1px solid var(--line-strong);
+		border-radius: 10px;
+		background: var(--paper);
+		color: var(--orange);
+		font-size: 15px;
+		font-weight: 700;
+	}
+
+	.ing-choice-copy {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.ing-choice-copy strong {
+		font-size: 13px;
+	}
+
+	.ing-choice-copy small {
+		color: var(--ink-soft);
+		font-size: 11px;
+		line-height: 1.5;
+	}
+
+	.ing-empty-hint {
+		color: var(--ink-soft);
+		font-size: 11px;
+		line-height: 1.5;
+		margin-top: 2px;
+	}
+
+	.ing-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: none;
+		border: 0;
+		padding: 0;
+		margin-bottom: 12px;
+		color: var(--ink-soft);
+		font-size: 11px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.ing-back:hover:not(:disabled) {
+		color: var(--orange);
+	}
+
+	.ing-stock-now {
+		color: var(--ink-soft);
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	.ing-static-label {
+		display: block;
+		color: var(--ink-soft);
+		font-size: 10px;
+		font-weight: 600;
 	}
 </style>

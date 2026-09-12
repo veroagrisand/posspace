@@ -561,11 +561,13 @@ export async function createTransaction(input: {
 
 	txSeq += 1;
 	const receiptNo = `PS-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(txSeq).padStart(4, '0')}`;
+	const subtotal = input.items.reduce((sum, i) => sum + i.lineTotal, 0);
+	// Sama dengan backend: pajak & layanan 10% dari subtotal.
 	const txn: Transaction = {
 		id: `txn-${txSeq}`,
 		receiptNo,
 		items: input.items,
-		total: input.items.reduce((sum, i) => sum + i.lineTotal, 0),
+		total: subtotal + Math.round(subtotal * 0.1),
 		paymentMethod: input.paymentMethod,
 		channel: input.channel,
 		gatewayRef: input.gatewayRef,
@@ -687,11 +689,21 @@ export async function addIngredient(data: { name: string; unit: Unit; stock: num
 	return { merged: false, ingredientId: ingredient.id };
 }
 
-export async function updateIngredient(id: string, data: { name: string; unit: Unit; minStock: number; costPerUnit?: number }): Promise<void> {
+export async function updateIngredient(
+	id: string,
+	data: { name: string; unit: Unit; minStock: number; costPerUnit?: number; stockToAdd?: number }
+): Promise<void> {
+	const stockToAdd = Math.max(0, Number(data.stockToAdd ?? 0));
 	if (backend.enabled) {
 		await apiFetch(`/api/data/ingredients/${id}`, {
 			method: 'PATCH',
-			body: JSON.stringify({ name: data.name, unit: data.unit, minStock: data.minStock, costPerUnit: data.costPerUnit })
+			body: JSON.stringify({
+				name: data.name,
+				unit: data.unit,
+				minStock: data.minStock,
+				costPerUnit: data.costPerUnit,
+				stockToAdd: stockToAdd > 0 ? stockToAdd : undefined
+			})
 		});
 		await hydrateStore();
 		return;
@@ -706,6 +718,18 @@ export async function updateIngredient(id: string, data: { name: string; unit: U
 	ing.unit = data.unit;
 	ing.minStock = data.minStock;
 	if (data.costPerUnit !== undefined) ing.costPerUnit = data.costPerUnit;
+	if (stockToAdd > 0) {
+		ing.stock += stockToAdd;
+		store.movements.unshift({
+			id: `mv-${moveSeq++}`,
+			ingredientId: ing.id,
+			ingredientName: ing.name,
+			change: stockToAdd,
+			type: 'adjustment',
+			note: `Penambahan stok (${name})`,
+			at: now()
+		});
+	}
 }
 
 // Pembelian

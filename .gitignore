@@ -20,3 +20,9 @@ vite.config.ts.timestamp-*
 /TUTORIAL-NUSAPAY-HOSTINGER.md
 /deploy/README.md
 /anti-slop/
+
+# Cypress
+/cypress/screenshots/
+/cypress/videos/
+/cypress/downloads/
+*.swp

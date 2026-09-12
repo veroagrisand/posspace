@@ -1,0 +1,37 @@
+name: Cypress E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cypress run (mode demo)
+        uses: cypress-io/github-action@v6
+        with:
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          browser: electron
+          command: npx cypress run --env posspaceMode=demo
+        env:
+          # CI tanpa Supabase: variabel publik harus TETAP didefinisikan (boleh
+          # kosong) agar $env/static/public punya ekspor; isSupabaseConfigured
+          # jadi false → mode demo aktif.
+          PUBLIC_SUPABASE_URL: ''
+          PUBLIC_SUPABASE_ANON_KEY: ''
+          ALLOW_DEMO_MODE: 'true'

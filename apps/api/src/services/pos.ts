@@ -278,7 +278,7 @@ posDataService.post('/ingredients', async (c) => {
 	return json({ ingredient: data, merged: false });
 });
 
-/** PATCH /api/data/ingredients/[id] — ubah nama, satuan, batas minimum, harga modal. */
+/** PATCH /api/data/ingredients/[id] — ubah nama, satuan, batas minimum, harga modal; tambah stok (stockToAdd). */
 posDataService.patch('/ingredients/:id', async (c) => {
 	const ctx = await requireApiAuth(c);
 	const ingredientId = c.req.param('id');
@@ -288,6 +288,7 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		unit?: string;
 		minStock?: number;
 		costPerUnit?: number;
+		stockToAdd?: number;
 	};
 
 	if (body.name !== undefined && !String(body.name ?? '').trim()) httpError(400, 'NAME_REQUIRED');
@@ -296,6 +297,8 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		httpError(400, 'INVALID_MIN_STOCK');
 	if (body.costPerUnit !== undefined && (!Number.isFinite(Number(body.costPerUnit)) || Number(body.costPerUnit) < 0))
 		httpError(400, 'INVALID_COST');
+	if (body.stockToAdd !== undefined && (!Number.isFinite(Number(body.stockToAdd)) || Number(body.stockToAdd) < 0))
+		httpError(400, 'INVALID_STOCK_TO_ADD');
 
 	const name = body.name !== undefined ? String(body.name).trim() : undefined;
 
@@ -311,13 +314,24 @@ posDataService.patch('/ingredients/:id', async (c) => {
 		if (clash) httpError(409, 'DUPLICATE_NAME');
 	}
 
+	const { data: current } = await ctx.db
+		.from('ingredients')
+		.select('stock_quantity')
+		.eq('id', ingredientId)
+		.eq('shop_id', ctx.shop.shopId)
+		.maybeSingle();
+	if (!current) httpError(404, 'NOT_FOUND');
+
+	const stockToAdd = body.stockToAdd !== undefined ? Number(body.stockToAdd) : 0;
+
 	const { data, error: updateError } = await ctx.db
 		.from('ingredients')
 		.update({
 			name: name ?? undefined,
 			unit: body.unit ?? undefined,
 			min_stock: body.minStock ?? undefined,
-			cost_per_unit: body.costPerUnit !== undefined ? Math.round(Number(body.costPerUnit) * 100) / 100 : undefined
+			cost_per_unit: body.costPerUnit !== undefined ? Math.round(Number(body.costPerUnit) * 100) / 100 : undefined,
+			stock_quantity: stockToAdd > 0 ? Number(current.stock_quantity) + stockToAdd : undefined
 		})
 		.eq('id', ingredientId)
 		.eq('shop_id', ctx.shop.shopId)

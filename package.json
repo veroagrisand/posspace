@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -11,7 +13,11 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "dev:api": "npm run dev -w @posspace/api",
     "build:api": "npm run build -w @posspace/api",
-    "start:api": "npm run start -w @posspace/api"
+    "start:api": "npm run start -w @posspace/api",
+    "test:e2e": "cypress run",
+    "test:e2e:open": "cypress open",
+    "test:e2e:demo": "cypress run --env posspaceMode=demo",
+    "test:e2e:backend": "cypress run --env posspaceMode=backend"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^7.0.1",
@@ -21,6 +27,7 @@
     "@types/node": "^26.2.0",
     "@types/nodemailer": "^8.0.1",
     "@types/qrcode": "^1.5.6",
+    "cypress": "^16.0.0",
     "svelte": "^5.56.10",
     "svelte-check": "^4.7.6",
     "typescript": "^5.9.3",
@@ -31,5 +38,8 @@
     "@supabase/supabase-js": "^2.112.3",
     "nodemailer": "^9.0.5",
     "qrcode": "^1.5.4"
+  },
+  "allowScripts": {
+    "cypress@16.0.0": true
   }
 }

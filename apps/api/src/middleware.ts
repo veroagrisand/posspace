@@ -1,7 +1,6 @@
 import type { Context, Next } from 'hono';
 import { service, verifyUser } from './db.js';
 import { HttpError } from './http.js';
-
 /**
  * Middleware global:
  * 1) auth — baca Authorization: Bearer, verifikasi JWT (cache), simpan di context.
@@ -29,7 +28,6 @@ function clientIp(c: Context): string {
 	if (fwd) return fwd.split(',')[0].trim();
 	return c.req.header('x-real-ip') ?? '';
 }
-
 export async function accessLog(c: Context, next: Next) {
 	const startedAt = performance.now();
 	await next();
