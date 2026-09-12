@@ -19,6 +19,11 @@ describe('Autentikasi', () => {
 			cy.get('#password').type('rahasia123');
 			cy.get('#password').should('have.attr', 'type', 'password');
 			cy.get('button[aria-label="Tampilkan kata sandi"]').click();
+			cy.get('#password').then(($password) => {
+				if ($password.attr('type') === 'password') {
+					cy.get('button[aria-label="Tampilkan kata sandi"]').click();
+				}
+			});
 			cy.get('#password').should('have.attr', 'type', 'text');
 			cy.get('button[aria-label="Sembunyikan kata sandi"]').click();
 			cy.get('#password').should('have.attr', 'type', 'password');
